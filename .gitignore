@@ -1,0 +1,15 @@
+.venv/
+__pycache__/
+*.pyc
+backend/db.sqlite3
+backend/media/
+frontend/node_modules/
+frontend/dist/
+.env
+
+# Agent & internal docs excluded
+README.md
+CLAUDE.md
+GEMINI.md
+.playwright-mcp/
+
