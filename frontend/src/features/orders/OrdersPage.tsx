@@ -73,7 +73,7 @@ export default function OrdersPage() {
       )}
 
       <div className="card">
-        <div className="row-wrap" style={{ padding: "12px 16px", borderBottom: "1px solid var(--border)", gap: 12 }}>
+        <div className="card-toolbar">
           {!dept && (
             <div className="chips">
               {TABS.map((s) => (

@@ -35,8 +35,8 @@ export default function ReviewPage() {
         {query.data?.map((t) => (
           <div
             key={t.id}
-            className="row-wrap"
-            style={{ padding: 16, borderBottom: "1px solid var(--border)", gap: 16, cursor: "pointer" }}
+            className="list-row clickable"
+            style={{ flexWrap: "wrap" }}
             onClick={() => open({ task: t.id })}
           >
             <div className="grow" style={{ minWidth: 240 }}>

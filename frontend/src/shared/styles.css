@@ -32,8 +32,21 @@
   --slate: #475569;
   --slate-soft: #eef1f5;
 
-  --radius: 12px;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+
+  --radius-xs: 6px;
   --radius-sm: 8px;
+  --radius: 12px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-full: 9999px;
+
   --shadow: 0 1px 2px rgba(16, 24, 40, 0.05);
   --shadow-lg: 0 20px 50px -12px rgba(16, 24, 40, 0.28);
   --overlay: rgba(15, 18, 30, 0.45);
@@ -229,6 +242,11 @@ button { font: inherit; color: inherit; }
 .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); }
 .card-pad { padding: 16px; }
 .card-head { display: flex; align-items: center; gap: 10px; padding: 14px 16px; border-bottom: 1px solid var(--border); }
+.card-toolbar { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; padding: 12px 16px; border-bottom: 1px solid var(--border); }
+.list-row { display: flex; align-items: center; gap: 16px; padding: 14px 16px; border-bottom: 1px solid var(--border); transition: background .15s; }
+.list-row:last-child { border-bottom: 0; }
+.list-row.clickable { cursor: pointer; }
+.list-row.clickable:hover { background: var(--surface-hover); }
 .clickable { cursor: pointer; transition: border-color .15s, box-shadow .15s, transform .15s; }
 .clickable:hover { border-color: var(--border-strong); box-shadow: 0 4px 14px -6px rgba(16, 24, 40, .18); }
 

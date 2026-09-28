@@ -58,8 +58,8 @@ export default function NotificationsPage() {
         {query.data?.results.map((n) => (
           <button
             key={n.id}
-            className="palette-item"
-            style={{ borderRadius: 0, padding: "14px 16px", borderBottom: "1px solid var(--border)", background: n.is_read ? undefined : "var(--primary-soft)" }}
+            className="list-row clickable"
+            style={{ width: "100%", textAlign: "left", background: n.is_read ? undefined : "var(--primary-soft)" }}
             onClick={() => click(n)}
           >
             <span
