@@ -10,14 +10,15 @@ import { useDebounced } from "@/shared/hooks";
 import { useMeta } from "@/shared/meta";
 import { T } from "@/shared/text";
 import type { Person, Task } from "@/shared/types";
-import { Avatar, Badge, Drawer, Empty, ErrorBox, Segmented, Skeleton } from "@/shared/ui";
+import { Avatar, Badge, Button, Drawer, Empty, ErrorBox, Segmented, Skeleton, SkeletonRows } from "@/shared/ui";
 
-/** Xodimlar sahifasi: Boshliq va PM uchun jamoa a'zolari, bandligi va vazifalari. */
+/** Xodimlar sahifasi: Boshliq va PM uchun jamoa a'zolari, jadval yoki karta ko'rinishida. */
 export default function PeoplePage() {
   const me = useMe();
   const boss = me.role === "boss";
   const meta = useMeta();
   const [role, setRole] = useState<string>(boss ? "" : "developer");
+  const [view, setView] = useState<"table" | "grid">("table");
   const [q, setQ] = useState("");
   const search = useDebounced(q.toLowerCase());
   const [selectedPerson, setSelectedPerson] = useState<Person | null>(null);
@@ -55,7 +56,26 @@ export default function PeoplePage() {
               options={[{ value: "", label: T.common.all }, ...meta.roles.filter((r) => r.value !== "boss")]}
             />
           )}
-          <div className="row" style={{ background: "var(--surface)", border: "1px solid var(--border-strong)", borderRadius: "var(--radius-sm)", padding: "0 10px", height: 36 }}>
+
+          <Segmented
+            value={view}
+            onChange={setView}
+            options={[
+              { value: "table", label: "Jadval" },
+              { value: "grid", label: "Kartalar" },
+            ]}
+          />
+
+          <div
+            className="row"
+            style={{
+              background: "var(--surface)",
+              border: "1px solid var(--border-strong)",
+              borderRadius: "var(--radius-sm)",
+              padding: "0 10px",
+              height: 36,
+            }}
+          >
             <Search size={16} className="muted" />
             <input
               type="text"
@@ -71,10 +91,8 @@ export default function PeoplePage() {
       {peopleQuery.error && <ErrorBox error={peopleQuery.error} onRetry={() => peopleQuery.refetch()} />}
 
       {peopleQuery.isLoading && (
-        <div className="people-grid">
-          {[0, 1, 2, 3, 4, 5].map((i) => (
-            <Skeleton key={i} h={140} />
-          ))}
+        <div className="card">
+          <SkeletonRows rows={6} />
         </div>
       )}
 
@@ -84,49 +102,154 @@ export default function PeoplePage() {
         </div>
       )}
 
-      <div className="people-grid">
-        {filtered.map((p) => (
-          <button key={p.id} className="card person clickable" onClick={() => setSelectedPerson(p)}>
-            <div className="row">
-              <Avatar user={p} size="lg" />
-              <div className="grow" style={{ minWidth: 0 }}>
-                <div className="ellipsis" style={{ fontWeight: 650, fontSize: 15 }}>
-                  {p.full_name}
+      {/* ─── Jadval ko'rinishi (Standart asosiy ko'rinish) ─── */}
+      {view === "table" && filtered.length > 0 && (
+        <div className="card">
+          <div className="table-wrap">
+            <table className="table">
+              <thead>
+                <tr>
+                  <th style={{ width: 44 }}>№</th>
+                  <th>Xodim</th>
+                  <th>Lavozim / Bo'lim</th>
+                  <th>Bandlik holati</th>
+                  <th>Vazifalar ko'rsatkichi</th>
+                  <th>Joriy ish</th>
+                  <th style={{ width: 100, textAlign: "right" }}>Batafsil</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map((p, i) => (
+                  <tr
+                    key={p.id}
+                    tabIndex={0}
+                    onClick={() => setSelectedPerson(p)}
+                    onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && setSelectedPerson(p)}
+                  >
+                    <td className="muted">{i + 1}</td>
+                    <td>
+                      <div className="row">
+                        <Avatar user={p} size="sm" />
+                        <span style={{ fontWeight: 600 }}>{p.full_name}</span>
+                      </div>
+                    </td>
+                    <td>
+                      <span className="small">
+                        {p.department_name || p.specialty || p.role_label}
+                      </span>
+                    </td>
+                    <td>
+                      {p.role === "developer" || p.active_tasks || p.done_tasks ? (
+                        p.active_tasks === 0 ? (
+                          <Badge tone="success">{T.dashboard.free}</Badge>
+                        ) : (
+                          <Badge tone="info">
+                            {T.dashboard.active}: {p.active_tasks}
+                          </Badge>
+                        )
+                      ) : (
+                        <Badge tone="slate" dot={false}>
+                          {p.role_label}
+                        </Badge>
+                      )}
+                    </td>
+                    <td>
+                      <div className="row-wrap" style={{ gap: 6 }}>
+                        {p.active_tasks > 0 && (
+                          <span className="badge tone-primary" style={{ height: 22, fontSize: 11.5 }}>
+                            {p.active_tasks} faol
+                          </span>
+                        )}
+                        {p.overdue_tasks > 0 && (
+                          <span className="badge tone-danger" style={{ height: 22, fontSize: 11.5 }}>
+                            {p.overdue_tasks} kechikkan
+                          </span>
+                        )}
+                        {p.review_tasks > 0 && (
+                          <span className="badge tone-violet" style={{ height: 22, fontSize: 11.5 }}>
+                            {p.review_tasks} tekshiruvda
+                          </span>
+                        )}
+                        {p.active_tasks === 0 && p.overdue_tasks === 0 && (
+                          <span className="muted small">Vazifalar yo'q</span>
+                        )}
+                      </div>
+                    </td>
+                    <td style={{ maxWidth: 280 }}>
+                      {p.doing[0] ? (
+                        <span className="small ellipsis" style={{ display: "block", fontWeight: 550, color: "var(--primary)" }} title={p.doing[0].title}>
+                          ▶ {p.doing[0].title}
+                        </span>
+                      ) : (
+                        <span className="small muted">{T.dashboard.noDoing}</span>
+                      )}
+                    </td>
+                    <td style={{ textAlign: "right" }}>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedPerson(p);
+                        }}
+                      >
+                        {T.common.open}
+                      </Button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* ─── Karta ko'rinishi ─── */}
+      {view === "grid" && filtered.length > 0 && (
+        <div className="people-grid">
+          {filtered.map((p) => (
+            <button key={p.id} className="card person clickable" onClick={() => setSelectedPerson(p)}>
+              <div className="row">
+                <Avatar user={p} size="lg" />
+                <div className="grow" style={{ minWidth: 0 }}>
+                  <div className="ellipsis" style={{ fontWeight: 650, fontSize: 15 }}>
+                    {p.full_name}
+                  </div>
+                  <div className="small muted ellipsis">{p.department_name || p.specialty || p.role_label}</div>
                 </div>
-                <div className="small muted ellipsis">{p.department_name || p.specialty || p.role_label}</div>
               </div>
-            </div>
-            {p.role === "developer" || p.active_tasks || p.done_tasks ? (
-              <div className="person-nums">
-                {p.active_tasks === 0 ? (
-                  <Badge tone="success">{T.dashboard.free}</Badge>
-                ) : (
-                  <Badge tone="info">
-                    {T.dashboard.active}: {p.active_tasks}
-                  </Badge>
-                )}
-                {p.overdue_tasks > 0 && (
-                  <Badge tone="danger">
-                    {T.dashboard.overdue}: {p.overdue_tasks}
-                  </Badge>
-                )}
-                {p.review_tasks > 0 && (
-                  <Badge tone="violet">
-                    {meta.label("task_statuses", "in_review")}: {p.review_tasks}
-                  </Badge>
-                )}
+              {p.role === "developer" || p.active_tasks || p.done_tasks ? (
+                <div className="person-nums">
+                  {p.active_tasks === 0 ? (
+                    <Badge tone="success">{T.dashboard.free}</Badge>
+                  ) : (
+                    <Badge tone="info">
+                      {T.dashboard.active}: {p.active_tasks}
+                    </Badge>
+                  )}
+                  {p.overdue_tasks > 0 && (
+                    <Badge tone="danger">
+                      {T.dashboard.overdue}: {p.overdue_tasks}
+                    </Badge>
+                  )}
+                  {p.review_tasks > 0 && (
+                    <Badge tone="violet">
+                      {meta.label("task_statuses", "in_review")}: {p.review_tasks}
+                    </Badge>
+                  )}
+                </div>
+              ) : (
+                <Badge tone="slate" dot={false}>
+                  {p.role_label}
+                </Badge>
+              )}
+              <div className="small muted ellipsis" style={{ marginTop: 2 }}>
+                {p.doing[0] ? `▶ ${p.doing[0].title}` : T.dashboard.noDoing}
               </div>
-            ) : (
-              <Badge tone="slate" dot={false}>
-                {p.role_label}
-              </Badge>
-            )}
-            <div className="small muted ellipsis" style={{ marginTop: 2 }}>
-              {p.doing[0] ? `▶ ${p.doing[0].title}` : T.dashboard.noDoing}
-            </div>
-          </button>
-        ))}
-      </div>
+            </button>
+          ))}
+        </div>
+      )}
 
       {selectedPerson && <PersonDrawer person={selectedPerson} onClose={() => setSelectedPerson(null)} />}
     </>
