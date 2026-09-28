@@ -18,8 +18,8 @@ export default function LandingPage() {
   };
 
   return (
-    <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", color: "var(--text)" }}>
-      <header style={{ display: "flex", alignItems: "center", padding: "16px 32px", borderBottom: "1px solid var(--border)", background: "var(--surface)", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)" }}>
+    <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", background: "var(--bg)", color: "var(--text)" }}>
+      <header style={{ display: "flex", alignItems: "center", padding: "16px 32px", borderBottom: "1px solid var(--border)", background: "var(--surface)" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: 600, fontSize: 18 }}>
           <Sparkles color="var(--primary)" />
           {T.app}
