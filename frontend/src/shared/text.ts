@@ -63,6 +63,7 @@ export const T = {
     tasks: "Vazifalar",
     myWork: "Mening ishim",
     calendar: "Taqvim",
+    people: "Xodimlar",
     notifications: "Bildirishnomalar",
     review: "Tekshiruv navbati",
     history: "Umumiy tarix",
@@ -111,6 +112,9 @@ export const T = {
       active
         ? `Sizda ${active} ta faol vazifa${overdue ? `, ${overdue} tasining muddati o'tgan` : ""}.`
         : "Faol vazifangiz yo'q. Dam oling yoki menejeringizga yozing.",
+    weeklyHeroTitle: "Haftalik jami ishlar",
+    weeklyHeroSubtitle: (since: string) => `${since} dan bugungacha bo'lgan jami haftalik topshiriqlar`,
+    weeklyTotal: (n: number) => `Jami: ${n} ta`,
     team: "Jamoa",
     teamHint: "Vazifasi yo'qlar birinchi turadi",
     everyone: "Hamma xodimlar",

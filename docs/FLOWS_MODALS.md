@@ -33,7 +33,7 @@ Modallar URL parametrlariga bog'langan (`?task=12`, `?order=5`, `?project=3`, `?
 | 5 | Vazifa yaratish/tahrirlash | PM, Boshliq, Dasturchi | Nom, izoh, ijrochilar, muddat, sub-vazifalar, fayllar | `?new=task` / `?edit=:id` | Faol |
 | 6 | Vazifa ko'rish | Hamma (rolga qarab) | Ma'lumot, sub-vazifalar, tekshiruv (yuborish/qabul/qaytarish), izohlar, fayllar | `?task=:id` | Faol |
 
-Modal bo'lmagan yordamchi qatlamlar: dasturchi tafsilotlari uchun yon panel (drawer), o'chirish/tasdiqlash uchun kichik tasdiq dialogi.
+Modal bo'lmagan yordamchi qatlamlar: xodimlar tafsilotlari uchun yon panel (drawer — /xodimlar sahifasida), o'chirish/tasdiqlash uchun kichik tasdiq dialogi.
 
 ## Birlashtirilgan / bekor qilingan
 

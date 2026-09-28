@@ -1,5 +1,5 @@
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { AlertTriangle, ClipboardCheck, Clock, FileText, FolderKanban, Plus, Users } from "lucide-react";
+import { AlertTriangle, CalendarDays, ClipboardCheck, Clock, FileText, FolderKanban, Plus, Users } from "lucide-react";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 
@@ -9,10 +9,9 @@ import { EMPTY_FILTERS, filterParams, TaskFilters, type TaskFilterState, TaskTab
 import { api, qs } from "@/shared/api";
 import { fmtDate } from "@/shared/format";
 import { useDebounced } from "@/shared/hooks";
-import { useMeta } from "@/shared/meta";
 import { T } from "@/shared/text";
-import type { Bucket, Dashboard as DashboardData, Paged, PeriodKey, Person, Task } from "@/shared/types";
-import { Avatar, Badge, Button, Drawer, ErrorBox, Segmented, Skeleton } from "@/shared/ui";
+import type { Bucket, Dashboard as DashboardData, Paged, PeriodKey, Task } from "@/shared/types";
+import { Button, ErrorBox, Skeleton } from "@/shared/ui";
 
 interface Selection {
   bucket: Bucket;
@@ -26,7 +25,7 @@ const PERIOD_BUCKETS: { key: "active" | "overdue" | "done"; label: string }[] = 
   { key: "done", label: T.dashboard.done },
 ];
 
-/** Bosh panel. PM/Boshliq — jamoa + hammaning vazifalari; dasturchi — faqat o'ziniki. */
+/** Bosh panel. Haftalik jami ishlar markaziy o'rinda; xodimlar esa /xodimlar sahifasiga o'tkazilgan. */
 export default function Dashboard() {
   const me = useMe();
   const manager = isManager(me);
@@ -38,6 +37,10 @@ export default function Dashboard() {
   const pick = (s: Selection) =>
     setSelected((cur) => (cur && cur.bucket === s.bucket && cur.period === s.period ? null : s));
   const isOn = (bucket: Bucket, period?: PeriodKey) => selected?.bucket === bucket && selected?.period === period;
+
+  const weekPeriod = d?.periods.find((p) => p.key === "week");
+  const otherPeriods = d?.periods.filter((p) => p.key !== "week") ?? [];
+  const weekTotal = weekPeriod ? weekPeriod.counts.active + weekPeriod.counts.done : 0;
 
   return (
     <>
@@ -54,9 +57,12 @@ export default function Dashboard() {
         </div>
         {manager ? (
           <>
+            <Link to="/xodimlar" className="btn">
+              <Users size={16} /> {T.nav.people}
+            </Link>
             {(d?.orders_pending ?? 0) > 0 && (
               <Link to="/buyurtmalar" className="btn">
-                <FileText /> {T.nav.orders}
+                <FileText size={16} /> {T.nav.orders}
                 <span className="count-pill">{d?.orders_pending}</span>
               </Link>
             )}
@@ -74,12 +80,85 @@ export default function Dashboard() {
         )}
       </div>
 
-      {manager && <TeamStrip boss={me.role === "boss"} />}
-
       {dash.error && <ErrorBox error={dash.error} onRetry={() => dash.refetch()} />}
-      <div className="period-grid">
+
+      {/* ─── Haftalik jami ishlar (Asosiy ko'rsatkich) ─── */}
+      <section className="weekly-hero">
+        <div className="row-wrap">
+          <div className="grow">
+            <div className="row" style={{ gap: 8 }}>
+              <CalendarDays className="muted" size={20} />
+              <h2>{T.dashboard.weeklyHeroTitle}</h2>
+              {weekPeriod && (
+                <span className="small muted">
+                  ({fmtDate(weekPeriod.since)} — bugun)
+                </span>
+              )}
+            </div>
+            <p className="small muted" style={{ marginTop: 3 }}>
+              {weekPeriod ? T.dashboard.weeklyHeroSubtitle(fmtDate(weekPeriod.since)) : T.common.loading}
+            </p>
+          </div>
+          {weekPeriod && (
+            <span className="badge tone-primary" style={{ fontSize: 13, height: 28, padding: "0 12px" }}>
+              {T.dashboard.weeklyTotal(weekTotal)}
+            </span>
+          )}
+        </div>
+
+        <div className="weekly-grid">
+          <button
+            className="stat-card clickable"
+            aria-pressed={isOn("active", "week")}
+            onClick={() => pick({ bucket: "active", period: "week", title: "Haftalik faol vazifalar" })}
+          >
+            <span className="stat-label">{T.dashboard.active}</span>
+            <span className="stat-num" style={{ color: "var(--primary)" }}>
+              {weekPeriod ? weekPeriod.counts.active : "…"}
+            </span>
+            <span className="small muted">Hozir bajarilayotgan ishlar</span>
+          </button>
+
+          <button
+            className="stat-card clickable"
+            aria-pressed={isOn("overdue", "week")}
+            onClick={() => pick({ bucket: "overdue", period: "week", title: "Haftalik muddati o'tgan vazifalar" })}
+          >
+            <span
+              className="stat-label"
+              style={{ color: (weekPeriod?.counts.overdue ?? 0) > 0 ? "var(--danger)" : undefined }}
+            >
+              {T.dashboard.overdue}
+            </span>
+            <span
+              className="stat-num"
+              style={{ color: (weekPeriod?.counts.overdue ?? 0) > 0 ? "var(--danger)" : undefined }}
+            >
+              {weekPeriod ? weekPeriod.counts.overdue : "…"}
+            </span>
+            <span className="small muted">Muddatidan kechikkan</span>
+          </button>
+
+          <button
+            className="stat-card clickable"
+            aria-pressed={isOn("done", "week")}
+            onClick={() => pick({ bucket: "done", period: "week", title: "Haftalik bajarilgan vazifalar" })}
+          >
+            <span className="stat-label" style={{ color: "var(--success)" }}>
+              {T.dashboard.done}
+            </span>
+            <span className="stat-num" style={{ color: "var(--success)" }}>
+              {weekPeriod ? weekPeriod.counts.done : "…"}
+            </span>
+            <span className="small muted">Yakunlangan topshiriqlar</span>
+          </button>
+        </div>
+      </section>
+
+      {/* ─── Boshqa davrlar: Oy boshidan va Yil boshidan ─── */}
+      <div className="grid-2">
         {d
-          ? d.periods.map((p) => (
+          ? otherPeriods.map((p) => (
               <div key={p.key} className="card period">
                 <div className="period-title">
                   <h3>{p.label}</h3>
@@ -105,9 +184,10 @@ export default function Dashboard() {
                 </div>
               </div>
             ))
-          : [0, 1, 2].map((i) => <Skeleton key={i} h={132} />)}
+          : [0, 1].map((i) => <Skeleton key={i} h={132} />)}
       </div>
 
+      {/* ─── Umumiy nazorat ko'rsatkichlari ─── */}
       <div className="total-grid">
         {(
           [
@@ -169,122 +249,5 @@ function SelectedTasks({ selection, onClose, manager, mine }: { selection: Selec
         <TaskTable tasks={query.data?.results} loading={query.isLoading} />
       )}
     </div>
-  );
-}
-
-/** Jamoa: kimda nechta vazifa, vazifasi yo'qlar birinchi. Boshliq — hamma xodimlar, rol bo'yicha. */
-function TeamStrip({ boss }: { boss: boolean }) {
-  const [role, setRole] = useState<string>(boss ? "" : "developer");
-  const [person, setPerson] = useState<Person | null>(null);
-  const meta = useMeta();
-  const people = useQuery({ queryKey: ["people", role], queryFn: () => api.get<Person[]>(`/people/${qs({ role })}`) });
-
-  return (
-    <section className="stack">
-      <div className="row-wrap">
-        <Users size={18} className="muted" />
-        <h2>{boss ? T.dashboard.everyone : T.dashboard.team}</h2>
-        <span className="small muted">{T.dashboard.teamHint}</span>
-        <span className="spacer" />
-        {boss && (
-          <Segmented
-            value={role}
-            onChange={setRole}
-            options={[{ value: "", label: T.common.all }, ...meta.roles.filter((r) => r.value !== "boss")]}
-          />
-        )}
-      </div>
-      {people.error && <ErrorBox error={people.error} />}
-      <div className="people">
-        {people.isLoading && [0, 1, 2, 3].map((i) => <Skeleton key={i} h={130} />)}
-        {people.data?.map((p) => (
-          <button key={p.id} className="card person clickable" onClick={() => setPerson(p)}>
-            <div className="row">
-              <Avatar user={p} />
-              <div className="grow" style={{ minWidth: 0 }}>
-                <div className="ellipsis" style={{ fontWeight: 650 }}>
-                  {p.full_name}
-                </div>
-                <div className="small muted ellipsis">{p.department_name || p.specialty || p.role_label}</div>
-              </div>
-            </div>
-            {p.role === "developer" || p.active_tasks || p.done_tasks ? (
-              <div className="person-nums">
-                {p.active_tasks === 0 ? <Badge tone="success">{T.dashboard.free}</Badge> : <Badge tone="info">{T.dashboard.active}: {p.active_tasks}</Badge>}
-                {p.overdue_tasks > 0 && <Badge tone="danger">{T.dashboard.overdue}: {p.overdue_tasks}</Badge>}
-                {p.review_tasks > 0 && <Badge tone="violet">{meta.label("task_statuses", "in_review")}: {p.review_tasks}</Badge>}
-              </div>
-            ) : (
-              <Badge tone="slate" dot={false}>
-                {p.role_label}
-              </Badge>
-            )}
-            <div className="small muted ellipsis">{p.doing[0] ? `▶ ${p.doing[0].title}` : T.dashboard.noDoing}</div>
-          </button>
-        ))}
-      </div>
-      {person && <PersonDrawer person={person} onClose={() => setPerson(null)} />}
-    </section>
-  );
-}
-
-function PersonDrawer({ person, onClose }: { person: Person; onClose: () => void }) {
-  const { open } = useModal();
-  const meta = useMeta();
-  const tasks = useQuery({
-    queryKey: ["tasks", "person", person.id],
-    queryFn: () => api.get<Task[]>(`/tasks/${qs({ assignee: person.id, all: 1 })}`),
-    enabled: person.role === "developer",
-  });
-  return (
-    <Drawer
-      title={
-        <span className="row">
-          <Avatar user={person} size="lg" />
-          <span className="stack-sm" style={{ gap: 0 }}>
-            <b style={{ fontSize: 16 }}>{person.full_name}</b>
-            <span className="small muted">{person.department_name || person.specialty || person.role_label}</span>
-          </span>
-        </span>
-      }
-      onClose={onClose}
-    >
-      <div className="stack">
-        <div className="grid-3">
-          <div className="card card-pad" style={{ textAlign: "center" }}>
-            <div className="stat-num">{person.active_tasks}</div>
-            <div className="stat-label">{T.dashboard.active}</div>
-          </div>
-          <div className="card card-pad" style={{ textAlign: "center" }}>
-            <div className="stat-num" style={{ color: person.overdue_tasks ? "var(--danger)" : undefined }}>
-              {person.overdue_tasks}
-            </div>
-            <div className="stat-label">{T.dashboard.overdue}</div>
-          </div>
-          <div className="card card-pad" style={{ textAlign: "center" }}>
-            <div className="stat-num">{person.done_tasks}</div>
-            <div className="stat-label">{T.dashboard.done}</div>
-          </div>
-        </div>
-        {person.role === "developer" && (
-          <>
-            <div className="section-title">{T.dashboard.personTasks}</div>
-            {tasks.isLoading && <Skeleton h={80} />}
-            {tasks.data && !tasks.data.length && <p className="muted">{T.tasks.empty}</p>}
-            {tasks.data?.map((t) => (
-              <button key={t.id} className="card card-pad clickable stack-sm" style={{ textAlign: "left", font: "inherit", color: "inherit" }} onClick={() => open({ task: t.id })}>
-                <span className="row">
-                  <b className="grow">{t.title}</b>
-                  <Badge tone={t.status === "done" ? "success" : t.is_overdue ? "danger" : "info"}>{meta.label("task_statuses", t.status)}</Badge>
-                </span>
-                <span className="small muted">
-                  {t.project.name} · {t.due_at ? fmtDate(t.due_at) : T.common.notSet}
-                </span>
-              </button>
-            ))}
-          </>
-        )}
-      </div>
-    </Drawer>
   );
 }

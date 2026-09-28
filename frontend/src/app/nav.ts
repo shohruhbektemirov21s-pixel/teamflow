@@ -9,6 +9,7 @@ import {
   LayoutDashboard,
   ListChecks,
   type LucideIcon,
+  Users,
 } from "lucide-react";
 
 import { T } from "@/shared/text";
@@ -31,6 +32,7 @@ export interface NavGroup {
 const dashboard: NavItem = { to: "/", label: T.nav.dashboard, icon: LayoutDashboard };
 const tasks: NavItem = { to: "/vazifalar", label: T.nav.tasks, icon: ListChecks };
 const calendar: NavItem = { to: "/taqvim", label: T.nav.calendar, icon: CalendarDays };
+const people: NavItem = { to: "/xodimlar", label: T.nav.people, icon: Users };
 const notifications: NavItem = { to: "/bildirishnomalar", label: T.nav.notifications, icon: Bell, counter: "notifications" };
 const history: NavItem = { to: "/tarix", label: T.nav.history, icon: History };
 
@@ -69,7 +71,7 @@ export function navFor(role: Role): NavGroup[] {
         },
         {
           title: T.nav.groupTeam,
-          items: [notifications, { to: "/tekshiruv", label: T.nav.review, icon: ClipboardCheck, counter: "review" }],
+          items: [people, notifications, { to: "/tekshiruv", label: T.nav.review, icon: ClipboardCheck, counter: "review" }],
         },
         { title: T.nav.groupControl, items: [history] },
       ];
