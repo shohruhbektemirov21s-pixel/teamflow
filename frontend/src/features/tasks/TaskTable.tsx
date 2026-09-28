@@ -57,12 +57,28 @@ export function TaskFilters({
           </select>
         )}
       </Field>
-      <Field label={T.filters.dateFrom}>
-        {(id) => <input id={id} type="date" className="input" value={value.date_from} onChange={set("date_from")} />}
-      </Field>
-      <Field label={T.filters.dateTo}>
-        {(id) => <input id={id} type="date" className="input" value={value.date_to} onChange={set("date_to")} />}
-      </Field>
+      <div className="field" style={{ minWidth: 240 }}>
+        <label className="field-label">{T.filters.dateRange}</label>
+        <div className="row" style={{ gap: 6 }}>
+          <input
+            type="date"
+            className="input"
+            value={value.date_from}
+            onChange={set("date_from")}
+            title={T.filters.dateFrom}
+            aria-label={T.filters.dateFrom}
+          />
+          <span className="muted" style={{ fontWeight: 600 }}>—</span>
+          <input
+            type="date"
+            className="input"
+            value={value.date_to}
+            onChange={set("date_to")}
+            title={T.filters.dateTo}
+            aria-label={T.filters.dateTo}
+          />
+        </div>
+      </div>
       {showStatus && (
         <Field label={T.filters.status}>
           {(id) => (

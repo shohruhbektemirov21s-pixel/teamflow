@@ -142,6 +142,7 @@ export const T = {
     dueWeek: "Shu hafta",
     dueMonth: "Shu oy",
     date: "Sana",
+    dateRange: "Sana (dan — gacha)",
     dateFrom: "Sanadan",
     dateTo: "Sanagacha",
     status: "Holat",
