@@ -1,3 +1,6 @@
+from decimal import Decimal
+
+from django.utils import timezone
 from rest_framework import serializers
 
 from apps.core.api_utils import JSONListField, file_info, user_brief
@@ -41,9 +44,23 @@ class TaskDetailSerializer(TaskListSerializer):
     files = serializers.SerializerMethodField()
     submissions = serializers.SerializerMethodField()
     actions = serializers.SerializerMethodField()
+    worklogs = serializers.SerializerMethodField()
+    worklog_hours = serializers.SerializerMethodField()
 
     class Meta(TaskListSerializer.Meta):
-        fields = TaskListSerializer.Meta.fields + ["created_by", "subtasks", "files", "submissions", "actions"]
+        fields = TaskListSerializer.Meta.fields + ["created_by", "subtasks", "files", "submissions", "actions", "worklogs", "worklog_hours"]
+
+    def get_worklogs(self, obj):
+        user = self.context["request"].user
+        return [
+            {"id": entry.pk, "author": user_brief(entry.author), "work_date": entry.work_date,
+             "hours": str(entry.hours), "note": entry.note,
+             "can_delete": user.is_manager or entry.author_id == user.pk}
+            for entry in obj.worklogs.all()
+        ]
+
+    def get_worklog_hours(self, obj):
+        return format(sum((entry.hours for entry in obj.worklogs.all()), Decimal("0")), ".2f")
 
     def get_created_by(self, obj):
         return user_brief(obj.created_by)
@@ -82,6 +99,7 @@ class TaskDetailSerializer(TaskListSerializer):
             "edit": user.is_manager,
             "delete": user.is_manager,
             "add_files": worker and obj.status != Task.Status.DONE,
+            "log_work": worker,
             "manage_subtasks": (user.is_manager or worker) and obj.status != Task.Status.DONE,
         }
 
@@ -114,6 +132,36 @@ class TaskUpdateSerializer(serializers.Serializer):
     subtasks = serializers.ListField(child=SubTaskInput(), required=False)
 
 
+class BulkTaskItemSerializer(serializers.Serializer):
+    title = serializers.CharField(max_length=255)
+    description = serializers.CharField(required=False, allow_blank=True, default="")
+    priority = serializers.ChoiceField(choices=Priority.choices, default=Priority.MEDIUM)
+    starts_at = serializers.DateTimeField(required=False, allow_null=True)
+    due_at = serializers.DateTimeField(required=False, allow_null=True)
+    assignee_ids = serializers.ListField(child=serializers.IntegerField(min_value=1), required=False, default=list)
+
+
+class BulkTaskSerializer(serializers.Serializer):
+    project = serializers.IntegerField(min_value=1)
+    tasks = serializers.ListField(child=BulkTaskItemSerializer(), min_length=1, max_length=100, required=False)
+    titles = serializers.ListField(child=serializers.CharField(max_length=255), min_length=1, max_length=100, required=False)
+    assignee_ids = serializers.ListField(child=serializers.IntegerField(min_value=1), required=False, default=list)
+    priority = serializers.ChoiceField(choices=Priority.choices, default=Priority.MEDIUM)
+    description = serializers.CharField(required=False, allow_blank=True, default="")
+    due_at = serializers.DateTimeField(required=False, allow_null=True)
+
+    def validate(self, data):
+        if ("tasks" in data) == ("titles" in data):
+            raise serializers.ValidationError("Vazifalar ro'yxatini bitta usulda yuboring.")
+        if "titles" in data:
+            data["tasks"] = [
+                {"title": title, "assignee_ids": data["assignee_ids"], "priority": data["priority"],
+                 "description": data["description"], "due_at": data.get("due_at")}
+                for title in data["titles"]
+            ]
+        return data
+
+
 class SubmitSerializer(serializers.Serializer):
     note = serializers.CharField(allow_blank=True)
     files = serializers.ListField(child=serializers.FileField(validators=[validate_upload]), required=False, default=list)
@@ -130,3 +178,14 @@ class SubTaskToggleSerializer(serializers.Serializer):
 
 class FilesSerializer(serializers.Serializer):
     files = serializers.ListField(child=serializers.FileField(validators=[validate_upload]), allow_empty=False)
+
+
+class WorkLogInput(serializers.Serializer):
+    work_date = serializers.DateField()
+    hours = serializers.DecimalField(max_digits=4, decimal_places=2, min_value=Decimal("0.01"), max_value=Decimal("24"))
+    note = serializers.CharField(max_length=5000)
+
+    def validate_work_date(self, value):
+        if value > timezone.localdate():
+            raise serializers.ValidationError("Kelajak sanasiga bajarilgan ish yozib bo'lmaydi.")
+        return value

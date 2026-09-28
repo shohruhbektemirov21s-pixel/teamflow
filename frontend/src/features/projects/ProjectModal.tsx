@@ -11,7 +11,7 @@ import { api, ApiError, formData, qs } from "@/shared/api";
 import { fmtDate } from "@/shared/format";
 import { useMeta } from "@/shared/meta";
 import { T } from "@/shared/text";
-import type { FileInfo, ProjectDetail, ProjectStage, Task } from "@/shared/types";
+import type { FileInfo, HistoryItem, ProjectDetail, ProjectStage, Task } from "@/shared/types";
 import {
   Avatar,
   Button,
@@ -49,18 +49,11 @@ export default function ProjectModal({ id }: { id: number }) {
   const [files, setFiles] = useState<File[]>([]);
   const [error, setError] = useState<ApiError | null>(null);
 
-  const historyEvents = (() => {
-    if (!p) return [];
-    const evs = [];
-    evs.push({ date: p.created_at, msg: "Loyiha tizimda yaratildi", type: "project" });
-    tasks.data?.forEach(t => {
-      evs.push({ date: t.created_at, msg: `Yangi vazifa yaratildi: ${t.title}`, type: "task" });
-      if (t.completed_at) {
-        evs.push({ date: t.completed_at, msg: `Vazifa yakunlandi: ${t.title}`, type: "done" });
-      }
-    });
-    return evs.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  })();
+  const history = useQuery({
+    queryKey: ["history", "project", id],
+    queryFn: () => api.get<{ results: HistoryItem[] }>(`/history/${qs({ project: id, paginated: 1 })}`),
+    enabled: tab === "history",
+  });
 
   useEffect(() => {
     if (!p) return;
@@ -184,16 +177,17 @@ export default function ProjectModal({ id }: { id: number }) {
 
         {tab === "history" && (
           <div className="card card-pad stack">
-            <h4 style={{ margin: 0 }}>Loyiha Faolligi (Xronologiya)</h4>
+            <h4 style={{ margin: 0 }}>Loyiha faolligi</h4>
+            {history.isLoading && <Skeleton h={140} />}
+            {history.error && <ErrorBox error={history.error} onRetry={() => history.refetch()} />}
             <div className="timeline" style={{ marginTop: 10 }}>
-              {historyEvents.map((h, i) => (
-                <div key={i} className="timeline-item">
-                  <div className="avatar sm" style={{ background: h.type === "project" ? "var(--primary)" : h.type === "done" ? "var(--success)" : "var(--slate)", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12 }}>
-                    {h.type === "project" ? "P" : h.type === "done" ? "✓" : "T"}
-                  </div>
+              {!history.isLoading && !history.data?.results.length && <p className="muted">Hali faoliyat yo'q.</p>}
+              {history.data?.results.map((item) => (
+                <div key={item.id} className="timeline-item">
+                  {item.actor ? <Avatar user={item.actor} size="sm" /> : <span className="avatar sm" />}
                   <div className="grow">
-                    <div style={{ fontWeight: 500 }}>{h.msg}</div>
-                    <div className="small muted">{fmtDate(h.date)} {new Date(h.date).toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' })}</div>
+                    <div style={{ fontWeight: 500 }}>{item.message}</div>
+                    <div className="small muted">{fmtDate(item.created_at)}</div>
                   </div>
                 </div>
               ))}

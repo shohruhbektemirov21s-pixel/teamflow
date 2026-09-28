@@ -12,4 +12,5 @@ class ChatMessage(models.Model):
         ordering = ["-created_at"]
         indexes = [
             models.Index(fields=["author", "recipient", "-created_at"]),
+            models.Index(fields=["recipient", "author", "-created_at"], name="chat_recipient_partner_idx"),
         ]

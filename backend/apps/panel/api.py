@@ -224,25 +224,15 @@ def comments(request):
 
 @api_view(["GET"])
 def history(request):
-    """Menejer — hammaning tarixi; boshqalar — o'z amallari."""
-    qs = ActivityLog.objects.select_related("actor", "target_type")
-    if not request.user.is_manager:
-        qs = qs.filter(actor=request.user)
-    if request.query_params.get("q"):
-        qs = qs.filter(message__icontains=request.query_params["q"])
-    items = qs[:200]
-    kinds = {"order", "project", "task"}
-    return Response([
-        {
-            "id": a.pk, "actor": user_brief(a.actor), "verb": a.verb, "message": a.message, "created_at": a.created_at,
-            "target": {"type": a.target_type.model, "id": a.target_id}
-            if a.target_type_id and a.target_type.model in kinds else None,
-        }
-        for a in items
-    ])
-
-
-# ─── Fayllar (ruxsat tekshiruvi bilan) ───────────────────────────────────────
+    from .reports import PAGE_SIZE, activity_item, activity_queryset, page_slice, read_filters
+    filters = read_filters(request.query_params)
+    qs = activity_queryset(request.user, filters)
+    if request.query_params.get("paginated") == "1":
+        page = filters["page"]
+        count = qs.count()
+        return Response({"count": count, "results": [activity_item(a) for a in page_slice(qs, page)],
+                         "next": page * PAGE_SIZE < count, "previous": page > 1})
+    return Response([activity_item(a) for a in qs[:200]])
 
 
 def _file_owner_check(user, kind, pk):
@@ -279,70 +269,9 @@ def file_download(request, kind, pk):
 
 @api_view(["GET"])
 def workdone(request):
-    """Boshliq uchun: oxirgi bajarilgan ishlar, tekshiruv natijalari, izohlar.
-    PM uchun ham ochiq lekin faqat o'z loyihalaridagi ishlar.
-    Filter: ?days=7 (default), ?project=ID
-    """
-    user = request.user
-    if not user.is_manager:
-        raise PermissionDenied("Bu sahifa faqat menejerlar uchun.")
-    
-    days = int(request.query_params.get("days", 7))
-    since = timezone.now() - timezone.timedelta(days=days)
-    
-    # 1. So'nggi bajarilgan vazifalar (done holatiga o'tgan)
-    from apps.tasks.models import Task, Submission
-    task_qs = Task.objects.filter(status=Task.Status.DONE, completed_at__gte=since)
-    if not user.is_boss:
-        from apps.tasks.permissions import visible_tasks
-        task_qs = task_qs.filter(pk__in=visible_tasks(user))
-    if request.query_params.get("project"):
-        task_qs = task_qs.filter(project_id=request.query_params["project"])
-    task_qs = task_qs.select_related("project").prefetch_related("assignees")[:50]
-    
-    # 2. So'nggi tekshiruvlar (qabul qilingan va qaytarilganlar)
-    sub_qs = Submission.objects.filter(
-        reviewed_at__gte=since,
-        decision__in=["accepted", "returned"]
-    ).select_related("task__project", "submitted_by", "reviewed_by")[:50]
-    if not user.is_boss:
-        from apps.tasks.permissions import visible_tasks
-        sub_qs = sub_qs.filter(task__in=visible_tasks(user))
-    
-    # 3. So'nggi tarix
-    history_qs = ActivityLog.objects.filter(created_at__gte=since).select_related("actor")[:50]
-    
-    result = {
-        "completed_tasks": [
-            {
-                "id": t.pk, "title": t.title,
-                "project": {"id": t.project.pk, "name": t.project.name},
-                "completed_at": t.completed_at,
-                "assignees": [user_brief(a) for a in t.assignees.all()],
-            }
-            for t in task_qs
-        ],
-        "reviews": [
-            {
-                "id": s.pk, "task_id": s.task.pk, "task_title": s.task.title,
-                "project": s.task.project.name,
-                "submitted_by": user_brief(s.submitted_by),
-                "reviewed_by": user_brief(s.reviewed_by),
-                "decision": s.decision, "note": s.note[:100],
-                "review_note": s.review_note[:100],
-                "reviewed_at": s.reviewed_at,
-            }
-            for s in sub_qs
-        ],
-        "recent_activity": [
-            {
-                "id": a.pk, "actor": user_brief(a.actor),
-                "verb": a.verb, "message": a.message, "created_at": a.created_at,
-            }
-            for a in history_qs
-        ],
-    }
-    return Response(result)
+    from .reports import read_filters, work_report
+    require_manager(request.user)
+    return Response(work_report(request.user, read_filters(request.query_params)))
 
 
 @api_view(["GET"])

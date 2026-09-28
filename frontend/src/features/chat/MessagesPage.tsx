@@ -3,6 +3,7 @@ import { useEffect, useState, useRef } from "react";
 import { useMe } from "@/app/auth";
 import { api } from "@/shared/api";
 import { Avatar, Button, SkeletonRows } from "@/shared/ui";
+import type { ChatConversation, ChatMessage, UserBrief } from "@/shared/types";
 import { Search } from "lucide-react";
 
 export default function MessagesPage() {
@@ -12,23 +13,20 @@ export default function MessagesPage() {
   const [search, setSearch] = useState("");
   const chatEndRef = useRef<HTMLDivElement>(null);
 
-  // Users we can chat with
   const peopleQuery = useQuery({
     queryKey: ["chat", "people", search],
-    queryFn: () => api.get<any[]>(`/chat/people/?q=${search}`),
+    queryFn: () => api.get<UserBrief[]>(`/chat/people/?q=${search}`),
   });
 
-  // Conversations
   const convQuery = useQuery({
     queryKey: ["chat", "conversations"],
-    queryFn: () => api.get<any[]>("/chat/conversations/"),
+    queryFn: () => api.get<ChatConversation[]>("/chat/conversations/"),
     refetchInterval: 5000,
   });
 
-  // Messages with partner
   const msgsQuery = useQuery({
     queryKey: ["chat", "messages", partnerId],
-    queryFn: () => api.get<any[]>(`/chat/messages/?partner=${partnerId}`),
+    queryFn: () => api.get<ChatMessage[]>(`/chat/messages/?partner=${partnerId}`),
     enabled: Boolean(partnerId),
     refetchInterval: 3000,
   });
@@ -39,7 +37,7 @@ export default function MessagesPage() {
 
   const [text, setText] = useState("");
   const sendMut = useMutation({
-    mutationFn: () => api.post("/chat/send/", { partner: partnerId, text }),
+    mutationFn: () => api.post<ChatMessage>("/chat/send/", { partner: partnerId, text }),
     onSuccess: () => {
       setText("");
       qc.invalidateQueries({ queryKey: ["chat", "messages", partnerId] });
@@ -50,14 +48,16 @@ export default function MessagesPage() {
   const allPeople = peopleQuery.data || [];
   const conversations = convQuery.data || [];
 
-  // Combine people to show in sidebar
   const sidebarItems = search 
-    ? allPeople
-    : conversations.map(c => ({...c.partner, last_message: c.last_message, unread: c.unread_count}));
+    ? allPeople.map((person) => ({ ...person, last_message: "", unread_count: 0 }))
+    : conversations.map((conversation) => ({
+        ...conversation.partner,
+        last_message: conversation.last_message,
+        unread_count: conversation.unread_count,
+      }));
 
-  // Find active partner details
   const activePartner = partnerId 
-    ? (allPeople.find(p => p.id === partnerId) || conversations.find(c => c.partner.id === partnerId)?.partner)
+    ? (allPeople.find((person) => person.id === partnerId) || conversations.find((conversation) => conversation.partner.id === partnerId)?.partner)
     : null;
 
   return (
@@ -93,10 +93,10 @@ export default function MessagesPage() {
                 <div style={{ flex: 1, overflow: "hidden" }}>
                   <div style={{ fontWeight: 600, fontSize: 14 }}>{p.full_name}</div>
                   <div style={{ fontSize: 13, color: "var(--muted)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                    {p.last_message || p.role_label}
+                    {p.last_message || p.role}
                   </div>
                 </div>
-                {p.unread > 0 && <span className="badge badge-primary">{p.unread}</span>}
+                {p.unread_count > 0 && <span className="badge badge-primary">{p.unread_count}</span>}
               </button>
             );
           })}
@@ -111,7 +111,7 @@ export default function MessagesPage() {
               <Avatar user={activePartner} size="sm" />
               <div>
                 <div style={{ fontWeight: 600 }}>{activePartner.full_name}</div>
-                <div style={{ fontSize: 12, color: "var(--muted)" }}>{activePartner.specialty || activePartner.role_label}</div>
+                <div style={{ fontSize: 12, color: "var(--muted)" }}>{activePartner.role}</div>
               </div>
             </div>
             

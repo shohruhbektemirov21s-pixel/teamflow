@@ -1,181 +1,12 @@
-import { useMe } from '@/app/auth';
-import { useMutation, useQuery } from "@tanstack/react-query";
-import {
-  
-  
-  CheckCircle2,
-  Clock3,
-  
-  FolderKanban,
-  Pencil,
-  Play,
-  Plus,
-  RotateCcw,
-  Send,
-  Trash2,
-  Upload,
-  User,
-  Users,
-} from "lucide-react";
-import { useEffect, useState } from "react";
+import os
 
-import { useModal } from "@/app/modals";
-import { useRefresh } from "@/app/queries";
-import { DocTitle, DocViewer } from "@/features/docs/DocViewer";
-import { Comments } from "@/features/comments/Comments";
-import { api, ApiError, formData } from "@/shared/api";
-import { fmtDateTime, timeAgo } from "@/shared/format";
-import { useMeta } from "@/shared/meta";
-import { T } from "@/shared/text";
-import type { FileInfo, ProjectDetail, TaskDetail } from "@/shared/types";
-import {
-  Avatar,
-  Badge,
-  Button,
-  Callout,
-  ConfirmButton,
-  Due,
-  ErrorBox,
-  Field,
-  FileList,
-  FilePicker,
-  Meta,
-  Modal,
-  PriorityBadge,
-  Skeleton,
-  Stepper,
-  TaskStatusBadge,
-  useToast,
-} from "@/shared/ui";
+with open('frontend/src/features/tasks/TaskModal.tsx', 'r', encoding='utf-8') as f:
+    text = f.read()
 
-type Panel = null | "submit" | "return";
+head_end = text.index('  const statuses = meta.task_statuses;')
+head = text[:head_end]
 
-
-/** Modal: vazifa ko'rish. Tekshiruv (qabul/qaytarish) ham shu yerda — alohida modal ochilmaydi. */
-export default function TaskModal({ id, submitMode }: { id: number; submitMode?: boolean }) {
-  const { close, open } = useModal();
-  const toast = useToast();
-  const refresh = useRefresh();
-  const meta = useMeta();
-  const me = useMe();
-  const query = useQuery({ queryKey: ["task", id], queryFn: () => api.get<TaskDetail>(`/tasks/${id}/`) });
-  const task = query.data;
-
-  const projectTeam = useQuery({
-    queryKey: ["project", task?.project.id],
-    queryFn: () => api.get<ProjectDetail>(`/projects/${task!.project.id}/`),
-    enabled: Boolean(task?.project.id),
-  });
-
-  
-  const [panel, setPanel] = useState<Panel>(submitMode ? "submit" : null);
-  const [note, setNote] = useState("");
-  const [files, setFiles] = useState<File[]>([]);
-  const [viewing, setViewing] = useState<FileInfo | null>(null);
-  const [noteError, setNoteError] = useState<string>();
-
-  const [isAddingSubtask, setIsAddingSubtask] = useState(false);
-  const [newSubtaskTitle, setNewSubtaskTitle] = useState("");
-  const [newSubtaskAssignee, setNewSubtaskAssignee] = useState<number | "">("");
-  const [workNote, setWorkNote] = useState("");
-  const [workHours, setWorkHours] = useState("1");
-
-  useEffect(() => {
-    if (submitMode) setPanel("submit");
-  }, [submitMode]);
-  
-
-  const act = useMutation({
-    mutationFn: async (kind: "start" | "submit" | "accept" | "return" | "delete" | "files") => {
-      if (kind === "start") return api.post(`/tasks/${id}/start/`);
-      if (kind === "submit") return api.post(`/tasks/${id}/submit/`, formData({ note }, files));
-      if (kind === "accept") return api.post(`/tasks/${id}/review/`, { decision: "accept", note });
-      if (kind === "return") return api.post(`/tasks/${id}/review/`, { decision: "return", note });
-      if (kind === "files") return api.post(`/tasks/${id}/files/`, formData({}, files));
-      return api.del(`/tasks/${id}/`);
-    },
-    onSuccess: (_d, kind) => {
-      const msg = {
-        start: T.tasks.startedToast,
-        submit: T.tasks.submittedToast,
-        accept: T.tasks.acceptedToast,
-        return: T.tasks.returnedToast,
-        delete: T.tasks.deletedToast,
-        files: T.common.saved,
-      }[kind];
-      toast(msg);
-      setPanel(null);
-      setNote("");
-      setFiles([]);
-      setNoteError(undefined);
-      refresh();
-      if (kind === "delete") close();
-    },
-    onError: (e: Error) => {
-      const fieldMsg = e instanceof ApiError ? e.field("note") : undefined;
-      if (fieldMsg) setNoteError(fieldMsg);
-      else toast(e.message, "error");
-    },
-  });
-
-  const toggle = useMutation({
-    mutationFn: ({ sid, done }: { sid: number; done: boolean }) => api.post(`/tasks/${id}/subtasks/${sid}/toggle/`, { is_done: done }),
-    onSuccess: () => refresh(),
-    onError: (e: Error) => toast(e.message, "error"),
-  });
-
-  const addSubtask = useMutation({
-    mutationFn: (data: { title: string; assignee_id?: number | null }) => api.post(`/tasks/${id}/subtasks/`, data),
-    onSuccess: () => {
-      refresh();
-      setNewSubtaskTitle("");
-      setNewSubtaskAssignee("");
-      setIsAddingSubtask(false);
-      toast("Sub-vazifa qo'shildi");
-    },
-    onError: (e: Error) => toast(e.message, "error"),
-  });
-
-  const deleteSubtask = useMutation({
-    mutationFn: (sid: number) => api.del(`/tasks/${id}/subtasks/${sid}/`),
-    onSuccess: () => {
-      refresh();
-      toast("Sub-vazifa o'chirildi");
-    },
-    onError: (e: Error) => toast(e.message, "error"),
-  });
-
-  const worklog = useMutation({
-    mutationFn: () => api.post<TaskDetail>(`/tasks/${id}/worklogs/`, { work_date: new Date().toISOString().slice(0, 10), hours: workHours, note: workNote }),
-    onSuccess: () => {
-      setWorkNote("");
-      setWorkHours("1");
-      refresh();
-      toast("Ish jurnali saqlandi");
-    },
-    onError: (e: Error) => toast(e.message, "error"),
-  });
-  const deleteWorklog = useMutation({
-    mutationFn: (entryId: number) => api.del<TaskDetail>(`/tasks/${id}/worklogs/${entryId}/`),
-    onSuccess: () => refresh(),
-    onError: (e: Error) => toast(e.message, "error"),
-  });
-
-  if (viewing)
-    return (
-      <Modal size="lg" title={<DocTitle file={viewing} onBack={() => setViewing(null)} />} onClose={close}>
-        <DocViewer file={viewing} />
-      </Modal>
-    );
-
-  if (!task)
-    return (
-      <Modal size="lg" title={query.error ? T.common.notFound : T.common.loading} onClose={close}>
-        {query.error ? <ErrorBox error={query.error} /> : <Skeleton h={240} />}
-      </Modal>
-    );
-
-  const statuses = meta.task_statuses;
+tail = """  const statuses = meta.task_statuses;
   const step = statuses.findIndex((s) => s.value === task.status);
   const lastReturned = [...task.submissions].reverse().find((s) => s.decision === "returned");
   const pending = [...task.submissions].reverse().find((s) => s.decision === "pending");
@@ -432,7 +263,7 @@ export default function TaskModal({ id, submitMode }: { id: number; submitMode?:
               </details>
             )}
 
-            <details className="details-section" open={Number(task.worklog_hours) > 0}>
+            <details className="details-section" open={task.worklog_hours > 0}>
               <summary>Ish jurnali ({task.worklog_hours} soat)</summary>
               <div className="details-content stack">
                 {task.actions.log_work && (
@@ -454,7 +285,7 @@ export default function TaskModal({ id, submitMode }: { id: number; submitMode?:
                           <p className="small muted" style={{ margin: 0 }}>{wl.note}</p>
                         </span>
                         <span className="small muted">{fmtDateTime(wl.created_at)}</span>
-                        {task.actions.log_work && wl.user.id === me?.id && (
+                        {task.actions.log_work && wl.user.id === meta.me?.id && (
                           <button type="button" className="icon-btn" title="O'chirish" onClick={() => deleteWorklog.mutate(wl.id)}>
                             <Trash2 size={14} />
                           </button>
@@ -480,10 +311,10 @@ export default function TaskModal({ id, submitMode }: { id: number; submitMode?:
             <details className="details-section" open>
               <summary>Ma'lumotlar</summary>
               <div className="details-content stack-sm">
-                <Meta icon={<FolderKanban />} label={"Loyiha"}>{task.project.name}</Meta>
-                <Meta icon={<Due value={task.due_at} format={fmtDateTime} />} label={"Muddat"}>{fmtDateTime(task.due_at)}</Meta>
-                <Meta icon={<Users />} label={"Ijrochilar"}>
-                  <div className="chips">{task.assignees.map((u) => <Avatar key={u.id} user={u} size="sm" />)}</div>
+                <Meta icon={<FolderKanban />} label={T.tasks.col.project}>{task.project.name}</Meta>
+                <Meta icon={<Due due={task.due_at} />} label={T.tasks.col.due}>{fmtDateTime(task.due_at)}</Meta>
+                <Meta icon={<Users />} label={T.tasks.col.assignees}>
+                  <People users={task.assignments.map((a) => a.developer)} />
                 </Meta>
                 <Meta icon={<User />} label="Yaratdi">{task.created_by.full_name}</Meta>
               </div>
@@ -497,7 +328,7 @@ export default function TaskModal({ id, submitMode }: { id: number; submitMode?:
                 ) : (
                   <span className="small muted">Fayllar yo'q</span>
                 )}
-                {task.actions.add_files && (
+                {task.actions.manage_files && (
                   <form onSubmit={(e) => { e.preventDefault(); if (files.length) act.mutate("files"); }}>
                     <div className="row" style={{ marginTop: 10 }}>
                       <FilePicker files={files} onChange={setFiles} />
@@ -517,3 +348,7 @@ export default function TaskModal({ id, submitMode }: { id: number; submitMode?:
     </Modal>
   );
 }
+"""
+
+with open('frontend/src/features/tasks/TaskModal.tsx', 'w', encoding='utf-8') as f:
+    f.write(head + tail)

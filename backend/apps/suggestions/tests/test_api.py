@@ -5,6 +5,18 @@ from apps.accounts.models import User, Role
 from apps.suggestions.models import Suggestion, SuggestionVote
 
 class SuggestionApiTests(TestCase):
+    def test_generic_update_cannot_bypass_boss_decision(self):
+        suggestion = Suggestion.objects.create(title="Original", body="Text", author=self.pm)
+        self.client.force_login(self.dev)
+        for method in (self.client.patch, self.client.put):
+            response = method(reverse("suggestion-detail", args=[suggestion.pk]),
+                              {"title": "Changed", "body": "Changed", "status": "accepted", "boss_note": "Forged"},
+                              content_type="application/json")
+            self.assertEqual(response.status_code, 405)
+        suggestion.refresh_from_db()
+        self.assertEqual(suggestion.status, "pending")
+        self.assertEqual(suggestion.title, "Original")
+
     def setUp(self):
         self.dev = User.objects.create_user(username="dev1", password="testpass123", role=Role.DEVELOPER, is_active=True, first_name="Dev", last_name="One")
         self.boss = User.objects.create_user(username="boss1", password="testpass123", role=Role.BOSS, is_active=True, first_name="Boss", last_name="One")

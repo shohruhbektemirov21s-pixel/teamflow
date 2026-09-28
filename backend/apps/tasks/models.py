@@ -151,3 +151,16 @@ class SubmissionFile(models.Model):
 
     def __str__(self):
         return self.original_name
+
+
+class WorkLog(models.Model):
+    task = models.ForeignKey(Task, on_delete=models.CASCADE, related_name="worklogs")
+    author = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="worklogs")
+    work_date = models.DateField("Ish sanasi")
+    hours = models.DecimalField("Sarflangan soat", max_digits=4, decimal_places=2)
+    note = models.TextField("Bajarilgan ish")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-work_date", "-created_at", "-pk"]
+        constraints = [models.CheckConstraint(condition=models.Q(hours__gt=0, hours__lte=24), name="worklog_hours_range")]

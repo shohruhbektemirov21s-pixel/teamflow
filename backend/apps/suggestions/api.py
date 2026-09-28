@@ -1,7 +1,7 @@
 from django.db.models import Count, Q, Subquery, OuterRef, CharField
 from django.db.models.functions import Coalesce
 from django.utils import timezone
-from rest_framework import viewsets, status
+from rest_framework import mixins, viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
@@ -12,7 +12,8 @@ from .serializers import (
     SuggestionCreateSerializer, VoteSerializer, DecideSerializer
 )
 
-class SuggestionViewSet(viewsets.ModelViewSet):
+class SuggestionViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin,
+                        mixins.DestroyModelMixin, viewsets.GenericViewSet):
     def get_queryset(self):
         user = self.request.user
         my_vote_subquery = SuggestionVote.objects.filter(

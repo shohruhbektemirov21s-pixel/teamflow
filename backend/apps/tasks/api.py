@@ -10,9 +10,10 @@ from apps.projects.permissions import visible_projects
 
 from . import services
 from .filters import filter_tasks
-from .models import SubTask, Submission, TaskAssignment
+from .models import SubTask, Submission, TaskAssignment, WorkLog
 from .permissions import visible_tasks
 from .serializers import (
+    BulkTaskSerializer,
     FilesSerializer,
     ReviewSerializer,
     SubmitSerializer,
@@ -21,6 +22,7 @@ from .serializers import (
     TaskDetailSerializer,
     TaskListSerializer,
     TaskUpdateSerializer,
+    WorkLogInput,
 )
 
 
@@ -35,6 +37,7 @@ class TaskViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.Gen
                 "due_at", "-created_at"
             )
         return qs.prefetch_related(
+            "worklogs__author",
             "subtasks__assignee",
             "files",
             Prefetch(
@@ -135,39 +138,26 @@ class TaskViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.Gen
 
     @action(detail=False, methods=["post"])
     def bulk(self, request):
-        project_id = request.data.get("project")
-        if not project_id:
-            return Response({"project": "Majburiy"}, status=400)
-        from apps.projects.models import Project
-        from django.shortcuts import get_object_or_404
-        project = get_object_or_404(Project, pk=project_id)
-        
-        titles = request.data.get("titles", [])
-        if not titles:
-            return Response({"titles": "Vazifa nomlari kiritilmadi"}, status=400)
-            
-        assignee_ids = request.data.get("assignee_ids", [])
-        priority = request.data.get("priority", "medium")
-        description = request.data.get("description", "")
-        due_at = request.data.get("due_at")
-        
-        created = []
-        for title in titles:
-            if not title.strip():
-                continue
-            task = services.create_task(
-                request.user,
-                project,
-                title=title.strip(),
-                description=description,
-                priority=priority,
-                starts_at=None,
-                due_at=due_at,
-                assignee_ids=assignee_ids,
-            )
-            created.append(task)
-            
+        s = BulkTaskSerializer(data=request.data)
+        s.is_valid(raise_exception=True)
+        project = get_object_or_404(visible_projects(request.user), pk=s.validated_data["project"])
+        created = services.create_bulk_tasks(request.user, project, s.validated_data["tasks"])
         return Response({"created": len(created)}, status=201)
 
     def update(self, request, *args, **kwargs):
         raise PermissionDenied("PATCH ishlating.")
+
+    @action(detail=True, methods=["post"])
+    def worklogs(self, request, pk=None):
+        task = self.get_object()
+        serializer = WorkLogInput(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        services.log_work(task, request.user, **serializer.validated_data)
+        return Response(self._detail(task), status=201)
+
+    @action(detail=True, methods=["delete"], url_path=r"worklogs/(?P<entry_id>\d+)")
+    def delete_worklog(self, request, pk=None, entry_id=None):
+        task = self.get_object()
+        entry = get_object_or_404(WorkLog.objects.select_related("task"), pk=entry_id, task=task)
+        services.delete_worklog(entry, request.user)
+        return Response(self._detail(task))

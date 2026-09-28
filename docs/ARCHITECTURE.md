@@ -44,8 +44,9 @@ backend/
     accounts/        User, Specialty, ro'yxatdan o'tish, login, ruxsat yordamchilari
     orders/          Order, OrderVersion, buyurtma holat mashinasi, servislar
     projects/        Project, ProjectMember, ProjectFile
-    tasks/           Task, TaskAssignment, SubTask, Submission, holat mashinasi
+    tasks/           Task, TaskAssignment, SubTask, Submission, WorkLog, holat mashinasi
     notifications/   Notification
+    chat/            ChatMessage, validatsiya va suhbat servislar
     panel/           modelsiz yig'uvchi qatlam: dashboard, people, search, comments, history, files, meta
 ```
 
@@ -108,6 +109,7 @@ Qoida: `order` bilan bog'langan loyihada PM faqat `start_date`/`end_date` ni o'z
 | `TaskFile` | task FK, file, uploaded_by |
 | `Submission` | task FK, round, submitted_by, note, decision (pending/accepted/returned), reviewed_by?, review_note, submitted_at, reviewed_at? |
 | `SubmissionFile` | submission FK, file |
+| `WorkLog` | task FK, author FK, work_date, hours, note, created_at. Soat 0 dan katta va 24 dan oshmaydi. |
 
 Hisoblanadigan (saqlanmaydi): `is_overdue` = muddat o'tgan va `done` emas; `finished_late` = `completed_at > due_at`.
 **Nima uchun:** holatdan kelib chiqadigan qiymatni saqlash — nomuvofiqlik manbai.
@@ -118,6 +120,13 @@ Hisoblanadigan (saqlanmaydi): `is_overdue` = muddat o'tgan va `done` emas; `fini
 | `Comment` | author, text, target (GenericFK: Order/Project/Task), created_at |
 | `ActivityLog` | actor, verb, message, target (GenericFK), created_at — "Umumiy tarix" |
 | `Notification` | recipient, kind, message, target (GenericFK), is_read, created_at |
+
+### chat
+| Model | Maydonlar |
+|---|---|
+| `ChatMessage` | author FK, recipient FK, text, is_read, created_at. Kiruvchi suhbat ro'yxati uchun `recipient, author, created_at` indeksiga ega. |
+
+Chat API serializer orqali sherikni (faol foydalanuvchi, o'ziga teng emas) va xabar matnini tekshiradi. Suhbat ro'yxati guruhlangan unread-count so'rovidan foydalanadi; har bir suhbat uchun alohida `COUNT` qilinmaydi.
 
 ## 5. Holat mashinalari
 
@@ -172,6 +181,13 @@ POST       /api/tasks/{id}/status/        {status}   (dasturchi: control→in_pr
 POST       /api/tasks/{id}/submit/        {note, files}
 POST       /api/tasks/{id}/review/        {decision: accept|return, note}
 CRUD       /api/tasks/{id}/subtasks/
+POST       /api/tasks/{id}/worklogs/      {work_date, hours, note}
+DELETE     /api/tasks/{id}/worklogs/{entry_id}/
+
+GET        /api/chat/people/?q=           faol xodimlar qidiruvi
+GET        /api/chat/conversations/       so'nggi xabar va o'qilmaganlar soni
+GET        /api/chat/messages/?partner=:id
+POST       /api/chat/send/                {partner, text}
 
 GET/POST   /api/comments/?target=order:12
 GET        /api/notifications/  POST /api/notifications/{id}/read/
@@ -191,7 +207,7 @@ Xatolar: bir xil shakl `{code, detail, fields?}`. Sahifalash: DRF `PageNumberPag
 ```
 frontend/src/
   app/            router, providers (Auth, Meta), layout (sidebar, topbar), modals host
-  shared/         ui (Button, Modal, Drawer, Badge...), tokens.css, i18n (uz.ts), api client, hooks, meta
+  shared/         ui (Button, Modal, Badge...), tokens.css, i18n (uz.ts), api client, hooks, meta
   features/
     auth/         LoginPage, RegisterPage
     orders/       OrdersPage, OrderModal, OrderCreateModal
@@ -204,6 +220,7 @@ frontend/src/
     comments/     Comments
     history/      HistoryPage
     notifications/ NotificationsPage
+    chat/          MessagesPage
 ```
 
 - **Modal:** yagona `Modal` komponenti (o'lcham, sarlavha, footer). Modallar URL parametrlariga bog'langan (`?task=12`, `?order=5`, `?project=3`, `?new=task|order|project`). Sahifa ro'yxat bo'lib qoladi, ustida modal ochiladi; havolani ulashish va brauzer "Orqaga" tugmasi ishlaydi. Modal ustida modal ochilmaydi.
@@ -239,7 +256,7 @@ frontend/src/
 | Fayl turlari | `.docx .pdf .png .jpg`, 20 MB | Xavfsizlik, TZ asosan Word |
 | Papka tuzilmasi | `backend/`, `frontend/`, `docs/` | Ikkalasi mustaqil qurilsin |
 | "Muddati buzib bajarilgan" | `completed_at > due_at` | Sodda, hisoblanadi |
-| "Takliflar", "Xabarlar" | **Keyinga qoldirildi**, talab yozilmagan | O'zboshimchalik bo'lmasligi uchun. Foydalanuvchi aytgach qo'shiladi |
+| Takliflar va xabarlar | Alohida app va ro'yxat API'lari | Takliflar boshliq qarori bilan, xabarlar esa serializer va servis qatlamlari bilan himoyalangan |
 | Boshqarma yon paneli | Buyurtmalarim, Bildirishnomalar | Talab bo'yicha minimal, o'zgartirish mumkin |
 
 ## 12. Bosqichlar

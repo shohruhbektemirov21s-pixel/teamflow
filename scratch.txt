@@ -1,11 +1,10 @@
-import { useMe } from '@/app/auth';
 import { useMutation, useQuery } from "@tanstack/react-query";
 import {
-  
-  
+  CalendarClock,
+  ChevronDown,
   CheckCircle2,
   Clock3,
-  
+  Flag,
   FolderKanban,
   Pencil,
   Play,
@@ -49,7 +48,7 @@ import {
 } from "@/shared/ui";
 
 type Panel = null | "submit" | "return";
-
+type Tab = "main" | "review" | "worklog" | "comments";
 
 /** Modal: vazifa ko'rish. Tekshiruv (qabul/qaytarish) ham shu yerda — alohida modal ochilmaydi. */
 export default function TaskModal({ id, submitMode }: { id: number; submitMode?: boolean }) {
@@ -57,7 +56,6 @@ export default function TaskModal({ id, submitMode }: { id: number; submitMode?:
   const toast = useToast();
   const refresh = useRefresh();
   const meta = useMeta();
-  const me = useMe();
   const query = useQuery({ queryKey: ["task", id], queryFn: () => api.get<TaskDetail>(`/tasks/${id}/`) });
   const task = query.data;
 
@@ -67,7 +65,7 @@ export default function TaskModal({ id, submitMode }: { id: number; submitMode?:
     enabled: Boolean(task?.project.id),
   });
 
-  
+  const [tab, setTab] = useState<Tab>("main");
   const [panel, setPanel] = useState<Panel>(submitMode ? "submit" : null);
   const [note, setNote] = useState("");
   const [files, setFiles] = useState<File[]>([]);
@@ -83,7 +81,9 @@ export default function TaskModal({ id, submitMode }: { id: number; submitMode?:
   useEffect(() => {
     if (submitMode) setPanel("submit");
   }, [submitMode]);
-  
+  useEffect(() => {
+    if (task?.actions.review && task.status === "in_review") setTab("review");
+  }, [task?.actions.review, task?.status]);
 
   const act = useMutation({
     mutationFn: async (kind: "start" | "submit" | "accept" | "return" | "delete" | "files") => {
@@ -285,19 +285,31 @@ export default function TaskModal({ id, submitMode }: { id: number; submitMode?:
         {task.actions.review && pending && (
           <Callout tone="info">
             <b>
-              {pending.submitted_by.full_name} — {timeAgo(pending.submitted_at)}:
+              {pending.submitted_by.full_name} · {timeAgo(pending.submitted_at)}:
             </b>{" "}
             {pending.note}
           </Callout>
         )}
-        
-        <div className="modal-split" style={{ marginTop: 8 }}>
-          <div className="stack" style={{ gap: 16 }}>
-            {task.description && <p className="prose" style={{ marginBottom: 8 }}>{task.description}</p>}
-            
-            <details className="details-section" open>
-              <summary>Sub-vazifalar {task.subtasks.length > 0 && `(${task.subtasks_progress.done}/${task.subtasks_progress.total})`}</summary>
-              <div className="details-content stack-sm">
+        <div className="task-section-list" aria-label="Vazifa bo'limlari">
+          {([
+            ["main", "📝", "Nima qilish kerak", task.description ? "Tavsif va vazifa ma'lumotlari" : "Tavsif yozilmagan"],
+            ["review", "🚀", "Topshirilgan ish", task.submissions.length ? `${task.submissions.length} ta urinish` : "Hali topshirilmagan"],
+            ["worklog", "⏱", "Ish jurnali", `${task.worklog_hours} soat qayd etilgan`],
+            ["comments", "💬", T.common.comments, "Jamoa bilan muhokama"],
+          ] as [Tab, string, string, string][]).map(([key, icon, title, hint]) => (
+            <button key={key} type="button" className={`task-section-toggle ${tab === key ? "open" : ""}`} aria-expanded={tab === key} onClick={() => setTab(key)}>
+              <span className="task-section-icon">{icon}</span><span className="grow"><b>{title}</b><span>{hint}</span></span><ChevronDown size={18} />
+            </button>
+          ))}
+        </div>
+        {tab === "main" && (
+          <div className="modal-split">
+            <div className="stack" style={{ gap: 20 }}>
+              {task.description && <p className="prose">{task.description}</p>}
+              <div>
+                <div className="section-title">
+                  {T.tasks.subtasks} {task.subtasks.length > 0 && `· ${task.subtasks_progress.done}/${task.subtasks_progress.total}`}
+                </div>
                 {task.subtasks.length ? (
                   <div className="stack-sm">
                     {task.subtasks.map((s) => (
@@ -337,6 +349,7 @@ export default function TaskModal({ id, submitMode }: { id: number; submitMode?:
                 ) : (
                   <p className="small muted">{T.common.none}</p>
                 )}
+
                 {task.actions.manage_subtasks && (
                   <div style={{ marginTop: 10 }}>
                     {!isAddingSubtask ? (
@@ -368,28 +381,52 @@ export default function TaskModal({ id, submitMode }: { id: number; submitMode?:
                         }}
                       >
                         <input
-                          autoFocus
                           className="input grow"
-                          placeholder="Nima qilinishi kerak?"
+                          style={{ minWidth: 150 }}
+                          placeholder="Sub-vazifa nomi..."
                           value={newSubtaskTitle}
                           onChange={(e) => setNewSubtaskTitle(e.target.value)}
+                          autoFocus
                         />
                         <select
                           className="select"
+                          style={{ width: 170 }}
                           value={newSubtaskAssignee}
                           onChange={(e) => setNewSubtaskAssignee(e.target.value ? Number(e.target.value) : "")}
                         >
-                          <option value="">Odam tanlash...</option>
-                          {projectTeam.data?.members.map((m) => (
+                          <option value="">{T.tasks.subtaskNobody}</option>
+                          {(projectTeam.data?.members ?? []).map((m) => (
                             <option key={m.id} value={m.id}>
                               {m.full_name}
                             </option>
                           ))}
                         </select>
-                        <Button type="submit" size="sm" variant="primary" loading={addSubtask.isPending}>
+                        <Button
+                          size="sm"
+                          variant="primary"
+                          type="submit"
+                          loading={addSubtask.isPending}
+                          disabled={!newSubtaskTitle.trim()}
+                          onClick={() => {
+                            if (newSubtaskTitle.trim()) {
+                              addSubtask.mutate({
+                                title: newSubtaskTitle,
+                                assignee_id: newSubtaskAssignee ? Number(newSubtaskAssignee) : null,
+                              });
+                            }
+                          }}
+                        >
                           {T.common.save}
                         </Button>
-                        <Button type="button" size="sm" variant="ghost" onClick={() => setIsAddingSubtask(false)}>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => {
+                            setIsAddingSubtask(false);
+                            setNewSubtaskTitle("");
+                            setNewSubtaskAssignee("");
+                          }}
+                        >
                           {T.common.cancel}
                         </Button>
                       </form>
@@ -397,122 +434,115 @@ export default function TaskModal({ id, submitMode }: { id: number; submitMode?:
                   </div>
                 )}
               </div>
-            </details>
-
-            {task.submissions.length > 0 && (
-              <details className="details-section" open>
-                <summary>Topshirilgan ish ({task.submissions.length})</summary>
-                <div className="details-content">
-                  <div className="timeline">
-                    {[...task.submissions].reverse().map((s) => (
-                      <div key={s.id} className="timeline-item">
-                        <Avatar user={s.submitted_by} size="sm" />
-                        <div className="grow">
-                          <div className="row" style={{ justifyContent: "space-between" }}>
-                            <b>{s.submitted_by.full_name}</b>
-                            <span className="small muted">{fmtDateTime(s.submitted_at)}</span>
-                          </div>
-                          <p style={{ margin: "4px 0" }}>{s.note}</p>
-                          {s.files.length > 0 && <FileList files={s.files} onOpen={setViewing} />}
-                          {s.decision && (
-                            <div className="row small mt-2" style={{ color: s.decision === "accepted" ? "var(--success)" : s.decision === "returned" ? "var(--danger)" : "var(--muted)" }}>
-                              {s.decision === "accepted" && <CheckCircle2 size={14} />}
-                              {s.decision === "returned" && <RotateCcw size={14} />}
-                              {s.decision === "pending" && <Clock3 size={14} />}
-                              {s.decision === "accepted" && T.tasks.accept}
-                              {s.decision === "returned" && <>{T.tasks.return}: {s.review_note}</>}
-                              {s.decision === "pending" && "Kutilmoqda"}
-                            </div>
-                          )}
+              <div>
+                <div className="section-title">{T.common.files}</div>
+                <FileList files={task.files} onOpen={setViewing} />
+                {task.actions.add_files && (
+                  <div className="stack-sm" style={{ marginTop: 8 }}>
+                    <FilePicker files={files} onChange={setFiles} />
+                    {files.length > 0 && panel === null && (
+                      <Button size="sm" icon={<Upload />} loading={act.isPending} onClick={() => act.mutate("files")}>
+                        {T.common.save}
+                      </Button>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+            <aside className="card card-pad meta">
+              <Meta icon={<FolderKanban />} label={T.tasks.project}>
+                <button className="btn-ghost" style={{ border: 0, padding: 0, cursor: "pointer", color: "var(--primary)", fontWeight: 600, background: "none" }} onClick={() => open({ project: task.project.id })}>
+                  {task.project.name}
+                </button>
+              </Meta>
+              <Meta icon={<Users />} label={T.tasks.assignees}>
+                <div className="stack-sm">
+                  {task.assignees.map((u) => (
+                    <span key={u.id} className="row">
+                      <Avatar user={u} size="sm" /> {u.full_name}
+                    </span>
+                  ))}
+                </div>
+              </Meta>
+              <Meta icon={<CalendarClock />} label={T.tasks.dueAt}>
+                <Due value={task.due_at} done={task.status === "done"} format={fmtDateTime} />
+              </Meta>
+              {task.starts_at && (
+                <Meta icon={<CalendarClock />} label={T.tasks.startsAt}>
+                  {fmtDateTime(task.starts_at)}
+                </Meta>
+              )}
+              {task.completed_at && (
+                <Meta icon={<CheckCircle2 />} label={meta.label("task_statuses", "done")}>
+                  {fmtDateTime(task.completed_at)}
+                </Meta>
+              )}
+              <Meta icon={<Flag />} label={T.tasks.priority}>
+                <PriorityBadge priority={task.priority} />
+              </Meta>
+              <Meta icon={<User />} label={T.tasks.createdBy}>
+                {task.created_by.full_name}
+              </Meta>
+            </aside>
+          </div>
+        )}
+        {tab === "review" &&
+          (task.submissions.length ? (
+            <div className="timeline">
+              {[...task.submissions].reverse().map((s) => (
+                <div key={s.id} className="timeline-item">
+                  <Avatar user={s.submitted_by} size="sm" />
+                  <div className="grow stack-sm">
+                    <div className="row-wrap">
+                      <b>{s.submitted_by.full_name}</b>
+                      <span className="muted small">
+                        {T.tasks.round(s.round)} · {fmtDateTime(s.submitted_at)}
+                      </span>
+                      <span className="spacer" />
+                      <Badge tone={s.decision === "accepted" ? "success" : s.decision === "returned" ? "danger" : "violet"}>{s.decision_label}</Badge>
+                    </div>
+                    <p className="prose" style={{ color: "var(--text)" }}>
+                      {s.note}
+                    </p>
+                    {s.files.length > 0 && <FileList files={s.files} onOpen={setViewing} />}
+                    {s.reviewed_by && (
+                      <div className="callout tone-slate" style={{ marginTop: 4 }}>
+                        <div>
+                          <b>
+                            {T.tasks.reviewer}: {s.reviewed_by.full_name}
+                          </b>
+                          {s.review_note && <div className="prose">{s.review_note}</div>}
                         </div>
                       </div>
-                    ))}
+                    )}
                   </div>
                 </div>
-              </details>
+              ))}
+            </div>
+          ) : (
+            <p className="muted">{T.tasks.noSubmissions}</p>
+          ))}
+        {tab === "worklog" && (
+          <div className="stack">
+            {task.actions.log_work && (
+              <form className="card card-pad row-wrap" onSubmit={(event) => { event.preventDefault(); if (workNote.trim()) worklog.mutate(); }}>
+                <input className="input" type="number" min="0.01" max="24" step="0.25" style={{ width: 112 }} value={workHours} aria-label="Sarflangan soat" onChange={(event) => setWorkHours(event.target.value)} />
+                <input className="input grow" placeholder="Bugun nima qildingiz?" value={workNote} onChange={(event) => setWorkNote(event.target.value)} />
+                <Button variant="primary" icon={<Clock3 />} type="submit" loading={worklog.isPending} disabled={!workNote.trim()}>Qayd etish</Button>
+              </form>
             )}
-
-            <details className="details-section" open={Number(task.worklog_hours) > 0}>
-              <summary>Ish jurnali ({task.worklog_hours} soat)</summary>
-              <div className="details-content stack">
-                {task.actions.log_work && (
-                  <form className="card card-pad row-wrap" onSubmit={(event) => { event.preventDefault(); if (workNote.trim()) worklog.mutate(); }}>
-                    <input className="input" type="number" min="0.01" max="24" step="0.25" style={{ width: 112 }} value={workHours} aria-label="Sarflangan soat" onChange={(event) => setWorkHours(event.target.value)} />
-                    <input className="input grow" placeholder="Bugun nima qildingiz?" value={workNote} onChange={(event) => setWorkNote(event.target.value)} />
-                    <Button type="submit" variant="primary" loading={worklog.isPending} disabled={!workNote.trim()}>
-                      Qayd etish
-                    </Button>
-                  </form>
-                )}
-                {task.worklogs && task.worklogs.length > 0 ? (
-                  <div className="stack-sm">
-                    {task.worklogs.map((wl: any) => (
-                      <div key={wl.id} className="row">
-                        <Avatar user={wl.user} size="sm" />
-                        <span className="grow">
-                          <b>{wl.user.full_name}</b> <span className="muted">— {wl.hours} soat</span>
-                          <p className="small muted" style={{ margin: 0 }}>{wl.note}</p>
-                        </span>
-                        <span className="small muted">{fmtDateTime(wl.created_at)}</span>
-                        {task.actions.log_work && wl.user.id === me?.id && (
-                          <button type="button" className="icon-btn" title="O'chirish" onClick={() => deleteWorklog.mutate(wl.id)}>
-                            <Trash2 size={14} />
-                          </button>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="small muted">Ish jurnali bo'sh.</p>
-                )}
+            {!task.worklogs.length ? <p className="muted">Hali ish jurnali yozuvi yo'q.</p> : (
+              <div className="timeline">
+                {task.worklogs.map((entry) => <div key={entry.id} className="timeline-item">
+                  <Avatar user={entry.author} size="sm" />
+                  <div className="grow"><div className="row-wrap"><b>{entry.author.full_name}</b><Badge tone="info" dot={false}>{entry.hours} soat</Badge><span className="small muted">{fmtDateTime(entry.work_date)}</span></div><p className="prose">{entry.note}</p></div>
+                  {entry.can_delete && <Button size="sm" variant="ghost" icon={<Trash2 />} aria-label={T.common.delete} loading={deleteWorklog.isPending} onClick={() => deleteWorklog.mutate(entry.id)} />}
+                </div>)}
               </div>
-            </details>
-
-            <details className="details-section" open>
-              <summary>Izohlar</summary>
-              <div className="details-content">
-                <Comments type="task" id={task.id} />
-              </div>
-            </details>
+            )}
           </div>
-
-          <aside className="stack" style={{ gap: 16 }}>
-            <details className="details-section" open>
-              <summary>Ma'lumotlar</summary>
-              <div className="details-content stack-sm">
-                <Meta icon={<FolderKanban />} label={"Loyiha"}>{task.project.name}</Meta>
-                <Meta icon={<Due value={task.due_at} format={fmtDateTime} />} label={"Muddat"}>{fmtDateTime(task.due_at)}</Meta>
-                <Meta icon={<Users />} label={"Ijrochilar"}>
-                  <div className="chips">{task.assignees.map((u) => <Avatar key={u.id} user={u} size="sm" />)}</div>
-                </Meta>
-                <Meta icon={<User />} label="Yaratdi">{task.created_by.full_name}</Meta>
-              </div>
-            </details>
-
-            <details className="details-section" open>
-              <summary>Fayllar ({task.files.length})</summary>
-              <div className="details-content stack-sm">
-                {task.files.length > 0 ? (
-                  <FileList files={task.files} onOpen={setViewing} />
-                ) : (
-                  <span className="small muted">Fayllar yo'q</span>
-                )}
-                {task.actions.add_files && (
-                  <form onSubmit={(e) => { e.preventDefault(); if (files.length) act.mutate("files"); }}>
-                    <div className="row" style={{ marginTop: 10 }}>
-                      <FilePicker files={files} onChange={setFiles} />
-                      {files.length > 0 && (
-                        <Button type="submit" variant="primary" size="sm" loading={act.isPending} icon={<Upload size={14} />}>
-                          Yuklash
-                        </Button>
-                      )}
-                    </div>
-                  </form>
-                )}
-              </div>
-            </details>
-          </aside>
-        </div>
+        )}
+        {tab === "comments" && <Comments type="task" id={task.id} />}
       </div>
     </Modal>
   );

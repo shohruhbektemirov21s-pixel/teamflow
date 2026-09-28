@@ -34,8 +34,8 @@ Modallar URL parametrlariga bog'langan (`?task=12`, `?order=5`, `?project=3`, `?
 | 2 | Buyurtma ko'rish | Hamma (rolga qarab) | Ma'lumotlar, TZ, tarix, izohlar; PM uchun Tasdiqlash/Rad etish; Boshqarma uchun Yangi TZ versiyasi | `?order=:id` | Faol |
 | 3 | Loyiha yaratish | PM, Boshliq | 3 qadam: Asosiy → Jamoa → Vazifalar va fayllar | `?new=project` | Faol |
 | 4 | Loyiha ko'rish/tahrirlash | PM, Boshliq, Dasturchi | Ma'lumot, daraja, jamoa, fayllar, sanalarni o'zgartirish | `?project=:id` | Faol |
-| 5 | Vazifa yaratish/tahrirlash | PM, Boshliq, Dasturchi | Nom, izoh, ijrochilar, muddat, sub-vazifalar, fayllar | `?new=task` / `?edit=:id` | Faol |
-| 6 | Vazifa ko'rish | Hamma (rolga qarab) | Ma'lumot, sub-vazifalar, tekshiruv (yuborish/qabul/qaytarish), izohlar, fayllar | `?task=:id` | Faol |
+| 5 | Vazifa yaratish/tahrirlash | PM, Boshliq, Dasturchi | Nom, izoh, ijrochilar, muddat, sub-vazifalar, fayllar; ommaviy yaratishda har vazifaga alohida ijrochi | `?new=task` / `?edit=:id` / `?bulk=task` | Faol |
+| 6 | Vazifa ko'rish | Hamma (rolga qarab) | Mobilga mos yig'iladigan bo'limlar: ma'lumot, sub-vazifalar, tekshiruv, ish jurnali, izohlar, fayllar | `?task=:id` | Faol |
 | 7 | Xodim profili | Boshliq, PM | Xodim statistikasi, joriy ishlari va to'g'ridan-to'g'ri vazifa berish (Drawer o'rniga keldi) | `?person=:id` | Faol |
 | 8 | Taklif yaratish | Hamma | Anonim yoki ochiq taklif matni, sarlavha kiritish | `?new=suggestion` | Faol |
 | 9 | Taklif ko'rish | Hamma | Taklif tafsilotlari, ovoz berish (yoqlash/qarshi), Boshliq qabul/rad qilish | `?suggestion=:id` | Faol |

@@ -10,7 +10,7 @@ from apps.core.services import log
 from apps.notifications.models import Notification
 from apps.notifications.services import managers, notify
 
-from .models import SubTask, Submission, SubmissionFile, Task, TaskAssignment, TaskFile
+from .models import SubTask, Submission, SubmissionFile, Task, TaskAssignment, TaskFile, WorkLog
 from .permissions import can_work_on, is_assignee
 from .workflow import check_task_transition
 
@@ -85,6 +85,18 @@ def _replace_subtasks(task, items):
                 is_done=bool(i.get("is_done")), position=n)
         for n, i in enumerate(items) if i.get("title", "").strip()
     )
+
+
+@transaction.atomic
+def create_bulk_tasks(user, project, items):
+    """Bitta qator xato bo'lsa, butun taqsimlash bekor qilinadi."""
+    created = []
+    for index, item in enumerate(items, start=1):
+        try:
+            created.append(create_task(user, project, **item))
+        except ServiceError as exc:
+            raise ServiceError(f"{index}-vazifa: {exc.detail}", "tasks") from exc
+    return created
 
 
 @transaction.atomic
@@ -245,3 +257,21 @@ def add_task_files(task, user, files):
     if not can_work_on(user, task):
         raise ServiceError("Bu vazifaga fayl qo'sha olmaysiz.")
     return [TaskFile.objects.create(task=task, file=f, original_name=f.name[:255], uploaded_by=user) for f in files]
+
+
+@transaction.atomic
+def log_work(task, user, **data):
+    if not can_work_on(user, task):
+        raise ServiceError("Bu vazifa sizga biriktirilmagan.")
+    entry = WorkLog.objects.create(task=task, author=user, **data)
+    log(user, "work_logged", f"{user.full_name} ish qayd etdi: {task.title} ({entry.hours} soat)", task)
+    return entry
+
+
+@transaction.atomic
+def delete_worklog(entry, user):
+    from rest_framework.exceptions import PermissionDenied
+    if not (user.is_manager or entry.author_id == user.pk):
+        raise PermissionDenied("Faqat o'zingizning yozuvingizni o'chira olasiz.")
+    log(user, "worklog_deleted", f"{user.full_name} ish jurnali yozuvini o'chirdi: {entry.task.title}", entry.task)
+    entry.delete()
