@@ -55,6 +55,8 @@ class Command(BaseCommand):
 
         user = await get_user()
         if user:
+            user.telegram_chat_id = update.effective_chat.id
+            await sync_to_async(user.save)()
             await update.message.reply_text(f"Xush kelibsiz, {user.full_name}! Siz TeamFlow tizimida tasdiqlangansiz.")
         else:
             await update.message.reply_text("Siz tizimdan ro'yxatdan o'tmagansiz yoki telegram_username xato kiritilgan.")
