@@ -10,16 +10,24 @@ import { Due, Empty, Field, People, PriorityBadge, SkeletonRows, TaskStatusBadge
 export interface TaskFilterState {
   q: string;
   due: "" | "today" | "week" | "month";
-  date: string;
-  half: "" | "1" | "2";
+  date_from: string;
+  date_to: string;
   status: string;
   project_name: string;
   assignee_name: string;
 }
 
-export const EMPTY_FILTERS: TaskFilterState = { q: "", due: "", date: "", half: "", status: "", project_name: "", assignee_name: "" };
+export const EMPTY_FILTERS: TaskFilterState = {
+  q: "",
+  due: "",
+  date_from: "",
+  date_to: "",
+  status: "",
+  project_name: "",
+  assignee_name: "",
+};
 
-/** Vazifa filtrlari: qidiruv, muddat, sana, oy yarmi, holat, loyiha, xodim. */
+/** Vazifa filtrlari: qidiruv, muddat, sanadan/sanagacha, holat, loyiha, xodim. */
 export function TaskFilters({
   value,
   onChange,
@@ -49,15 +57,11 @@ export function TaskFilters({
           </select>
         )}
       </Field>
-      <Field label={T.filters.date}>{(id) => <input id={id} type="date" className="input" value={value.date} onChange={set("date")} />}</Field>
-      <Field label={T.filters.half}>
-        {(id) => (
-          <select id={id} className="select" value={value.half} onChange={set("half")}>
-            <option value="">{T.filters.dueAll}</option>
-            <option value="1">{T.filters.half1}</option>
-            <option value="2">{T.filters.half2}</option>
-          </select>
-        )}
+      <Field label={T.filters.dateFrom}>
+        {(id) => <input id={id} type="date" className="input" value={value.date_from} onChange={set("date_from")} />}
+      </Field>
+      <Field label={T.filters.dateTo}>
+        {(id) => <input id={id} type="date" className="input" value={value.date_to} onChange={set("date_to")} />}
       </Field>
       {showStatus && (
         <Field label={T.filters.status}>
@@ -143,5 +147,13 @@ export function TaskTable({ tasks, loading, emptyHint }: { tasks: Task[] | undef
 }
 
 export function filterParams(f: TaskFilterState) {
-  return { q: f.q, due: f.due, date: f.date, half: f.half, status: f.status, project_name: f.project_name, assignee_name: f.assignee_name };
+  return {
+    q: f.q,
+    due: f.due,
+    due_from: f.date_from,
+    due_to: f.date_to,
+    status: f.status,
+    project_name: f.project_name,
+    assignee_name: f.assignee_name,
+  };
 }
