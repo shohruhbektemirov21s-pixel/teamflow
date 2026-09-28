@@ -70,6 +70,11 @@ def filter_tasks(qs, params, user):
     if params.get("mine") == "1":
         qs = qs.filter(assignments__developer=user)
     if params.get("q"):
+        import re
+        m = re.match(r"^(?:TSK|PRJ)-?(\d+)$", params["q"].strip(), re.I)
+        if m:
+            return qs.filter(id=m.group(1))
+
         q = params["q"].strip()
         qs = qs.filter(Q(title__icontains=q) | Q(description__icontains=q) | Q(project__name__icontains=q))
     if params.get("status"):

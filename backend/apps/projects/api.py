@@ -37,7 +37,13 @@ class ProjectViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.
         if params.get("stage"):
             qs = qs.filter(stage__in=params["stage"].split(","))
         if params.get("q"):
-            qs = qs.filter(name__icontains=params["q"])
+            import re
+            m = re.match(r"^PRJ-?(\d+)$", params["q"].strip(), re.I)
+            if m:
+                qs = qs.filter(id=m.group(1))
+            else:
+
+                qs = qs.filter(name__icontains=params["q"])
         return qs
 
     def get_serializer_class(self):

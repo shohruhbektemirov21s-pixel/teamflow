@@ -13,6 +13,9 @@ from .workflow import task_targets
 
 
 class TaskListSerializer(serializers.ModelSerializer):
+    code = serializers.SerializerMethodField()
+    def get_code(self, obj):
+        return f"TSK-{obj.id}"
     project = serializers.SerializerMethodField()
     status_label = serializers.CharField(source="get_status_display")
     priority_label = serializers.CharField(source="get_priority_display")
@@ -23,7 +26,7 @@ class TaskListSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Task
-        fields = ["id", "title", "description", "project", "status", "status_label", "priority", "priority_label",
+        fields = ["id", "code", "title", "description", "project", "status", "status_label", "priority", "priority_label",
                   "starts_at", "due_at", "completed_at", "is_overdue", "finished_late", "assignees",
                   "subtasks_progress", "created_at"]
 

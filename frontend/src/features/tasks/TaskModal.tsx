@@ -262,7 +262,7 @@ export default function TaskModal({ id, submitMode }: { id: number; submitMode?:
   return (
     <Modal
       size="lg"
-      title={task.title}
+      title={<><span className="muted">{task.code}</span> {task.title}</>}
       subtitle={
         <>
           <TaskStatusBadge status={task.status} />

@@ -60,6 +60,7 @@ export interface Paged<T> {
 
 export interface Task {
   id: number;
+  code: string;
   title: string;
   description: string;
   project: { id: number; name: string };
@@ -90,6 +91,7 @@ export interface Submission {
 }
 
 export interface TaskDetail extends Task {
+  code: string;
   created_by: UserBrief;
   subtasks: { id: number; title: string; is_done: boolean; assignee: UserBrief | null; can_toggle: boolean; can_delete?: boolean }[];
   files: FileInfo[];
@@ -146,6 +148,7 @@ export interface OrderDetail extends Order {
 
 export interface Project {
   id: number;
+  code: string;
   name: string;
   description: string;
   stage: ProjectStage;
@@ -158,6 +161,7 @@ export interface Project {
 }
 
 export interface ProjectDetail extends Project {
+  code: string;
   created_by: UserBrief;
   files: FileInfo[];
   order: { id: number; title: string; department_name: string; requested_due_date: string } | null;

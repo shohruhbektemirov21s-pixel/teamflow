@@ -7,13 +7,16 @@ from .models import Project
 
 
 class ProjectListSerializer(serializers.ModelSerializer):
+    code = serializers.SerializerMethodField()
+    def get_code(self, obj):
+        return f"PRJ-{obj.id}"
     stage_label = serializers.CharField(source="get_stage_display")
     members = serializers.SerializerMethodField()
     progress = serializers.SerializerMethodField()
 
     class Meta:
         model = Project
-        fields = ["id", "name", "description", "stage", "stage_label", "start_date", "end_date",
+        fields = ["id", "code", "name", "description", "stage", "stage_label", "start_date", "end_date",
                   "order_id", "members", "progress", "created_at"]
 
     def get_members(self, obj):
