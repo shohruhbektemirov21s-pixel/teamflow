@@ -57,25 +57,21 @@ export function TaskFilters({
           </select>
         )}
       </Field>
-      <div className="field" style={{ minWidth: 240 }}>
+      <div className="field" style={{ minWidth: 280 }}>
         <label className="field-label">{T.filters.dateRange}</label>
-        <div className="row" style={{ gap: 6 }}>
+        <div className="input" style={{ display: "flex", gap: 8, alignItems: "center", padding: "0 8px" }}>
           <input
             type="date"
-            className="input"
+            style={{ border: "none", background: "transparent", outline: "none", flex: 1, padding: 0 }}
             value={value.date_from}
             onChange={set("date_from")}
-            title={T.filters.dateFrom}
-            aria-label={T.filters.dateFrom}
           />
           <span className="muted" style={{ fontWeight: 600 }}>—</span>
           <input
             type="date"
-            className="input"
+            style={{ border: "none", background: "transparent", outline: "none", flex: 1, padding: 0 }}
             value={value.date_to}
             onChange={set("date_to")}
-            title={T.filters.dateTo}
-            aria-label={T.filters.dateTo}
           />
         </div>
       </div>
@@ -101,9 +97,11 @@ export function TaskFilters({
           {(id) => <input id={id} className="input" placeholder={T.filters.personPh} value={value.assignee_name} onChange={set("assignee_name")} />}
         </Field>
       )}
-      <button className="btn" onClick={() => onChange(EMPTY_FILTERS)} disabled={!dirty}>
-        {T.common.clear}
-      </button>
+      <div className="field" style={{ justifyContent: "flex-end", display: "flex", paddingTop: 22 }}>
+        <button className="btn" style={{ background: "var(--violet)", color: "white", borderColor: "var(--violet)" }} onClick={() => onChange(EMPTY_FILTERS)} disabled={!dirty}>
+          <ListChecks size={16} /> {T.common.clear}
+        </button>
+      </div>
     </div>
   );
 }

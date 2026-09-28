@@ -1,7 +1,9 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import {
   CalendarClock,
+  ChevronDown,
   CheckCircle2,
+  Clock3,
   Flag,
   FolderKanban,
   Pencil,
@@ -41,13 +43,12 @@ import {
   PriorityBadge,
   Skeleton,
   Stepper,
-  Tabs,
   TaskStatusBadge,
   useToast,
 } from "@/shared/ui";
 
 type Panel = null | "submit" | "return";
-type Tab = "main" | "review" | "comments";
+type Tab = "main" | "review" | "worklog" | "comments";
 
 /** Modal: vazifa ko'rish. Tekshiruv (qabul/qaytarish) ham shu yerda — alohida modal ochilmaydi. */
 export default function TaskModal({ id, submitMode }: { id: number; submitMode?: boolean }) {
@@ -74,6 +75,8 @@ export default function TaskModal({ id, submitMode }: { id: number; submitMode?:
   const [isAddingSubtask, setIsAddingSubtask] = useState(false);
   const [newSubtaskTitle, setNewSubtaskTitle] = useState("");
   const [newSubtaskAssignee, setNewSubtaskAssignee] = useState<number | "">("");
+  const [workNote, setWorkNote] = useState("");
+  const [workHours, setWorkHours] = useState("1");
 
   useEffect(() => {
     if (submitMode) setPanel("submit");
@@ -139,6 +142,22 @@ export default function TaskModal({ id, submitMode }: { id: number; submitMode?:
       refresh();
       toast("Sub-vazifa o'chirildi");
     },
+    onError: (e: Error) => toast(e.message, "error"),
+  });
+
+  const worklog = useMutation({
+    mutationFn: () => api.post<TaskDetail>(`/tasks/${id}/worklogs/`, { work_date: new Date().toISOString().slice(0, 10), hours: workHours, note: workNote }),
+    onSuccess: () => {
+      setWorkNote("");
+      setWorkHours("1");
+      refresh();
+      toast("Ish jurnali saqlandi");
+    },
+    onError: (e: Error) => toast(e.message, "error"),
+  });
+  const deleteWorklog = useMutation({
+    mutationFn: (entryId: number) => api.del<TaskDetail>(`/tasks/${id}/worklogs/${entryId}/`),
+    onSuccess: () => refresh(),
     onError: (e: Error) => toast(e.message, "error"),
   });
 
@@ -271,15 +290,18 @@ export default function TaskModal({ id, submitMode }: { id: number; submitMode?:
             {pending.note}
           </Callout>
         )}
-        <Tabs<Tab>
-          value={tab}
-          onChange={setTab}
-          tabs={[
-            { key: "main", label: T.tasks.tabMain },
-            { key: "review", label: `${T.tasks.tabReview} (${task.submissions.length})` },
-            { key: "comments", label: T.common.comments },
-          ]}
-        />
+        <div className="task-section-list" aria-label="Vazifa bo'limlari">
+          {([
+            ["main", "📝", "Nima qilish kerak", task.description ? "Tavsif va vazifa ma'lumotlari" : "Tavsif yozilmagan"],
+            ["review", "🚀", "Topshirilgan ish", task.submissions.length ? `${task.submissions.length} ta urinish` : "Hali topshirilmagan"],
+            ["worklog", "⏱", "Ish jurnali", `${task.worklog_hours} soat qayd etilgan`],
+            ["comments", "💬", T.common.comments, "Jamoa bilan muhokama"],
+          ] as [Tab, string, string, string][]).map(([key, icon, title, hint]) => (
+            <button key={key} type="button" className={`task-section-toggle ${tab === key ? "open" : ""}`} aria-expanded={tab === key} onClick={() => setTab(key)}>
+              <span className="task-section-icon">{icon}</span><span className="grow"><b>{title}</b><span>{hint}</span></span><ChevronDown size={18} />
+            </button>
+          ))}
+        </div>
         {tab === "main" && (
           <div className="modal-split">
             <div className="stack" style={{ gap: 20 }}>
@@ -500,6 +522,26 @@ export default function TaskModal({ id, submitMode }: { id: number; submitMode?:
           ) : (
             <p className="muted">{T.tasks.noSubmissions}</p>
           ))}
+        {tab === "worklog" && (
+          <div className="stack">
+            {task.actions.log_work && (
+              <form className="card card-pad row-wrap" onSubmit={(event) => { event.preventDefault(); if (workNote.trim()) worklog.mutate(); }}>
+                <input className="input" type="number" min="0.01" max="24" step="0.25" style={{ width: 112 }} value={workHours} aria-label="Sarflangan soat" onChange={(event) => setWorkHours(event.target.value)} />
+                <input className="input grow" placeholder="Bugun nima qildingiz?" value={workNote} onChange={(event) => setWorkNote(event.target.value)} />
+                <Button variant="primary" icon={<Clock3 />} type="submit" loading={worklog.isPending} disabled={!workNote.trim()}>Qayd etish</Button>
+              </form>
+            )}
+            {!task.worklogs.length ? <p className="muted">Hali ish jurnali yozuvi yo'q.</p> : (
+              <div className="timeline">
+                {task.worklogs.map((entry) => <div key={entry.id} className="timeline-item">
+                  <Avatar user={entry.author} size="sm" />
+                  <div className="grow"><div className="row-wrap"><b>{entry.author.full_name}</b><Badge tone="info" dot={false}>{entry.hours} soat</Badge><span className="small muted">{fmtDateTime(entry.work_date)}</span></div><p className="prose">{entry.note}</p></div>
+                  {entry.can_delete && <Button size="sm" variant="ghost" icon={<Trash2 />} aria-label={T.common.delete} loading={deleteWorklog.isPending} onClick={() => deleteWorklog.mutate(entry.id)} />}
+                </div>)}
+              </div>
+            )}
+          </div>
+        )}
         {tab === "comments" && <Comments type="task" id={task.id} />}
       </div>
     </Modal>

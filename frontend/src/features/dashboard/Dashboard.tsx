@@ -1,5 +1,5 @@
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { AlertTriangle, CalendarDays, ClipboardCheck, Clock, FileText, FolderKanban, Plus, Users } from "lucide-react";
+import { AlertTriangle, Clock, Hourglass, FileText, FolderKanban, Plus, Users, ChevronRight, ChevronDown } from "lucide-react";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 
@@ -20,12 +20,11 @@ interface Selection {
 }
 
 const PERIOD_BUCKETS: { key: "active" | "overdue" | "done"; label: string }[] = [
-  { key: "active", label: T.dashboard.active },
-  { key: "overdue", label: T.dashboard.overdue },
-  { key: "done", label: T.dashboard.done },
+  { key: "active", label: "Nazoratda" },
+  { key: "overdue", label: "Muddati o'tgan" },
+  { key: "done", label: "Bajarilganlar" },
 ];
 
-/** Bosh panel. Haftalik jami ishlar markaziy o'rinda; xodimlar esa /xodimlar sahifasiga o'tkazilgan. */
 export default function Dashboard() {
   const me = useMe();
   const manager = isManager(me);
@@ -38,22 +37,18 @@ export default function Dashboard() {
     setSelected((cur) => (cur && cur.bucket === s.bucket && cur.period === s.period ? null : s));
   const isOn = (bucket: Bucket, period?: PeriodKey) => selected?.bucket === bucket && selected?.period === period;
 
-  const weekPeriod = d?.periods.find((p) => p.key === "week");
-  const otherPeriods = d?.periods.filter((p) => p.key !== "week") ?? [];
-  const weekTotal = weekPeriod ? weekPeriod.counts.active + weekPeriod.counts.done : 0;
+  const getDropdownLabel = (key: string) => {
+    if (key === "year") return new Date().getFullYear().toString();
+    if (key === "month") return new Date().toLocaleString("uz-UZ", { month: "long" });
+    if (key === "week") return "Bu hafta";
+    return "";
+  };
 
   return (
     <>
       <div className="hero">
         <div className="grow">
           <h1>{T.dashboard.hello(me.first_name || me.full_name)}</h1>
-          <p className="muted" style={{ marginTop: 4 }}>
-            {d
-              ? manager
-                ? T.dashboard.managerSummary(d.totals.review, d.orders_pending ?? 0)
-                : T.dashboard.devSummary(d.totals.active, d.totals.overdue)
-              : T.common.loading}
-          </p>
         </div>
         {manager ? (
           <>
@@ -82,140 +77,66 @@ export default function Dashboard() {
 
       {dash.error && <ErrorBox error={dash.error} onRetry={() => dash.refetch()} />}
 
-      {/* ─── Haftalik jami ishlar (Asosiy ko'rsatkich) ─── */}
-      <section className="weekly-hero">
-        <div className="row-wrap">
-          <div className="grow">
-            <div className="row" style={{ gap: 8 }}>
-              <CalendarDays className="muted" size={20} />
-              <h2>{T.dashboard.weeklyHeroTitle}</h2>
-              {weekPeriod && (
-                <span className="small muted">
-                  ({fmtDate(weekPeriod.since)} — bugun)
-                </span>
-              )}
-            </div>
-            <p className="small muted" style={{ marginTop: 3 }}>
-              {weekPeriod ? T.dashboard.weeklyHeroSubtitle(fmtDate(weekPeriod.since)) : T.common.loading}
-            </p>
-          </div>
-          {weekPeriod && (
-            <span className="badge tone-primary" style={{ fontSize: 13, height: 28, padding: "0 12px" }}>
-              {T.dashboard.weeklyTotal(weekTotal)}
-            </span>
-          )}
-        </div>
-
-        <div className="weekly-grid">
-          <button
-            className="stat-card clickable"
-            aria-pressed={isOn("active", "week")}
-            onClick={() => pick({ bucket: "active", period: "week", title: "Haftalik faol vazifalar" })}
-          >
-            <span className="stat-label">{T.dashboard.active}</span>
-            <span className="stat-num" style={{ color: "var(--primary)" }}>
-              {weekPeriod ? weekPeriod.counts.active : "…"}
-            </span>
-            <span className="small muted">Hozir bajarilayotgan ishlar</span>
-          </button>
-
-          <button
-            className="stat-card clickable"
-            aria-pressed={isOn("overdue", "week")}
-            onClick={() => pick({ bucket: "overdue", period: "week", title: "Haftalik muddati o'tgan vazifalar" })}
-          >
-            <span
-              className="stat-label"
-              style={{ color: (weekPeriod?.counts.overdue ?? 0) > 0 ? "var(--danger)" : undefined }}
-            >
-              {T.dashboard.overdue}
-            </span>
-            <span
-              className="stat-num"
-              style={{ color: (weekPeriod?.counts.overdue ?? 0) > 0 ? "var(--danger)" : undefined }}
-            >
-              {weekPeriod ? weekPeriod.counts.overdue : "…"}
-            </span>
-            <span className="small muted">Muddatidan kechikkan</span>
-          </button>
-
-          <button
-            className="stat-card clickable"
-            aria-pressed={isOn("done", "week")}
-            onClick={() => pick({ bucket: "done", period: "week", title: "Haftalik bajarilgan vazifalar" })}
-          >
-            <span className="stat-label" style={{ color: "var(--success)" }}>
-              {T.dashboard.done}
-            </span>
-            <span className="stat-num" style={{ color: "var(--success)" }}>
-              {weekPeriod ? weekPeriod.counts.done : "…"}
-            </span>
-            <span className="small muted">Yakunlangan topshiriqlar</span>
-          </button>
-        </div>
-      </section>
-
-      {/* ─── Boshqa davrlar: Oy boshidan va Yil boshidan ─── */}
-      <div className="grid-2">
-        {d
-          ? otherPeriods.map((p) => (
-              <div key={p.key} className="card period">
-                <div className="period-title">
-                  <h3>{p.label}</h3>
-                  <span className="small muted">{T.dashboard.since(fmtDate(p.since))}</span>
-                </div>
-                <div className="period-nums">
-                  {PERIOD_BUCKETS.map((b) => {
-                    const n = p.counts[b.key];
-                    return (
-                      <button
-                        key={b.key}
-                        className="stat"
-                        aria-pressed={isOn(b.key, p.key)}
-                        onClick={() => pick({ bucket: b.key, period: p.key, title: T.dashboard.tableTitle(p.label, b.label) })}
-                      >
-                        <span className={`stat-num ${n ? "" : "zero"}`} style={b.key === "overdue" && n ? { color: "var(--danger)" } : undefined}>
-                          {n}
-                        </span>
-                        <span className="stat-label">{b.label}</span>
-                      </button>
-                    );
-                  })}
-                </div>
+      <div className="grid-3" style={{ marginBottom: 24 }}>
+        {d ? d.periods.map((p) => (
+          <div key={p.key} className="card period" style={{ padding: "20px" }}>
+            <div className="row" style={{ justifyContent: "space-between", marginBottom: 16 }}>
+              <div>
+                <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600 }}>{p.label}</h3>
+                <span className="small muted">{fmtDate(p.since)} — bugun</span>
               </div>
-            ))
-          : [0, 1].map((i) => <Skeleton key={i} h={132} />)}
+              <div className="badge" style={{ background: "var(--bg)", border: "1px solid var(--border)", color: "var(--text)" }}>
+                {getDropdownLabel(p.key)} <ChevronDown size={14} style={{ marginLeft: 4 }} />
+              </div>
+            </div>
+            <div className="period-nums" style={{ display: "flex", gap: 12 }}>
+              {PERIOD_BUCKETS.map((b) => {
+                const n = p.counts[b.key];
+                return (
+                  <button
+                    key={b.key}
+                    className="stat"
+                    aria-pressed={isOn(b.key, p.key)}
+                    onClick={() => pick({ bucket: b.key, period: p.key, title: `${p.label} — ${b.label}` })}
+                    style={{ flex: 1, padding: "12px 8px", background: isOn(b.key, p.key) ? "var(--bg)" : "transparent" }}
+                  >
+                    <span className={`stat-num ${n ? "" : "zero"}`} style={{ fontSize: 24, marginBottom: 4, color: b.key === "overdue" && n ? "var(--danger)" : "var(--text)" }}>
+                      {n}
+                    </span>
+                    <span className="stat-label" style={{ fontSize: 12, opacity: 0.8 }}>{b.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )) : [0, 1, 2].map((i) => <Skeleton key={i} h={140} />)}
       </div>
 
-      {/* ─── Umumiy nazorat ko'rsatkichlari ─── */}
-      <div className="total-grid">
+      <div className="grid-3" style={{ marginBottom: 24 }}>
         {(
           [
-            { bucket: "late", label: T.dashboard.late, icon: Clock, tone: "warning" },
-            { bucket: "overdue", label: T.dashboard.overdue, icon: AlertTriangle, tone: "danger" },
-            { bucket: "review", label: T.dashboard.review, icon: ClipboardCheck, tone: "violet" },
+            { bucket: "late", label: "Muddati buzib bajarilgan", icon: Clock, tone: "danger" },
+            { bucket: "overdue", label: "Muddati o'tgan", icon: AlertTriangle, tone: "danger" },
+            { bucket: "review", label: "Kutilmoqda", icon: Hourglass, tone: "primary" },
           ] as const
         ).map((c) => (
-          <button key={c.bucket} className="card total clickable" aria-pressed={isOn(c.bucket)} onClick={() => pick({ bucket: c.bucket, title: c.label })}>
-            <span className={`total-icon tone-${c.tone}`}>
-              <c.icon />
+          <button key={c.bucket} className="card total clickable" aria-pressed={isOn(c.bucket)} onClick={() => pick({ bucket: c.bucket, title: c.label })} style={{ padding: "16px 20px", display: "flex", alignItems: "center", gap: 16 }}>
+            <span className={`total-icon tone-${c.tone}`} style={{ width: 40, height: 40 }}>
+              <c.icon size={20} />
             </span>
-            <span className="grow">
-              <span className="stat-label" style={{ display: "block" }}>
+            <span className="grow" style={{ textAlign: "left" }}>
+              <span className="stat-label" style={{ display: "block", fontSize: 13, marginBottom: 2 }}>
                 {c.label}
               </span>
-              <span className="stat-num">{d ? d.totals[c.bucket] : "…"}</span>
+              <span className="stat-num" style={{ fontSize: 20 }}>{d ? d.totals[c.bucket] : "—"}</span>
             </span>
+            <ChevronRight size={18} className="muted" />
           </button>
         ))}
       </div>
 
-      {selected ? (
+      {selected && (
         <SelectedTasks selection={selected} onClose={() => setSelected(null)} manager={manager} mine={!manager} />
-      ) : (
-        <p className="muted" style={{ textAlign: "center" }}>
-          {T.dashboard.pickCard}
-        </p>
       )}
     </>
   );
@@ -231,13 +152,13 @@ function SelectedTasks({ selection, onClose, manager, mine }: { selection: Selec
     placeholderData: keepPreviousData,
   });
   return (
-    <div className="card">
+    <div className="card" style={{ marginTop: 24 }}>
       <div className="card-head">
         <h3 className="grow">
           {selection.title} {query.data && <span className="count-pill soft">{query.data.count}</span>}
         </h3>
         <Button size="sm" onClick={onClose}>
-          {T.common.close}
+          Yopish
         </Button>
       </div>
       <TaskFilters value={filters} onChange={setFilters} showPerson={manager} showStatus={selection.bucket === "active" || selection.bucket === "overdue"} />

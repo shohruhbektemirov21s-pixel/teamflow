@@ -304,7 +304,7 @@ kbd { font-family: var(--mono); font-size: 11px; padding: 2px 6px; border-radius
 .table tbody tr { cursor: pointer; }
 .table tbody tr:hover td { background: var(--surface-hover); }
 .task-title { font-weight: 600; color: var(--text); }
-.filters { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; padding: 14px 16px; border-bottom: 1px solid var(--border); align-items: end; }
+.filters { display: flex; flex-wrap: wrap; gap: 12px; padding: 14px 16px; border-bottom: 1px solid var(--border); align-items: flex-end; }
 
 /* ───────── Bosh panel ───────── */
 .hero { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
