@@ -12,4 +12,5 @@ README.md
 CLAUDE.md
 GEMINI.md
 .playwright-mcp/
+*.tsbuildinfo
 
