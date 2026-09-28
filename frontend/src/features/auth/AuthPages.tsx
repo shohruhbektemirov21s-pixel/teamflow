@@ -89,7 +89,7 @@ const ROLE_ICON: Record<string, typeof Code2> = { developer: Code2, pm: Clipboar
 export function RegisterPage() {
   const meta = useMeta();
   const specialties = useQuery({ queryKey: ["specialties"], queryFn: () => api.get<{ id: number; name: string }[]>("/specialties/") });
-  const [form, setForm] = useState({ first_name: "", last_name: "", specialty: "", role: "developer", department_name: "", username: "", password: "" });
+  const [form, setForm] = useState({ first_name: "", last_name: "", specialty: "", role: "developer", department_name: "", telegram_username: "", username: "", password: "" });
   const [error, setError] = useState<ApiError | null>(null);
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState(false);
@@ -172,6 +172,9 @@ export function RegisterPage() {
             {(id, bad) => <input id={id} className="input" aria-invalid={bad} value={form.department_name} onChange={set("department_name")} autoFocus />}
           </Field>
         )}
+        <Field label="Telegram (ixtiyoriy)" hint="Bildirishnomalar uchun, ms: @username" error={fe("telegram_username")}>
+          {(id, bad) => <input id={id} className="input" aria-invalid={bad} value={form.telegram_username} onChange={set("telegram_username")} placeholder="@username" />}
+        </Field>
         <Field label={T.auth.username} required error={fe("username")}>
           {(id, bad) => <input id={id} className="input" aria-invalid={bad} value={form.username} onChange={set("username")} autoComplete="username" />}
         </Field>

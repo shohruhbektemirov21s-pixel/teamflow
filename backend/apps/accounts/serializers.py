@@ -19,6 +19,7 @@ class RegisterSerializer(serializers.Serializer):
     specialty = serializers.PrimaryKeyRelatedField(queryset=Specialty.objects.filter(is_active=True))
     role = serializers.ChoiceField(choices=[(r.value, r.label) for r in SELF_REGISTER_ROLES])
     department_name = serializers.CharField(max_length=200, required=False, allow_blank=True, default="")
+    telegram_username = serializers.CharField(max_length=100, required=False, allow_blank=True, default="")
     username = serializers.RegexField(
         r"^[A-Za-z0-9_.-]{3,150}$",
         error_messages={"invalid": "Login 3–150 belgi: lotin harflari, raqam, _ . - bo'lishi mumkin."},
@@ -32,9 +33,15 @@ class RegisterSerializer(serializers.Serializer):
 
     def validate(self, attrs):
         dept = attrs.get("department_name", "").strip()
+        telegram = attrs.get("telegram_username", "").strip()
         if attrs["role"] == Role.DEPARTMENT and not dept:
             raise serializers.ValidationError({"department_name": ["Boshqarma nomini yozing."]})
         attrs["department_name"] = dept if attrs["role"] == Role.DEPARTMENT else ""
+        
+        if telegram and not telegram.startswith("@"):
+            telegram = "@" + telegram
+        attrs["telegram_username"] = telegram
+
         candidate = User(
             username=attrs["username"], first_name=attrs["first_name"], last_name=attrs["last_name"]
         )
@@ -66,7 +73,7 @@ class MeSerializer(serializers.ModelSerializer):
         model = User
         fields = [
             "id", "username", "first_name", "last_name", "full_name",
-            "role", "role_label", "specialty", "department_name",
+            "role", "role_label", "specialty", "department_name", "telegram_username",
         ]
 
 
@@ -81,7 +88,7 @@ class ProfileSerializer(serializers.ModelSerializer):
         fields = [
             "id", "username", "first_name", "last_name", "full_name",
             "role", "role_label", "specialty", "department_name",
-            "date_joined", "stats",
+            "telegram_username", "date_joined", "stats",
         ]
 
     def get_stats(self, user):

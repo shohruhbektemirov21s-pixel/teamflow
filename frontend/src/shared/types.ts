@@ -14,6 +14,7 @@ export interface Me {
   role_label: string;
   specialty: string | null;
   department_name: string;
+  telegram_username: string;
 }
 
 export interface Profile extends Me {
@@ -26,6 +27,21 @@ export interface UserBrief {
   full_name: string;
   role: Role;
   department_name: string;
+}
+
+export interface ChatMessage {
+  id: number;
+  text: string;
+  created_at: string;
+  author_id: number;
+}
+
+export interface ChatConversation {
+  partner: UserBrief;
+  last_message: string;
+  last_at: string;
+  outgoing: boolean;
+  unread_count: number;
 }
 
 export interface FileInfo {
@@ -78,7 +94,18 @@ export interface TaskDetail extends Task {
   subtasks: { id: number; title: string; is_done: boolean; assignee: UserBrief | null; can_toggle: boolean; can_delete?: boolean }[];
   files: FileInfo[];
   submissions: Submission[];
-  actions: { start: boolean; submit: boolean; review: boolean; edit: boolean; delete: boolean; add_files: boolean; manage_subtasks?: boolean };
+  worklogs: WorkLog[];
+  worklog_hours: string;
+  actions: { start: boolean; submit: boolean; review: boolean; edit: boolean; delete: boolean; add_files: boolean; manage_subtasks?: boolean; log_work?: boolean };
+}
+
+export interface WorkLog {
+  id: number;
+  author: UserBrief;
+  work_date: string;
+  hours: string;
+  note: string;
+  can_delete: boolean;
 }
 
 export interface OrderVersion {

@@ -42,6 +42,7 @@ class User(AbstractUser):
         related_name="users",
     )
     department_name = models.CharField("Boshqarma nomi", max_length=200, blank=True)
+    telegram_username = models.CharField("Telegram", max_length=100, blank=True, help_text="Bildirishnomalar uchun, ms: @username")
 
     class Meta:
         verbose_name = "Foydalanuvchi"

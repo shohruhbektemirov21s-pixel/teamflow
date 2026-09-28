@@ -14,6 +14,7 @@ export default function ProfilePage() {
 
   const [first, setFirst] = useState("");
   const [last, setLast] = useState("");
+  const [telegram, setTelegram] = useState("");
   const [oldPass, setOldPass] = useState("");
   const [newPass, setNewPass] = useState("");
 
@@ -28,11 +29,12 @@ export default function ProfilePage() {
     if (p) {
       setFirst(p.first_name);
       setLast(p.last_name);
+      setTelegram(p.telegram_username || "");
     }
   }, [p]);
 
   const infoMut = useMutation({
-    mutationFn: () => api.patch("/auth/profile/", { first_name: first, last_name: last }),
+    mutationFn: () => api.patch("/auth/profile/", { first_name: first, last_name: last, telegram_username: telegram }),
     onSuccess: () => {
       toast("Saqlandi", "ok");
       qc.invalidateQueries({ queryKey: ["profile"] });
@@ -81,6 +83,10 @@ export default function ProfilePage() {
               <input className="input" value={last} onChange={(e: any) => setLast(e.target.value)} />
             </div>
             <div className="field">
+              <label className="label">Telegram</label>
+              <input className="input" value={telegram} onChange={(e: any) => setTelegram(e.target.value)} placeholder="@username" />
+            </div>
+            <div className="field">
               <label className="label">Login</label>
               <input className="input" value={me.username} disabled />
             </div>
@@ -90,16 +96,15 @@ export default function ProfilePage() {
             </div>
             
             {p?.stats && (
-              <div style={{ gridColumn: "1 / -1" }} className="row mt-2">
+              <div style={{ gridColumn: "1 / -1", display: "flex", gap: "8px", flexWrap: "wrap", marginTop: "12px" }}>
                 <span className="badge tone-info">{p.stats.active} faol</span>
                 <span className="badge tone-danger">{p.stats.overdue} kechikkan</span>
                 <span className="badge tone-violet">{p.stats.in_review} tekshiruvda</span>
                 <span className="badge tone-success">{p.stats.done} bajarilgan</span>
               </div>
             )}
-
-            <div style={{ gridColumn: "1 / -1", textAlign: "right", marginTop: 10 }}>
-              <Button variant="primary" loading={infoMut.isPending} onClick={() => infoMut.mutate()}>
+            <div style={{ gridColumn: "1 / -1", marginTop: "12px" }}>
+              <Button variant="primary" onClick={() => infoMut.mutate()} loading={infoMut.isPending}>
                 {T.common.save}
               </Button>
             </div>
