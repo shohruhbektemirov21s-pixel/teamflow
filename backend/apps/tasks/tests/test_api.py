@@ -108,6 +108,20 @@ class TaskFlowTests(TestCase):
         self.assertTrue(r.data["subtasks"][0]["is_done"])
         self.assertEqual(r.data["subtasks_progress"], {"done": 1, "total": 1})
 
+    def test_subtask_add_and_delete(self):
+        tid = self.create(assignee_ids=[self.dev1.pk], subtasks=[]).data["id"]
+        dev1 = client_for(self.dev1)
+        r = dev1.post(f"/api/tasks/{tid}/subtasks/", {"title": "Sub 1", "assignee_id": self.dev2.pk})
+        self.assertEqual(r.status_code, 201)
+        sub_id = r.data["subtasks"][0]["id"]
+        self.assertEqual(r.data["subtasks"][0]["title"], "Sub 1")
+        self.assertEqual(r.data["subtasks"][0]["assignee"]["id"], self.dev2.pk)
+        self.assertTrue(r.data["subtasks"][0]["can_delete"])
+
+        r_del = dev1.delete(f"/api/tasks/{tid}/subtasks/{sub_id}/")
+        self.assertEqual(r_del.status_code, 200)
+        self.assertEqual(len(r_del.data["subtasks"]), 0)
+
     def test_only_manager_edits_and_deletes(self):
         tid = self.create().data["id"]
         self.assertEqual(client_for(self.dev1).patch(f"/api/tasks/{tid}/", {"title": "X"}, format="json").status_code, 403)

@@ -118,5 +118,56 @@ class TaskViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.Gen
         services.toggle_subtask(subtask, request.user, s.validated_data["is_done"])
         return Response(self._detail(task))
 
+    @action(detail=True, methods=["post"], url_path="subtasks")
+    def create_subtask(self, request, pk=None):
+        task = self.get_object()
+        title = request.data.get("title", "")
+        assignee_id = request.data.get("assignee_id")
+        services.add_subtask(task, request.user, title=title, assignee_id=assignee_id)
+        return Response(self._detail(task), status=status.HTTP_201_CREATED)
+
+    @action(detail=True, methods=["delete"], url_path=r"subtasks/(?P<subtask_id>\d+)")
+    def remove_subtask(self, request, pk=None, subtask_id=None):
+        task = self.get_object()
+        services.delete_subtask(task, request.user, subtask_id)
+        return Response(self._detail(task))
+
+
+    @action(detail=False, methods=["post"])
+    def bulk(self, request):
+        project_id = request.data.get("project")
+        if not project_id:
+            return Response({"project": "Majburiy"}, status=400)
+        from apps.projects.models import Project
+        from django.shortcuts import get_object_or_404
+        project = get_object_or_404(Project, pk=project_id)
+        
+        titles = request.data.get("titles", [])
+        if not titles:
+            return Response({"titles": "Vazifa nomlari kiritilmadi"}, status=400)
+            
+        assignee_ids = request.data.get("assignee_ids", [])
+        priority = request.data.get("priority", "medium")
+        description = request.data.get("description", "")
+        due_at = request.data.get("due_at")
+        
+        created = []
+        for title in titles:
+            if not title.strip():
+                continue
+            task = services.create_task(
+                request.user,
+                project,
+                title=title.strip(),
+                description=description,
+                priority=priority,
+                starts_at=None,
+                due_at=due_at,
+                assignee_ids=assignee_ids,
+            )
+            created.append(task)
+            
+        return Response({"created": len(created)}, status=201)
+
     def update(self, request, *args, **kwargs):
         raise PermissionDenied("PATCH ishlating.")

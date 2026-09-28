@@ -9,7 +9,10 @@ from rest_framework.throttling import AnonRateThrottle
 from apps.core.api_utils import require_manager
 
 from .models import Role, Specialty, User
-from .serializers import LoginSerializer, MeSerializer, RegisterSerializer, SpecialtySerializer
+from .serializers import (
+    LoginSerializer, MeSerializer, RegisterSerializer, SpecialtySerializer,
+    ProfileSerializer, ProfileUpdateSerializer, ChangePasswordSerializer
+)
 
 
 class AuthThrottle(AnonRateThrottle):
@@ -95,3 +98,30 @@ def developers(request):
             for u in qs.order_by("first_name", "last_name")
         ]
     )
+
+
+@api_view(["GET", "PATCH"])
+@permission_classes([IsAuthenticated])
+def profile(request):
+    """Joriy foydalanuvchi profili. PATCH: first_name, last_name o'zgartirish."""
+    if request.method == "GET":
+        return Response(ProfileSerializer(request.user).data)
+    s = ProfileUpdateSerializer(data=request.data)
+    s.is_valid(raise_exception=True)
+    for k, v in s.validated_data.items():
+        setattr(request.user, k, v)
+    request.user.save(update_fields=list(s.validated_data.keys()))
+    return Response(ProfileSerializer(request.user).data)
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def change_password(request):
+    s = ChangePasswordSerializer(data=request.data, context={"request": request})
+    s.is_valid(raise_exception=True)
+    request.user.set_password(s.validated_data["new_password"])
+    request.user.save()
+    # Sessiyani yangilash (chiqarib yubormaslik uchun)
+    from django.contrib.auth import update_session_auth_hash
+    update_session_auth_hash(request, request.user)
+    return Response({"detail": "Parol muvaffaqiyatli o'zgartirildi."})

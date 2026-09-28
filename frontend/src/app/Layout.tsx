@@ -90,13 +90,15 @@ export default function Layout() {
           ))}
         </nav>
         <div className="me">
-          <Avatar user={me} />
-          <div className="grow">
-            <div className="ellipsis" style={{ fontWeight: 650 }}>
-              {me.full_name}
+          <Link to="/profil" className="grow" style={{ display: "flex", alignItems: "center", gap: 12, textDecoration: "none", color: "inherit", minWidth: 0 }}>
+            <Avatar user={me} />
+            <div className="grow" style={{ minWidth: 0 }}>
+              <div className="ellipsis" style={{ fontWeight: 650 }}>
+                {me.full_name}
+              </div>
+              <div className="me-role ellipsis">{me.department_name || meta.label("roles", me.role)}</div>
             </div>
-            <div className="me-role ellipsis">{me.department_name || meta.label("roles", me.role)}</div>
-          </div>
+          </Link>
           <button className="icon-btn" onClick={logout} title={T.nav.logout} aria-label={T.nav.logout}>
             <LogOut />
           </button>

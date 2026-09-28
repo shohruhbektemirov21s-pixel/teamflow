@@ -7,6 +7,7 @@ from django.http import FileResponse, Http404
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework import serializers, status
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
@@ -274,3 +275,95 @@ def file_download(request, kind, pk):
     response = FileResponse(handle, as_attachment=not inline, filename=obj.original_name, content_type=content_type)
     response["X-Content-Type-Options"] = "nosniff"
     return response
+
+
+@api_view(["GET"])
+def workdone(request):
+    """Boshliq uchun: oxirgi bajarilgan ishlar, tekshiruv natijalari, izohlar.
+    PM uchun ham ochiq lekin faqat o'z loyihalaridagi ishlar.
+    Filter: ?days=7 (default), ?project=ID
+    """
+    user = request.user
+    if not user.is_manager:
+        raise PermissionDenied("Bu sahifa faqat menejerlar uchun.")
+    
+    days = int(request.query_params.get("days", 7))
+    since = timezone.now() - timezone.timedelta(days=days)
+    
+    # 1. So'nggi bajarilgan vazifalar (done holatiga o'tgan)
+    from apps.tasks.models import Task, Submission
+    task_qs = Task.objects.filter(status=Task.Status.DONE, completed_at__gte=since)
+    if not user.is_boss:
+        from apps.tasks.permissions import visible_tasks
+        task_qs = task_qs.filter(pk__in=visible_tasks(user))
+    if request.query_params.get("project"):
+        task_qs = task_qs.filter(project_id=request.query_params["project"])
+    task_qs = task_qs.select_related("project").prefetch_related("assignees")[:50]
+    
+    # 2. So'nggi tekshiruvlar (qabul qilingan va qaytarilganlar)
+    sub_qs = Submission.objects.filter(
+        reviewed_at__gte=since,
+        decision__in=["accepted", "returned"]
+    ).select_related("task__project", "submitted_by", "reviewed_by")[:50]
+    if not user.is_boss:
+        from apps.tasks.permissions import visible_tasks
+        sub_qs = sub_qs.filter(task__in=visible_tasks(user))
+    
+    # 3. So'nggi tarix
+    history_qs = ActivityLog.objects.filter(created_at__gte=since).select_related("actor")[:50]
+    
+    result = {
+        "completed_tasks": [
+            {
+                "id": t.pk, "title": t.title,
+                "project": {"id": t.project.pk, "name": t.project.name},
+                "completed_at": t.completed_at,
+                "assignees": [user_brief(a) for a in t.assignees.all()],
+            }
+            for t in task_qs
+        ],
+        "reviews": [
+            {
+                "id": s.pk, "task_id": s.task.pk, "task_title": s.task.title,
+                "project": s.task.project.name,
+                "submitted_by": user_brief(s.submitted_by),
+                "reviewed_by": user_brief(s.reviewed_by),
+                "decision": s.decision, "note": s.note[:100],
+                "review_note": s.review_note[:100],
+                "reviewed_at": s.reviewed_at,
+            }
+            for s in sub_qs
+        ],
+        "recent_activity": [
+            {
+                "id": a.pk, "actor": user_brief(a.actor),
+                "verb": a.verb, "message": a.message, "created_at": a.created_at,
+            }
+            for a in history_qs
+        ],
+    }
+    return Response(result)
+
+
+@api_view(["GET"])
+def person_profile(request, pk):
+    """Boshqa xodimning profili — faqat menejerlar ko'radi."""
+    require_manager(request.user)
+    user = get_object_or_404(User.objects.filter(is_active=True).select_related("specialty"), pk=pk)
+    from apps.tasks.models import Task
+    task_qs = Task.objects.filter(assignments__developer=user)
+    stats = {
+        "active": task_qs.filter(status__in=["control", "in_progress"]).count(),
+        "in_review": task_qs.filter(status="in_review").count(),
+        "done": task_qs.filter(status="done").count(),
+    }
+    return Response({
+        "id": user.pk, "username": user.username,
+        "first_name": user.first_name, "last_name": user.last_name,
+        "full_name": user.full_name,
+        "role": user.role, "role_label": user.get_role_display(),
+        "specialty": user.specialty.name if user.specialty else "",
+        "department_name": user.department_name,
+        "date_joined": user.date_joined,
+        "stats": stats,
+    })

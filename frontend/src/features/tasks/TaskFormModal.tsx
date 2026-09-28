@@ -1,5 +1,5 @@
-import { useMutation, useQuery } from "@tanstack/react-query";
-import { Plus, Trash2 } from "lucide-react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Plus, Trash2, UserPlus } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
 import { isManager, useMe } from "@/app/auth";
@@ -22,12 +22,13 @@ interface SubtaskDraft {
  * Modal: vazifa yaratish / tahrirlash.
  * Menejer — loyiha jamoasidan bir nechta ijrochi tanlaydi. Dasturchi — faqat o'ziga ("Mening ishim").
  */
-export default function TaskFormModal({ projectId, editId }: { projectId?: number; editId?: number }) {
+export default function TaskFormModal({ projectId, editId, assigneeId }: { projectId?: number; editId?: number; assigneeId?: number }) {
   const me = useMe();
   const manager = isManager(me);
   const { close, open } = useModal();
   const toast = useToast();
   const refresh = useRefresh();
+  const queryClient = useQueryClient();
   const meta = useMeta();
   const projects = useProjects();
   const existing = useQuery({ queryKey: ["task", editId], queryFn: () => api.get<TaskDetail>(`/tasks/${editId}/`), enabled: Boolean(editId) });
@@ -38,7 +39,7 @@ export default function TaskFormModal({ projectId, editId }: { projectId?: numbe
   const [priority, setPriority] = useState<Priority>("medium");
   const [startsAt, setStartsAt] = useState("");
   const [dueAt, setDueAt] = useState("");
-  const [assignees, setAssignees] = useState<number[]>([]);
+  const [assignees, setAssignees] = useState<number[]>(assigneeId ? [assigneeId] : []);
   const [subtasks, setSubtasks] = useState<SubtaskDraft[]>([]);
   const [files, setFiles] = useState<File[]>([]);
   const [error, setError] = useState<ApiError | null>(null);
@@ -70,12 +71,34 @@ export default function TaskFormModal({ projectId, editId }: { projectId?: numbe
     select: (p) => p.members,
   });
 
+  const addMember = useMutation({
+    mutationFn: async () => {
+      if (!project || !assigneeId) return;
+      const currentIds = (team.data ?? []).map((m) => m.id);
+      if (!currentIds.includes(assigneeId)) {
+        await api.put(`/projects/${project}/members/`, { member_ids: [...currentIds, assigneeId] });
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["project", project] });
+      if (assigneeId) {
+        setAssignees((xs) => (xs.includes(assigneeId) ? xs : [...xs, assigneeId]));
+      }
+      toast("Xodim loyiha jamoasiga qo'shildi");
+    },
+    onError: (e: Error) => toast(e.message, "error"),
+  });
+
   // Loyiha almashsa — jamoada bo'lmagan ijrochilar olib tashlanadi
   useEffect(() => {
     if (!team.data) return;
     const ids = new Set(team.data.map((m) => m.id));
-    setAssignees((xs) => xs.filter((x) => ids.has(x)));
-  }, [team.data]);
+    if (assigneeId && ids.has(assigneeId)) {
+      setAssignees((xs) => (xs.includes(assigneeId) ? xs : [...xs, assigneeId]));
+    } else {
+      setAssignees((xs) => xs.filter((x) => ids.has(x)));
+    }
+  }, [team.data, assigneeId]);
 
   const save = useMutation({
     mutationFn: () => {
@@ -195,6 +218,18 @@ export default function TaskFormModal({ projectId, editId }: { projectId?: numbe
                     </button>
                   );
                 })}
+              </div>
+            )}
+            {manager && Boolean(project) && Boolean(assigneeId) && team.data && !team.data.some((m) => m.id === assigneeId) && (
+              <div style={{ marginTop: 8 }}>
+                <Callout tone="info">
+                  <div className="row" style={{ justifyContent: "space-between", width: "100%", gap: 8 }}>
+                    <span>Tanlangan xodim bu loyiha jamoasiga qo'shilmagan.</span>
+                    <Button size="sm" variant="primary" icon={<UserPlus />} loading={addMember.isPending} onClick={() => addMember.mutate()}>
+                      Jamoaga qo'shish
+                    </Button>
+                  </div>
+                </Callout>
               </div>
             )}
             {fe("assignee_ids") ? <span className="field-error">{fe("assignee_ids")}</span> : <span className="field-hint">{T.tasks.assigneesHint}</span>}

@@ -10,6 +10,8 @@ import {
   ListChecks,
   type LucideIcon,
   Users,
+  Lightbulb,
+  CheckSquare
 } from "lucide-react";
 
 import { T } from "@/shared/text";
@@ -35,10 +37,12 @@ const calendar: NavItem = { to: "/taqvim", label: T.nav.calendar, icon: Calendar
 const people: NavItem = { to: "/xodimlar", label: T.nav.people, icon: Users };
 const notifications: NavItem = { to: "/bildirishnomalar", label: T.nav.notifications, icon: Bell, counter: "notifications" };
 const history: NavItem = { to: "/tarix", label: T.nav.history, icon: History };
+const suggestions: NavItem = { to: "/takliflar", label: T.nav.suggestions, icon: Lightbulb };
+const messages: NavItem = { to: "/xabarlar", label: "Xabarlar", icon: Users };
+const workDone: NavItem = { to: "/qilingan-ishlar", label: T.nav.workDone, icon: CheckSquare };
 
 /**
- * Yon panel rolga qarab (README, 7-bo'lim). "Takliflar" va "Xabarlar" talab aniqlanguncha qo'shilmagan
- * (docs/ARCHITECTURE.md, 11-bo'lim).
+ * Yon panel rolga qarab (README, 7-bo'lim).
  */
 export function navFor(role: Role): NavGroup[] {
   switch (role) {
@@ -48,13 +52,13 @@ export function navFor(role: Role): NavGroup[] {
           title: T.nav.groupMain,
           items: [dashboard, tasks, { to: "/mening-ishim", label: T.nav.myWork, icon: KanbanSquare, counter: "myWork" }, calendar],
         },
-        { title: T.nav.groupTeam, items: [notifications] },
+        { title: T.nav.groupTeam, items: [messages, notifications, suggestions] },
         { title: T.nav.groupControl, items: [history] },
       ];
     case "department":
       return [
         { title: T.nav.groupMain, items: [{ to: "/buyurtmalar", label: T.nav.myOrders, icon: FileText }] },
-        { title: T.nav.groupTeam, items: [notifications] },
+        { title: T.nav.groupTeam, items: [notifications, suggestions] },
         { title: T.nav.groupControl, items: [history] },
       ];
     default: // pm, boss
@@ -71,9 +75,9 @@ export function navFor(role: Role): NavGroup[] {
         },
         {
           title: T.nav.groupTeam,
-          items: [people, notifications, { to: "/tekshiruv", label: T.nav.review, icon: ClipboardCheck, counter: "review" }],
+          items: [people, messages, notifications, { to: "/tekshiruv", label: T.nav.review, icon: ClipboardCheck, counter: "review" }, suggestions],
         },
-        { title: T.nav.groupControl, items: [history] },
+        { title: T.nav.groupControl, items: [history, workDone] },
       ];
   }
 }

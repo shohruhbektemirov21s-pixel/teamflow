@@ -36,6 +36,8 @@ INSTALLED_APPS = [
     "apps.projects",
     "apps.tasks",
     "apps.notifications",
+    "apps.suggestions",
+    "apps.chat",
     "apps.panel",
 ]
 

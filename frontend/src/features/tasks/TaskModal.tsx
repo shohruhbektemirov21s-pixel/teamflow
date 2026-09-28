@@ -6,6 +6,7 @@ import {
   FolderKanban,
   Pencil,
   Play,
+  Plus,
   RotateCcw,
   Send,
   Trash2,
@@ -23,7 +24,7 @@ import { api, ApiError, formData } from "@/shared/api";
 import { fmtDateTime, timeAgo } from "@/shared/format";
 import { useMeta } from "@/shared/meta";
 import { T } from "@/shared/text";
-import type { FileInfo, TaskDetail } from "@/shared/types";
+import type { FileInfo, ProjectDetail, TaskDetail } from "@/shared/types";
 import {
   Avatar,
   Badge,
@@ -57,12 +58,22 @@ export default function TaskModal({ id, submitMode }: { id: number; submitMode?:
   const query = useQuery({ queryKey: ["task", id], queryFn: () => api.get<TaskDetail>(`/tasks/${id}/`) });
   const task = query.data;
 
+  const projectTeam = useQuery({
+    queryKey: ["project", task?.project.id],
+    queryFn: () => api.get<ProjectDetail>(`/projects/${task!.project.id}/`),
+    enabled: Boolean(task?.project.id),
+  });
+
   const [tab, setTab] = useState<Tab>("main");
   const [panel, setPanel] = useState<Panel>(submitMode ? "submit" : null);
   const [note, setNote] = useState("");
   const [files, setFiles] = useState<File[]>([]);
   const [viewing, setViewing] = useState<FileInfo | null>(null);
   const [noteError, setNoteError] = useState<string>();
+
+  const [isAddingSubtask, setIsAddingSubtask] = useState(false);
+  const [newSubtaskTitle, setNewSubtaskTitle] = useState("");
+  const [newSubtaskAssignee, setNewSubtaskAssignee] = useState<number | "">("");
 
   useEffect(() => {
     if (submitMode) setPanel("submit");
@@ -107,6 +118,27 @@ export default function TaskModal({ id, submitMode }: { id: number; submitMode?:
   const toggle = useMutation({
     mutationFn: ({ sid, done }: { sid: number; done: boolean }) => api.post(`/tasks/${id}/subtasks/${sid}/toggle/`, { is_done: done }),
     onSuccess: () => refresh(),
+    onError: (e: Error) => toast(e.message, "error"),
+  });
+
+  const addSubtask = useMutation({
+    mutationFn: (data: { title: string; assignee_id?: number | null }) => api.post(`/tasks/${id}/subtasks/`, data),
+    onSuccess: () => {
+      refresh();
+      setNewSubtaskTitle("");
+      setNewSubtaskAssignee("");
+      setIsAddingSubtask(false);
+      toast("Sub-vazifa qo'shildi");
+    },
+    onError: (e: Error) => toast(e.message, "error"),
+  });
+
+  const deleteSubtask = useMutation({
+    mutationFn: (sid: number) => api.del(`/tasks/${id}/subtasks/${sid}/`),
+    onSuccess: () => {
+      refresh();
+      toast("Sub-vazifa o'chirildi");
+    },
     onError: (e: Error) => toast(e.message, "error"),
   });
 
@@ -259,28 +291,125 @@ export default function TaskModal({ id, submitMode }: { id: number; submitMode?:
                 {task.subtasks.length ? (
                   <div className="stack-sm">
                     {task.subtasks.map((s) => (
-                      <label key={s.id} className="pick" style={{ cursor: s.can_toggle ? "pointer" : "default" }}>
-                        <input
-                          type="checkbox"
-                          checked={s.is_done}
-                          disabled={!s.can_toggle || toggle.isPending}
-                          onChange={(e) => toggle.mutate({ sid: s.id, done: e.target.checked })}
-                        />
-                        <span className="grow" style={{ textDecoration: s.is_done ? "line-through" : undefined, color: s.is_done ? "var(--muted)" : undefined }}>
-                          {s.title}
-                        </span>
-                        {s.assignee ? (
-                          <span className="row small muted">
-                            <Avatar user={s.assignee} size="sm" /> {s.assignee.full_name}
+                      <div key={s.id} className="row" style={{ width: "100%", gap: 6 }}>
+                        <label className="pick grow" style={{ cursor: s.can_toggle ? "pointer" : "default", margin: 0 }}>
+                          <input
+                            type="checkbox"
+                            checked={s.is_done}
+                            disabled={!s.can_toggle || toggle.isPending}
+                            onChange={(e) => toggle.mutate({ sid: s.id, done: e.target.checked })}
+                          />
+                          <span className="grow" style={{ textDecoration: s.is_done ? "line-through" : undefined, color: s.is_done ? "var(--muted)" : undefined }}>
+                            {s.title}
                           </span>
-                        ) : (
-                          <span className="small muted">{T.tasks.subtaskNobody}</span>
+                          {s.assignee ? (
+                            <span className="row small muted">
+                              <Avatar user={s.assignee} size="sm" /> {s.assignee.full_name}
+                            </span>
+                          ) : (
+                            <span className="small muted">{T.tasks.subtaskNobody}</span>
+                          )}
+                        </label>
+                        {s.can_delete && (
+                          <button
+                            type="button"
+                            className="icon-btn"
+                            title={T.common.delete}
+                            disabled={deleteSubtask.isPending}
+                            onClick={() => deleteSubtask.mutate(s.id)}
+                          >
+                            <Trash2 size={14} />
+                          </button>
                         )}
-                      </label>
+                      </div>
                     ))}
                   </div>
                 ) : (
                   <p className="small muted">{T.common.none}</p>
+                )}
+
+                {task.actions.manage_subtasks && (
+                  <div style={{ marginTop: 10 }}>
+                    {!isAddingSubtask ? (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        icon={<Plus size={14} />}
+                        onClick={() => setIsAddingSubtask(true)}
+                      >
+                        Sub-vazifa qo'shish
+                      </Button>
+                    ) : (
+                      <form
+                        className="row-wrap"
+                        style={{
+                          gap: 8,
+                          padding: 10,
+                          background: "var(--surface-muted)",
+                          border: "1px solid var(--border)",
+                          borderRadius: "var(--radius-sm)",
+                        }}
+                        onSubmit={(e) => {
+                          e.preventDefault();
+                          if (!newSubtaskTitle.trim()) return;
+                          addSubtask.mutate({
+                            title: newSubtaskTitle,
+                            assignee_id: newSubtaskAssignee ? Number(newSubtaskAssignee) : null,
+                          });
+                        }}
+                      >
+                        <input
+                          className="input grow"
+                          style={{ minWidth: 150 }}
+                          placeholder="Sub-vazifa nomi..."
+                          value={newSubtaskTitle}
+                          onChange={(e) => setNewSubtaskTitle(e.target.value)}
+                          autoFocus
+                        />
+                        <select
+                          className="select"
+                          style={{ width: 170 }}
+                          value={newSubtaskAssignee}
+                          onChange={(e) => setNewSubtaskAssignee(e.target.value ? Number(e.target.value) : "")}
+                        >
+                          <option value="">{T.tasks.subtaskNobody}</option>
+                          {(projectTeam.data?.members ?? []).map((m) => (
+                            <option key={m.id} value={m.id}>
+                              {m.full_name}
+                            </option>
+                          ))}
+                        </select>
+                        <Button
+                          size="sm"
+                          variant="primary"
+                          type="submit"
+                          loading={addSubtask.isPending}
+                          disabled={!newSubtaskTitle.trim()}
+                          onClick={() => {
+                            if (newSubtaskTitle.trim()) {
+                              addSubtask.mutate({
+                                title: newSubtaskTitle,
+                                assignee_id: newSubtaskAssignee ? Number(newSubtaskAssignee) : null,
+                              });
+                            }
+                          }}
+                        >
+                          {T.common.save}
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => {
+                            setIsAddingSubtask(false);
+                            setNewSubtaskTitle("");
+                            setNewSubtaskAssignee("");
+                          }}
+                        >
+                          {T.common.cancel}
+                        </Button>
+                      </form>
+                    )}
+                  </div>
                 )}
               </div>
               <div>

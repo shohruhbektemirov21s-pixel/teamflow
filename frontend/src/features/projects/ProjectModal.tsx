@@ -28,7 +28,7 @@ import {
   useToast,
 } from "@/shared/ui";
 
-type Tab = "main" | "tasks" | "team" | "files" | "comments";
+type Tab = "main" | "tasks" | "team" | "files" | "comments" | "history";
 
 /** Modal: loyiha ko'rish/tahrirlash. Buyurtmadan yaratilgan loyihada faqat sanalar va daraja o'zgaradi. */
 export default function ProjectModal({ id }: { id: number }) {
@@ -48,6 +48,19 @@ export default function ProjectModal({ id }: { id: number }) {
   const [members, setMembers] = useState<number[]>([]);
   const [files, setFiles] = useState<File[]>([]);
   const [error, setError] = useState<ApiError | null>(null);
+
+  const historyEvents = (() => {
+    if (!p) return [];
+    const evs = [];
+    evs.push({ date: p.created_at, msg: "Loyiha tizimda yaratildi", type: "project" });
+    tasks.data?.forEach(t => {
+      evs.push({ date: t.created_at, msg: `Yangi vazifa yaratildi: ${t.title}`, type: "task" });
+      if (t.completed_at) {
+        evs.push({ date: t.completed_at, msg: `Vazifa yakunlandi: ${t.title}`, type: "done" });
+      }
+    });
+    return evs.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  })();
 
   useEffect(() => {
     if (!p) return;
@@ -165,8 +178,28 @@ export default function ProjectModal({ id }: { id: number }) {
             { key: "team", label: `${T.projects.tabTeam} (${p.members.length})` },
             { key: "files", label: `${T.projects.tabFiles} (${p.files.length})` },
             { key: "comments", label: T.common.comments },
+            { key: "history", label: "Tarix" },
           ]}
         />
+
+        {tab === "history" && (
+          <div className="card card-pad stack">
+            <h4 style={{ margin: 0 }}>Loyiha Faolligi (Xronologiya)</h4>
+            <div className="timeline" style={{ marginTop: 10 }}>
+              {historyEvents.map((h, i) => (
+                <div key={i} className="timeline-item">
+                  <div className="avatar sm" style={{ background: h.type === "project" ? "var(--primary)" : h.type === "done" ? "var(--success)" : "var(--slate)", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12 }}>
+                    {h.type === "project" ? "P" : h.type === "done" ? "✓" : "T"}
+                  </div>
+                  <div className="grow">
+                    <div style={{ fontWeight: 500 }}>{h.msg}</div>
+                    <div className="small muted">{fmtDate(h.date)} {new Date(h.date).toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' })}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {tab === "main" && (
           <div className="modal-split">

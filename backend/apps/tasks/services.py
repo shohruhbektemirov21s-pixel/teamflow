@@ -197,6 +197,50 @@ def toggle_subtask(subtask, user, is_done):
     return subtask
 
 
+def add_subtask(task, user, *, title, assignee_id=None):
+    """Sub-vazifa qo'shish: menejer yoki vazifa ijrochisi (mas'ul xodim)."""
+    if not (user.is_manager or is_assignee(user, task)):
+        raise ServiceError("Vazifaga sub-vazifa qo'shish uchun ruxsatingiz yo'q.")
+    if task.status == S.DONE:
+        raise ServiceError("Bajarilgan vazifaga sub-vazifa qo'shib bo'lmaydi.")
+    if not title.strip():
+        raise ServiceError("Sub-vazifa nomini yozing.", "title")
+
+    assignee = None
+    if assignee_id:
+        devs = _project_developers(task.project, [assignee_id], field="assignee_id")
+        if devs:
+            assignee = devs[0]
+
+    last_pos = task.subtasks.aggregate(m=Max("position"))["m"] or 0
+    subtask = SubTask.objects.create(
+        task=task,
+        title=title.strip(),
+        assignee=assignee,
+        is_done=False,
+        position=last_pos + 1,
+    )
+    if assignee and assignee != user:
+        notify([assignee], K.TASK_ASSIGNED, f"Sizga sub-vazifa biriktirildi: {subtask.title} ({task.title})", task, exclude=user)
+    log(user, "subtask_created", f"{user.full_name} sub-vazifa qo'shdi: {subtask.title}", task)
+    return subtask
+
+
+def delete_subtask(task, user, subtask_id):
+    """Sub-vazifani o'chirish: menejer yoki vazifa ijrochisi."""
+    if not (user.is_manager or is_assignee(user, task)):
+        raise ServiceError("Sub-vazifani o'chirishga ruxsatingiz yo'q.")
+    if task.status == S.DONE:
+        raise ServiceError("Bajarilgan vazifa o'zgartirilmaydi.")
+    subtask = SubTask.objects.filter(pk=subtask_id, task=task).first()
+    if not subtask:
+        raise ServiceError("Sub-vazifa topilmadi.")
+    title = subtask.title
+    subtask.delete()
+    log(user, "subtask_deleted", f"{user.full_name} sub-vazifani o'chirdi: {title}", task)
+    return True
+
+
 def add_task_files(task, user, files):
     if not can_work_on(user, task):
         raise ServiceError("Bu vazifaga fayl qo'sha olmaysiz.")

@@ -16,6 +16,11 @@ export interface Me {
   department_name: string;
 }
 
+export interface Profile extends Me {
+  date_joined: string;
+  stats?: { active: number; in_review: number; done: number; overdue: number };
+}
+
 export interface UserBrief {
   id: number;
   full_name: string;
@@ -70,10 +75,10 @@ export interface Submission {
 
 export interface TaskDetail extends Task {
   created_by: UserBrief;
-  subtasks: { id: number; title: string; is_done: boolean; assignee: UserBrief | null; can_toggle: boolean }[];
+  subtasks: { id: number; title: string; is_done: boolean; assignee: UserBrief | null; can_toggle: boolean; can_delete?: boolean }[];
   files: FileInfo[];
   submissions: Submission[];
-  actions: { start: boolean; submit: boolean; review: boolean; edit: boolean; delete: boolean; add_files: boolean };
+  actions: { start: boolean; submit: boolean; review: boolean; edit: boolean; delete: boolean; add_files: boolean; manage_subtasks?: boolean };
 }
 
 export interface OrderVersion {
@@ -189,4 +194,24 @@ export interface HistoryItem {
   message: string;
   created_at: string;
   target: { type: "order" | "project" | "task"; id: number } | null;
+}
+
+export interface Suggestion {
+  id: number;
+  title: string;
+  body: string;
+  is_anonymous: boolean;
+  author: UserBrief | null;
+  status: "pending" | "accepted" | "rejected";
+  votes_for: number;
+  votes_against: number;
+  my_vote: "for" | "against" | null;
+  created_at: string;
+}
+
+export interface SuggestionDetail extends Suggestion {
+  boss_note: string;
+  decided_by: UserBrief | null;
+  decided_at: string | null;
+  actions: { decide: boolean; vote: boolean; delete: boolean };
 }

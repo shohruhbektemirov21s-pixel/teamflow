@@ -9,7 +9,9 @@ from apps.notifications.api import NotificationViewSet
 from apps.orders.api import OrderViewSet
 from apps.panel import api as panel
 from apps.projects.api import ProjectViewSet
+from apps.suggestions.api import SuggestionViewSet
 from apps.tasks.api import TaskViewSet
+from apps.chat.api import ChatViewSet
 
 admin.site.site_header = "TeamFlow — Boshqaruv paneli"
 admin.site.site_title = "TeamFlow"
@@ -20,6 +22,8 @@ router.register("orders", OrderViewSet, basename="order")
 router.register("projects", ProjectViewSet, basename="project")
 router.register("tasks", TaskViewSet, basename="task")
 router.register("notifications", NotificationViewSet, basename="notification")
+router.register("suggestions", SuggestionViewSet, basename="suggestion")
+router.register("chat", ChatViewSet, basename="chat")
 
 api = [
     path("auth/csrf/", accounts.csrf),
@@ -27,12 +31,16 @@ api = [
     path("auth/login/", accounts.login_view),
     path("auth/logout/", accounts.logout_view),
     path("auth/me/", accounts.me),
+    path("auth/profile/", accounts.profile),
+    path("auth/password/", accounts.change_password),
     path("specialties/", accounts.specialties),
     path("developers/", accounts.developers),
     path("meta/", panel.meta),
     path("dashboard/", panel.dashboard),
     path("people/", panel.people),
     path("search/", panel.search),
+    path("workdone/", panel.workdone),
+    path("people/<int:pk>/", panel.person_profile),
     path("comments/", panel.comments),
     path("history/", panel.history),
     path("files/<str:kind>/<int:pk>/", panel.file_download),

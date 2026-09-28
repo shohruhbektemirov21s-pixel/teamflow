@@ -8,6 +8,7 @@ import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { AuthProvider, isManager, useAuth } from "./app/auth";
 import Layout from "./app/Layout";
 import { LoginPage, RegisterPage } from "./features/auth/AuthPages";
+import LandingPage from "./features/auth/LandingPage";
 import { ApiError } from "./shared/api";
 import { MetaProvider } from "./shared/meta";
 import { Skeleton, ToastProvider } from "./shared/ui";
@@ -22,6 +23,10 @@ const CalendarPage = lazy(() => import("./features/calendar/CalendarPage"));
 const PeoplePage = lazy(() => import("./features/people/PeoplePage"));
 const NotificationsPage = lazy(() => import("./features/notifications/NotificationsPage"));
 const HistoryPage = lazy(() => import("./features/history/HistoryPage"));
+const ProfilePage = lazy(() => import("./features/people/ProfilePage"));
+const WorkDonePage = lazy(() => import("./features/history/WorkDonePage"));
+const SuggestionsPage = lazy(() => import("./features/suggestions/SuggestionsPage"));
+const MessagesPage = lazy(() => import("./features/chat/MessagesPage"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -56,9 +61,10 @@ function AppRoutes() {
     <MetaProvider userKey={user ? user.id : "anon"}>
       {!user ? (
         <Routes>
+          <Route path="/" element={<LandingPage />} />
           <Route path="/kirish" element={<LoginPage />} />
           <Route path="/royxatdan-otish" element={<RegisterPage />} />
-          <Route path="*" element={<Navigate to="/kirish" replace />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       ) : (
         <Routes>
@@ -72,7 +78,11 @@ function AppRoutes() {
             {manager && <Route path="xodimlar" element={page(<PeoplePage />)} />}
             {(manager || dept) && <Route path="buyurtmalar" element={page(<OrdersPage />)} />}
             <Route path="bildirishnomalar" element={page(<NotificationsPage />)} />
+            <Route path="takliflar" element={page(<SuggestionsPage />)} />
+            <Route path="xabarlar" element={page(<MessagesPage />)} />
             <Route path="tarix" element={page(<HistoryPage />)} />
+            <Route path="profil" element={page(<ProfilePage />)} />
+            {manager && <Route path="qilingan-ishlar" element={page(<WorkDonePage />)} />}
             <Route path="*" element={<Navigate to={dept ? "/buyurtmalar" : "/"} replace />} />
           </Route>
         </Routes>

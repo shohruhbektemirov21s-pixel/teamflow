@@ -8,20 +8,28 @@ import { useSearchParams } from "react-router-dom";
 
 const TaskModal = lazy(() => import("@/features/tasks/TaskModal"));
 const TaskFormModal = lazy(() => import("@/features/tasks/TaskFormModal"));
+const TaskBulkModal = lazy(() => import("@/features/tasks/TaskBulkModal"));
 const OrderModal = lazy(() => import("@/features/orders/OrderModal"));
 const OrderCreateModal = lazy(() => import("@/features/orders/OrderCreateModal"));
 const ProjectModal = lazy(() => import("@/features/projects/ProjectModal"));
 const ProjectWizard = lazy(() => import("@/features/projects/ProjectWizard"));
+const SuggestionCreateModal = lazy(() => import("@/features/suggestions/SuggestionCreateModal"));
+const SuggestionModal = lazy(() => import("@/features/suggestions/SuggestionModal"));
+const PersonModal = lazy(() => import("@/features/people/PersonModal"));
 
 export type ModalTarget =
   | { task: number; submit?: boolean }
   | { order: number }
   | { project: number }
-  | { new: "task"; project?: number; edit?: number }
+  | { suggestion: number }
+  | { person: number }
+  | { new: "task"; project?: number; edit?: number; assignee?: number }
+  | { bulk: "task"; project?: number }
   | { new: "order" }
-  | { new: "project"; order?: number };
+  | { new: "project"; order?: number }
+  | { new: "suggestion" };
 
-const KEYS = ["task", "order", "project", "new", "edit", "submit"];
+const KEYS = ["task", "order", "project", "suggestion", "person", "new", "bulk", "edit", "submit", "assignee"];
 
 export function useModal() {
   const [params, setParams] = useSearchParams();
@@ -39,7 +47,7 @@ export function useModal() {
   const close = () => {
     const next = new URLSearchParams(params);
     KEYS.forEach((k) => next.delete(k));
-    if (params.get("new")) next.delete("order"), next.delete("project");
+    if (params.get("new")) next.delete("order"), next.delete("project"), next.delete("assignee");
     setParams(next);
   };
 
@@ -52,12 +60,16 @@ export function ModalHost() {
   const kind = params.get("new");
 
   let node = null;
-  if (kind === "task") node = <TaskFormModal projectId={num("project")} editId={num("edit")} />;
+  if (kind === "task") node = <TaskFormModal projectId={num("project")} editId={num("edit")} assigneeId={num("assignee")} />;
+  else if (params.get("bulk") === "task") node = <TaskBulkModal projectId={num("project")} />;
   else if (kind === "order") node = <OrderCreateModal />;
   else if (kind === "project") node = <ProjectWizard orderId={num("order")} />;
+  else if (kind === "suggestion") node = <SuggestionCreateModal />;
   else if (params.get("task")) node = <TaskModal id={num("task")!} submitMode={params.get("submit") === "1"} />;
   else if (params.get("order")) node = <OrderModal id={num("order")!} />;
   else if (params.get("project")) node = <ProjectModal id={num("project")!} />;
+  else if (params.get("suggestion")) node = <SuggestionModal id={num("suggestion")!} />;
+  else if (params.get("person")) node = <PersonModal id={num("person")!} />;
 
   return <Suspense fallback={null}>{node}</Suspense>;
 }

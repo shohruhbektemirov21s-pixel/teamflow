@@ -1,4 +1,5 @@
 from django.contrib.auth import password_validation
+from django.utils import timezone
 from rest_framework import serializers
 
 from .models import Role, Specialty, User
@@ -67,3 +68,54 @@ class MeSerializer(serializers.ModelSerializer):
             "id", "username", "first_name", "last_name", "full_name",
             "role", "role_label", "specialty", "department_name",
         ]
+
+
+class ProfileSerializer(serializers.ModelSerializer):
+    full_name = serializers.CharField(read_only=True)
+    role_label = serializers.CharField(source="get_role_display", read_only=True)
+    specialty = serializers.StringRelatedField()
+    stats = serializers.SerializerMethodField()
+
+    class Meta:
+        model = User
+        fields = [
+            "id", "username", "first_name", "last_name", "full_name",
+            "role", "role_label", "specialty", "department_name",
+            "date_joined", "stats",
+        ]
+
+    def get_stats(self, user):
+        from apps.tasks.models import Task
+        from django.db.models import Q
+        if not user.is_developer:
+            return None
+        qs = Task.objects.filter(assignments__developer=user)
+        return {
+            "active": qs.filter(status__in=["control", "in_progress"]).count(),
+            "in_review": qs.filter(status="in_review").count(),
+            "done": qs.filter(status="done").count(),
+            "overdue": qs.filter(status__in=["control", "in_progress"], due_at__lt=timezone.now()).count(),
+        }
+
+
+class ProfileUpdateSerializer(serializers.Serializer):
+    first_name = serializers.CharField(max_length=150, required=False)
+    last_name = serializers.CharField(max_length=150, required=False)
+
+
+class ChangePasswordSerializer(serializers.Serializer):
+    current_password = serializers.CharField()
+    new_password = serializers.CharField()
+
+    def validate_current_password(self, value):
+        if not self.context["request"].user.check_password(value):
+            raise serializers.ValidationError("Joriy parol noto'g'ri.")
+        return value
+
+    def validate_new_password(self, value):
+        from django.contrib.auth import password_validation
+        try:
+            password_validation.validate_password(value, self.context["request"].user)
+        except Exception as exc:
+            raise serializers.ValidationError(list(exc.messages))
+        return value

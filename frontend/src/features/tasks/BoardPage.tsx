@@ -95,9 +95,14 @@ export default function BoardPage() {
           <h1>{T.board.title}</h1>
           <p>{T.board.hint}</p>
         </div>
-        <Button variant="primary" icon={<Plus />} onClick={() => open({ new: "task", project: project ? Number(project) : undefined })}>
-          {T.tasks.new}
-        </Button>
+        <div className="row">
+          <Button variant="default" icon={<Plus />} onClick={() => open({ bulk: "task", project: project ? Number(project) : undefined })}>
+            Ko'p vazifa qo'shish
+          </Button>
+          <Button variant="primary" icon={<Plus />} onClick={() => open({ new: "task", project: project ? Number(project) : undefined })}>
+            {T.tasks.new}
+          </Button>
+        </div>
       </div>
       <div className="card card-pad row-wrap" style={{ gap: 16 }}>
         <label className="field" style={{ minWidth: 220 }}>
