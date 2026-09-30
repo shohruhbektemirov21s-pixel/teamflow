@@ -110,3 +110,24 @@ class ProjectFromOrderTests(TestCase):
         url = r.data["files"][0]["url"]
         self.assertEqual(client_for(self.dev).get(url).status_code, 200)
         self.assertEqual(Project.objects.count(), 1)
+
+
+class ProjectListOrderTests(TestCase):
+    """Ro'yxat Count bilan annotatsiya qilinadi — tartib aniq berilmasa sahifalashda yozuvlar takrorlanishi mumkin."""
+
+    def test_list_is_newest_first_across_pages(self):
+        from datetime import timedelta
+
+        from django.utils import timezone
+
+        pm = make_user(Role.PM)
+        now = timezone.now()
+        ids = []
+        for i in range(55):  # PAGE_SIZE = 50 — ikki sahifa
+            p = Project.objects.create(name=f"P{i}", created_by=pm, **dates())
+            Project.objects.filter(pk=p.pk).update(created_at=now + timedelta(minutes=i))  # id tartibiga teskari
+            ids.append(p.pk)
+        client = client_for(pm)
+        page1 = client.get("/api/projects/").data
+        page2 = client.get("/api/projects/?page=2").data
+        self.assertEqual([p["id"] for p in page1["results"] + page2["results"]], ids[::-1])

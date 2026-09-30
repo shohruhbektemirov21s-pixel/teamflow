@@ -23,7 +23,7 @@ class SuggestionViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewse
             votes_for=Count("votes", filter=Q(votes__kind=SuggestionVote.Kind.FOR)),
             votes_against=Count("votes", filter=Q(votes__kind=SuggestionVote.Kind.AGAINST)),
             my_vote=Subquery(my_vote, output_field=CharField()),
-        ).select_related("author", "decided_by")
+        ).select_related("author", "decided_by").order_by("-created_at", "-id")  # Count bilan Meta.ordering qo'llanmaydi
         status_param = self.request.query_params.get("status")
         if status_param in Suggestion.Status.values:
             qs = qs.filter(status=status_param)

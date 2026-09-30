@@ -243,7 +243,7 @@ cd backend
 .venv\Scripts\python manage.py migrate
 .venv\Scripts\python manage.py seed_demo                  # demo ma'lumotlarni yuklash
 .venv\Scripts\python manage.py runserver 127.0.0.1:8020   # http://127.0.0.1:8020/
-.venv\Scripts\python manage.py test                       # testlarni yurgizish (155 ta)
+.venv\Scripts\python manage.py test                       # testlarni yurgizish (157 ta)
 .venv\Scripts\python manage.py runbot                     # Telegram bot (token backend\.env da; start_server.bat o'zi ishga tushiradi)
 ```
 

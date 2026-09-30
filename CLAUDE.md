@@ -91,7 +91,7 @@ Backend (`backend/` papkasida, virtual muhit `backend/.venv`):
 .venv/Scripts/python manage.py createsuperuser            # admin (Boshliqni adminda yaratish uchun)
 .venv/Scripts/python manage.py seed_demo                  # demo ma'lumotlar
 .venv/Scripts/python manage.py runserver 127.0.0.1:8020   # http://127.0.0.1:8020/ (8020-port)
-.venv/Scripts/python manage.py test                       # testlar (155 ta test)
+.venv/Scripts/python manage.py test                       # testlar (157 ta test)
 .venv/Scripts/python manage.py runbot                     # Telegram bot (TELEGRAM_BOT_TOKEN muhit o'zgaruvchisi bilan)
 .venv/Scripts/python manage.py makemigrations --check --dry-run   # sxema mosligi
 ```
@@ -172,3 +172,4 @@ Har bir app ichidagi qatlamlar (`models`, `workflow`, `services`, `permissions`,
 - 2026-09-30: Vazifa oynasida ijrochilar: bitta vazifaga bir nechta dasturchi ("O'zgartirish" — PM/Boshliq har qanday vazifaga, dasturchi faqat o'zi yaratgan vazifaga; o'zini olib tashlay olmaydi). Sub-vazifaga bir nechta dasturchi, mavjud sub-vazifaga ham qo'shish/olib tashlash (PM/Boshliq yoki vazifa ijrochisi). Ro'yxatda hamma faol dasturchilar (qidiruv), jamoada bo'lmasa loyiha jamoasiga avtomatik qo'shiladi. Baza: `SubTask.assignees` (M2M, migratsiya `0003`). Qaytarish nuqtasi: git tag `before-multi-assignee`.
 - 2026-09-30: Profil rasmi: Profilda "Rasm yuklash / almashtirish / o'chirish" (JPG, PNG, WEBP, 5 MB gacha; server Pillow bilan tekshiradi, 1024px gacha kichraytirib JPEG qiladi, EXIF o'chadi). Rasm faqat tizimga kirganlarga beriladi: `GET /api/avatars/<id>/`. Hamma joyda avatar ustiga sichqoncha olib borilganda kichik profil kartochkasi chiqadi: rasm, ism familiya, rol (va boshqarma). Kartochka modal emas (`Avatar`, `shared/ui`).
 - 2026-09-30: Profil sarlavhasidagi rasm (o'z profilim va xodim oynasi) bosilsa, Telegram kabi to'liq ekranda ochiladi: to'q fon, tepada ism va ✕; Esc, fon yoki "Orqaga" yopadi. Xodim oynasidan ochilsa uning o'rnini egallaydi (modal ustida modal yo'q). Yangi modal: "Rasm ko'rish" — modallar 11 ta. Rasm endi 1024px gacha saqlanadi (katta ko'rinishda tiniq).
+- 2026-09-30: Loyihalar va Takliflar ro'yxatiga aniq tartib qo'shildi (`order_by("-created_at", "-id")`): `Count` annotatsiyasi bilan Meta.ordering qo'llanmasdi va sahifalashda yozuvlar takrorlanishi/tushib qolishi mumkin edi. Testlar: `ProjectListOrderTests`, `SuggestionListOrderTests`.

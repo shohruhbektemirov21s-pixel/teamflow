@@ -32,6 +32,8 @@ class ProjectViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.
                 task_total=Count("tasks", distinct=True),
                 task_done=Count("tasks", filter=Q(tasks__status="done"), distinct=True),
             )
+            # Count bilan Meta.ordering qo'llanmaydi — sahifalashda takror/tushib qolish bo'lmasin
+            .order_by("-created_at", "-id")
         )
         if self.action == "retrieve":
             qs = qs.select_related("order__submitted_by").prefetch_related("files")

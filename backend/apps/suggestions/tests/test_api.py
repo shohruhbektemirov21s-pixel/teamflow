@@ -121,3 +121,24 @@ class SuggestionApiTests(TestCase):
         res = self.client.delete(reverse("suggestion-detail", kwargs={"pk": s.pk}))
         self.assertEqual(res.status_code, status.HTTP_403_FORBIDDEN)
         self.assertTrue(Suggestion.objects.filter(pk=s.pk).exists())
+
+
+class SuggestionListOrderTests(TestCase):
+    """Ro'yxat Count bilan annotatsiya qilinadi — tartib aniq berilmasa sahifalashda yozuvlar takrorlanishi mumkin."""
+
+    def test_list_is_newest_first_across_pages(self):
+        from datetime import timedelta
+
+        from django.utils import timezone
+
+        dev = User.objects.create_user(username="dev_order", password="testpass123", role=Role.DEVELOPER, is_active=True)
+        now = timezone.now()
+        ids = []
+        for i in range(55):  # PAGE_SIZE = 50 — ikki sahifa
+            s = Suggestion.objects.create(title=f"S{i}", body="Matn", author=dev)
+            Suggestion.objects.filter(pk=s.pk).update(created_at=now + timedelta(minutes=i))  # id tartibiga teskari
+            ids.append(s.pk)
+        self.client.force_login(dev)
+        page1 = self.client.get(reverse("suggestion-list")).json()
+        page2 = self.client.get(reverse("suggestion-list") + "?page=2").json()
+        self.assertEqual([s["id"] for s in page1["results"] + page2["results"]], ids[::-1])
