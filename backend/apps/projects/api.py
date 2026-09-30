@@ -5,6 +5,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from apps.core.api_utils import IsManager
+from apps.core.codes import parse_code
 from apps.orders.permissions import visible_orders
 
 from . import services
@@ -37,13 +38,11 @@ class ProjectViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.
         if params.get("stage"):
             qs = qs.filter(stage__in=params["stage"].split(","))
         if params.get("q"):
-            import re
-            m = re.match(r"^PRJ-?(\d+)$", params["q"].strip(), re.I)
-            if m:
-                qs = qs.filter(id=m.group(1))
+            code = parse_code(params["q"])
+            if code and code[0] == "project":
+                qs = qs.filter(id=code[1])
             else:
-
-                qs = qs.filter(name__icontains=params["q"])
+                qs = qs.filter(name__icontains=params["q"].strip())
         return qs
 
     def get_serializer_class(self):

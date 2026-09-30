@@ -12,7 +12,7 @@
 | 2 | Buyurtma yuborish | orders | Boshqarma nom, izoh, TZ, muddat kiritadi → Yuborildi | Faol |
 | 3 | Buyurtmani ko'rib chiqish | orders | PM ochadi → Tasdiqlash (sana, izoh) yoki Rad etish (sabab) | Faol |
 | 4 | TZ qayta yuborish (v2, v3…) | orders | Rad etilgach kamchilikni tuzatib yangi TZ yuboriladi | Faol |
-| 5 | Loyiha yaratish | projects | Tasdiqlangan buyurtmadan (yoki qo'lda) → jamoa → vazifalar/fayllar | Faol |
+| 5 | Loyiha yaratish | projects | Tasdiqlangan buyurtmadan (yoki qo'lda) → jamoa → loyiha fayllari va har bir xodimga alohida vazifa (sana, fayl) → bitta tranzaksiyada saqlanadi | Faol |
 | 6 | Vazifa yaratish va biriktirish | tasks | Loyiha ichida vazifa → bir yoki bir nechta dasturchi → sub-vazifalar | Faol |
 | 7 | Vazifani bajarish | tasks | Nazoratda → Jarayonda → Tekshiruvga yuborish (izoh, fayl) | Faol |
 | 8 | Tekshiruv | tasks | PM natijani ko'radi → Qabul (Bajarildi) yoki Qaytarish (Jarayonda, izoh bilan) | Faol |
@@ -26,13 +26,13 @@ Eslatma: `orders` bo'limidagi 3 flow ham UI da bitta "buyurtma holati" oqimi sif
 
 ## Modallar (amalda: 9 ta)
 
-Modallar URL parametrlariga bog'langan (`?task=12`, `?order=5`, `?project=3`, `?new=task|order|project`, `?person=2`, `?suggestion=4`).
+Modal holati brauzer tarixida saqlanadi, manzil satri toza qoladi. Quyidagi "Parametr" ustuni — `useModal().open()` ga beriladigan qiymat (eski `?task=12` havolalar ham ishlaydi va tozalanadi).
 
 | # | Nomi | Kim ishlatadi | Vazifasi | Parametr | Holati |
 |---|---|---|---|---|---|
 | 1 | Buyurtma yaratish | Boshqarma | Nom, izoh, muddat, muhimlik, TZ fayli (.docx/.pdf) | `?new=order` | Faol |
 | 2 | Buyurtma ko'rish | Hamma (rolga qarab) | Ma'lumotlar, TZ, tarix, izohlar; PM uchun Tasdiqlash/Rad etish; Boshqarma uchun Yangi TZ versiyasi | `?order=:id` | Faol |
-| 3 | Loyiha yaratish | PM, Boshliq | 3 qadam: Asosiy → Jamoa → Vazifalar va fayllar | `?new=project` | Faol |
+| 3 | Loyiha yaratish | PM, Boshliq | 3 qadam: Asosiy → Jamoa → Vazifalar va fayllar (har bir xodimga alohida vazifa: nom, boshlanish/tugash vaqti, fayllar) | `?new=project` | Faol |
 | 4 | Loyiha ko'rish/tahrirlash | PM, Boshliq, Dasturchi | Ma'lumot, daraja, jamoa, fayllar, sanalarni o'zgartirish | `?project=:id` | Faol |
 | 5 | Vazifa yaratish/tahrirlash | PM, Boshliq, Dasturchi | Nom, izoh, ijrochilar, muddat, sub-vazifalar, fayllar; ommaviy yaratishda har vazifaga alohida ijrochi | `?new=task` / `?edit=:id` / `?bulk=task` | Faol |
 | 6 | Vazifa ko'rish | Hamma (rolga qarab) | Mobilga mos yig'iladigan bo'limlar: ma'lumot, sub-vazifalar, tekshiruv, ish jurnali, izohlar, fayllar | `?task=:id` | Faol |

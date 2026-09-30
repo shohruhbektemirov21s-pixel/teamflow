@@ -9,11 +9,11 @@ import { api, qs } from "@/shared/api";
 import { useDebounced } from "@/shared/hooks";
 import { T } from "@/shared/text";
 import type { OrderStatus, ProjectStage, TaskStatus } from "@/shared/types";
-import { OrderStatusBadge, StageBadge, TaskStatusBadge } from "@/shared/ui";
+import { CodeTag, OrderStatusBadge, StageBadge, TaskStatusBadge } from "@/shared/ui";
 
 interface Results {
-  tasks: { id: number; title: string; status: TaskStatus; project: string }[];
-  projects: { id: number; name: string; stage: ProjectStage }[];
+  tasks: { id: number; code: string; title: string; status: TaskStatus; project: string }[];
+  projects: { id: number; code: string; name: string; stage: ProjectStage }[];
   orders: { id: number; title: string; status: OrderStatus }[];
   people: { id: number; full_name: string; role_label: string }[];
 }
@@ -21,6 +21,7 @@ interface Results {
 interface Item {
   key: string;
   icon: typeof Search;
+  code?: string;
   title: string;
   sub?: string;
   badge?: ReactNode;
@@ -52,11 +53,11 @@ export default function SearchPalette({ onClose }: { onClose: () => void }) {
     const g: { key: string; items: Item[] }[] = [
       {
         key: "tasks",
-        items: data.tasks.map((t) => ({ key: `t${t.id}`, icon: ListChecks, title: t.title, sub: t.project, badge: <TaskStatusBadge status={t.status} />, go: () => go({ task: t.id }) })),
+        items: data.tasks.map((t) => ({ key: `t${t.id}`, icon: ListChecks, code: t.code, title: t.title, sub: t.project, badge: <TaskStatusBadge status={t.status} />, go: () => go({ task: t.id }) })),
       },
       {
         key: "projects",
-        items: data.projects.map((p) => ({ key: `p${p.id}`, icon: FolderKanban, title: p.name, badge: <StageBadge stage={p.stage} />, go: () => go({ project: p.id }) })),
+        items: data.projects.map((p) => ({ key: `p${p.id}`, icon: FolderKanban, code: p.code, title: p.name, badge: <StageBadge stage={p.stage} />, go: () => go({ project: p.id }) })),
       },
       {
         key: "orders",
@@ -118,6 +119,7 @@ export default function SearchPalette({ onClose }: { onClose: () => void }) {
                     <button key={it.key} className={`palette-item ${i === active ? "active" : ""}`} onMouseEnter={() => setActive(i)} onClick={it.go}>
                       <it.icon size={16} className="muted" />
                       <span className="grow ellipsis">
+                        {it.code && <><CodeTag code={it.code} /> </>}
                         <b style={{ fontWeight: 600 }}>{it.title}</b>
                         {it.sub && <span className="muted small"> · {it.sub}</span>}
                       </span>

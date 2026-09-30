@@ -1,5 +1,5 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { CalendarDays, FileText, Plus, Save, Upload, User } from "lucide-react";
+import { CalendarDays, FileText, Plus, Save, Search, Upload, User, UserPlus, X } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { useModal } from "@/app/modals";
@@ -16,6 +16,7 @@ import {
   Avatar,
   Button,
   Callout,
+  CodeTag,
   ErrorBox,
   Field,
   FileList,
@@ -46,6 +47,7 @@ export default function ProjectModal({ id }: { id: number }) {
   const [viewing, setViewing] = useState<FileInfo | null>(null);
   const [form, setForm] = useState({ name: "", description: "", start_date: "", end_date: "" });
   const [members, setMembers] = useState<number[]>([]);
+  const [teamQ, setTeamQ] = useState("");
   const [files, setFiles] = useState<File[]>([]);
   const [error, setError] = useState<ApiError | null>(null);
 
@@ -102,12 +104,27 @@ export default function ProjectModal({ id }: { id: number }) {
   const infoDirty = form.name !== p.name || form.description !== p.description || form.start_date !== p.start_date || form.end_date !== p.end_date;
   const teamDirty = JSON.stringify([...members].sort()) !== JSON.stringify(p.members.map((m) => m.id).sort());
   const fe = (k: string) => error?.field(k);
+  // Jamoa: ro'yxatda faqat loyiha a'zolari; qolgan dasturchilar qidiruv orqali qo'shiladi.
+  const savedIds = new Set(p.members.map((m) => m.id));
+  const devById = new Map((developers.data ?? []).map((d) => [d.id, d]));
+  const memberRows = members.map((mid) => {
+    const saved = p.members.find((m) => m.id === mid);
+    return devById.get(mid) ?? { id: mid, full_name: saved?.full_name ?? "", specialty: "" };
+  });
+  const needle = teamQ.trim().toLowerCase();
+  const candidates = needle
+    ? (developers.data ?? []).filter((d) => !members.includes(d.id) && `${d.full_name} ${d.specialty}`.toLowerCase().includes(needle))
+    : [];
   const pct = p.progress.total ? Math.round((p.progress.done / p.progress.total) * 100) : 0;
 
   return (
     <Modal
       size="lg"
-      title={p.name}
+      title={
+        <>
+          <CodeTag code={p.code} /> {p.name}
+        </>
+      }
       subtitle={
         <>
           <StageBadge stage={p.stage} />
@@ -171,13 +188,13 @@ export default function ProjectModal({ id }: { id: number }) {
             { key: "team", label: `${T.projects.tabTeam} (${p.members.length})` },
             { key: "files", label: `${T.projects.tabFiles} (${p.files.length})` },
             { key: "comments", label: T.common.comments },
-            { key: "history", label: "Tarix" },
+            { key: "history", label: T.projects.tabHistory },
           ]}
         />
 
         {tab === "history" && (
           <div className="card card-pad stack">
-            <h4 style={{ margin: 0 }}>Loyiha faolligi</h4>
+            <h4 style={{ margin: 0 }}>{T.projects.activityTitle}</h4>
             {history.isLoading && <Skeleton h={140} />}
             {history.error && <ErrorBox error={history.error} onRetry={() => history.refetch()} />}
             <div className="timeline" style={{ marginTop: 10 }}>
@@ -250,18 +267,61 @@ export default function ProjectModal({ id }: { id: number }) {
 
         {tab === "team" &&
           (manager ? (
-            <div className="pick-list" style={{ maxHeight: "none" }}>
-              {developers.isLoading && <Skeleton h={100} />}
-              {developers.data?.map((d) => (
-                <label key={d.id} className="pick">
-                  <input type="checkbox" checked={members.includes(d.id)} onChange={(e) => setMembers((xs) => (e.target.checked ? [...xs, d.id] : xs.filter((x) => x !== d.id)))} />
-                  <Avatar user={d} size="sm" />
-                  <span className="grow">
-                    <b style={{ fontWeight: 600 }}>{d.full_name}</b>
-                    <span className="small muted"> · {d.specialty}</span>
-                  </span>
-                </label>
-              ))}
+            <div className="stack">
+              <div className="search-field">
+                <Search />
+                <input className="input" placeholder={T.projects.teamSearchPh} aria-label={T.projects.teamSearchPh} value={teamQ} onChange={(e) => setTeamQ(e.target.value)} />
+              </div>
+              {needle && (
+                <div className="pick-list">
+                  {developers.isLoading && <Skeleton h={60} />}
+                  {candidates.map((d) => (
+                    <button
+                      key={d.id}
+                      type="button"
+                      className="pick"
+                      style={{ background: "var(--surface)", textAlign: "left", font: "inherit", color: "inherit" }}
+                      onClick={() => {
+                        setMembers((xs) => [...xs, d.id]);
+                        setTeamQ("");
+                      }}
+                    >
+                      <Avatar user={d} size="sm" />
+                      <span className="grow">
+                        <b style={{ fontWeight: 600 }}>{d.full_name}</b>
+                        {d.specialty && <span className="small muted"> · {d.specialty}</span>}
+                      </span>
+                      <span className="row small" style={{ gap: 4, color: "var(--primary)" }}>
+                        <UserPlus size={16} /> {T.projects.teamAdd}
+                      </span>
+                    </button>
+                  ))}
+                  {!developers.isLoading && !candidates.length && <p className="small muted">{T.projects.teamNoMatch}</p>}
+                </div>
+              )}
+              {teamDirty && <Callout tone="info">{T.projects.teamSaveFirst}</Callout>}
+              <div className="pick-list" style={{ maxHeight: "none" }}>
+                {!memberRows.length && <p className="muted">{T.projects.teamEmpty}</p>}
+                {memberRows.map((d) => (
+                  <div key={d.id} className="pick" style={{ cursor: "default", flexWrap: "wrap" }}>
+                    <Avatar user={d} size="sm" />
+                    <span className="grow">
+                      <b style={{ fontWeight: 600 }}>{d.full_name}</b>
+                      {d.specialty && <span className="small muted"> · {d.specialty}</span>}
+                    </span>
+                    {savedIds.has(d.id) ? (
+                      <Button size="sm" icon={<Plus />} disabled={teamDirty} onClick={() => open({ new: "task", project: p.id, assignee: d.id })}>
+                        {T.projects.giveTask}
+                      </Button>
+                    ) : (
+                      <span className="small muted">{T.projects.teamUnsaved}</span>
+                    )}
+                    <Button size="sm" variant="ghost" icon={<X />} onClick={() => setMembers((xs) => xs.filter((x) => x !== d.id))}>
+                      {T.projects.teamRemove}
+                    </Button>
+                  </div>
+                ))}
+              </div>
             </div>
           ) : (
             <div className="stack-sm">

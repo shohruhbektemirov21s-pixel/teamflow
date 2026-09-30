@@ -1,20 +1,24 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { ArrowLeft, ArrowRight, Check, Plus, Search, Trash2 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { useModal } from "@/app/modals";
 import { useDevelopers, useRefresh } from "@/app/queries";
 import { api, ApiError, formData } from "@/shared/api";
-import { fmtDate } from "@/shared/format";
+import { fmtDate, fromLocalInput } from "@/shared/format";
 import { useMeta } from "@/shared/meta";
 import { T } from "@/shared/text";
 import type { OrderDetail, ProjectDetail, ProjectStage } from "@/shared/types";
 import { Avatar, Button, Callout, Field, FilePicker, Modal, Segmented, Skeleton, Stepper, useToast } from "@/shared/ui";
 
-interface QuickTask {
+/** Bitta xodimga beriladigan vazifa (loyiha bilan birga, bitta so'rovda yaratiladi). */
+interface MemberTask {
+  key: number;
+  assignee: number;
   title: string;
-  assignee_ids: number[];
-  due: string;
+  starts: string; // datetime-local
+  due: string; // datetime-local
+  files: File[];
 }
 
 /**
@@ -38,7 +42,8 @@ export default function ProjectWizard({ orderId }: { orderId?: number }) {
   const [members, setMembers] = useState<number[]>([]);
   const [devSearch, setDevSearch] = useState("");
   const [files, setFiles] = useState<File[]>([]);
-  const [tasks, setTasks] = useState<QuickTask[]>([]);
+  const [tasks, setTasks] = useState<MemberTask[]>([]);
+  const nextKey = useRef(0);
   const [error, setError] = useState<ApiError | null>(null);
 
   useEffect(() => {
@@ -50,27 +55,29 @@ export default function ProjectWizard({ orderId }: { orderId?: number }) {
     setEnd(o.end_date ?? "");
   }, [order.data]);
 
+  // Jamoadan chiqarilgan xodimning vazifalari yuborilmaydi; nomsiz vazifalar e'tiborga olinmaydi
+  const readyTasks = tasks.filter((t) => members.includes(t.assignee) && t.title.trim());
+  const badDates = (t: MemberTask) => Boolean(t.starts && t.due && t.due < t.starts);
+
+  const updateTask = (key: number, patch: Partial<MemberTask>) => setTasks((xs) => xs.map((x) => (x.key === key ? { ...x, ...patch } : x)));
+  const addTask = (assignee: number) => setTasks((xs) => [...xs, { key: nextKey.current++, assignee, title: "", starts: "", due: "", files: [] }]);
+
   const create = useMutation({
-    mutationFn: async () => {
-      const project = await api.post<ProjectDetail>(
-        "/projects/",
-        formData(
-          orderId
-            ? { order: orderId, start_date: start, end_date: end, stage, member_ids: members }
-            : { name, description, start_date: start, end_date: end, stage, member_ids: members },
-          files,
-        ),
+    // Loyiha, jamoa va vazifalar bitta so'rovda — server bitta tranzaksiyada yaratadi (chala loyiha qolmaydi)
+    mutationFn: () => {
+      const fd = formData(
+        {
+          ...(orderId ? { order: orderId } : { name, description }),
+          start_date: start,
+          end_date: end,
+          stage,
+          member_ids: members,
+          tasks: readyTasks.map((t) => ({ title: t.title.trim(), assignee_id: t.assignee, starts_at: fromLocalInput(t.starts), due_at: fromLocalInput(t.due) })),
+        },
+        files,
       );
-      // Birinchi vazifalar — loyiha yaratilgach ketma-ket
-      for (const t of tasks.filter((x) => x.title.trim() && x.assignee_ids.length)) {
-        await api.post("/tasks/", {
-          project: project.id,
-          title: t.title,
-          assignee_ids: t.assignee_ids,
-          due_at: t.due ? new Date(`${t.due}T18:00`).toISOString() : null,
-        });
-      }
-      return project;
+      readyTasks.forEach((t, i) => t.files.forEach((f) => fd.append(`task_files_${i}`, f)));
+      return api.post<Pick<ProjectDetail, "id" | "code">>("/projects/setup/", fd);
     },
     onSuccess: (p) => {
       toast(T.projects.createdToast);
@@ -81,11 +88,13 @@ export default function ProjectWizard({ orderId }: { orderId?: number }) {
       const err = e instanceof ApiError ? e : new ApiError(0, e.message);
       setError(err);
       if (err.field("name") || err.field("start_date") || err.field("end_date")) setStep(0);
+      else if (err.field("member_ids")) setStep(1);
     },
   });
 
   const fromOrder = Boolean(orderId);
   const step0ok = name.trim() && start && end && end >= start;
+  const tasksOk = !readyTasks.some(badDates);
   const devs = (developers.data ?? []).filter((d) => d.full_name.toLowerCase().includes(devSearch.toLowerCase()));
   const chosen = (developers.data ?? []).filter((d) => members.includes(d.id));
   const fe = (k: string) => error?.field(k);
@@ -103,7 +112,7 @@ export default function ProjectWizard({ orderId }: { orderId?: number }) {
       title={T.projects.new}
       subtitle={<Stepper steps={T.projects.steps} current={step} />}
       onClose={close}
-      dirty={Boolean(name || members.length || files.length) && !fromOrder}
+      dirty={Boolean(members.length || files.length || tasks.length || (name && !fromOrder))}
       footer={
         <>
           {step > 0 && (
@@ -117,7 +126,7 @@ export default function ProjectWizard({ orderId }: { orderId?: number }) {
               {T.common.next} <ArrowRight />
             </Button>
           ) : (
-            <Button variant="primary" icon={<Check />} loading={create.isPending} disabled={!step0ok} onClick={() => create.mutate()}>
+            <Button variant="primary" icon={<Check />} loading={create.isPending} disabled={!step0ok || !tasksOk} onClick={() => create.mutate()}>
               {T.projects.create}
             </Button>
           )}
@@ -189,67 +198,75 @@ export default function ProjectWizard({ orderId }: { orderId?: number }) {
         {step === 2 && (
           <>
             <div className="field">
-              <span className="field-label">{T.common.files}</span>
+              <span className="field-label">{T.projects.projectFiles}</span>
               {fromOrder && <Callout tone="success">{T.projects.tzIncluded(order.data?.versions.at(-1)?.file.name ?? "")}</Callout>}
               <FilePicker files={files} onChange={setFiles} />
             </div>
             <div className="field">
-              <span className="field-label">{T.projects.quickTasks}</span>
+              <span className="field-label">{T.projects.memberTasks}</span>
               {!chosen.length ? (
                 <Callout tone="warning">{T.tasks.noTeam}</Callout>
               ) : (
                 <>
-                  {tasks.map((t, i) => (
-                    <div key={i} className="card card-pad stack-sm">
-                      <div className="row">
-                        <input
-                          className="input grow"
-                          placeholder={T.projects.quickTaskPh}
-                          aria-label={T.projects.quickTaskPh}
-                          value={t.title}
-                          onChange={(e) => setTasks((xs) => xs.map((x, j) => (j === i ? { ...x, title: e.target.value } : x)))}
-                        />
-                        <input
-                          type="date"
-                          className="input"
-                          style={{ width: 160 }}
-                          aria-label={T.tasks.dueAt}
-                          value={t.due}
-                          onChange={(e) => setTasks((xs) => xs.map((x, j) => (j === i ? { ...x, due: e.target.value } : x)))}
-                        />
-                        <button className="icon-btn" aria-label={T.common.delete} onClick={() => setTasks((xs) => xs.filter((_, j) => j !== i))}>
-                          <Trash2 />
-                        </button>
-                      </div>
-                      <div className="chips">
-                        {chosen.map((d) => {
-                          const on = t.assignee_ids.includes(d.id);
-                          return (
-                            <button
-                              key={d.id}
-                              type="button"
-                              className="chip"
-                              aria-pressed={on}
-                              onClick={() =>
-                                setTasks((xs) =>
-                                  xs.map((x, j) =>
-                                    j === i ? { ...x, assignee_ids: on ? x.assignee_ids.filter((a) => a !== d.id) : [...x.assignee_ids, d.id] } : x,
-                                  ),
-                                )
-                              }
-                            >
-                              {d.full_name}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  ))}
-                  <div>
-                    <Button size="sm" icon={<Plus />} onClick={() => setTasks((xs) => [...xs, { title: "", assignee_ids: [], due: "" }])}>
-                      {T.projects.quickTaskAdd}
-                    </Button>
-                  </div>
+                  <span className="field-hint">{T.projects.memberTasksHint}</span>
+                  {fe("tasks") && (
+                    <span className="field-error" role="alert">
+                      {fe("tasks")}
+                    </span>
+                  )}
+                  {chosen.map((d) => {
+                    const own = tasks.filter((t) => t.assignee === d.id);
+                    return (
+                      <section key={d.id} className="card card-pad stack-sm" aria-label={d.full_name}>
+                        <div className="row">
+                          <Avatar user={d} size="sm" />
+                          <span className="grow">
+                            <b style={{ fontWeight: 600 }}>{d.full_name}</b>
+                            {d.specialty && <span className="small muted"> · {d.specialty}</span>}
+                          </span>
+                          <Button size="sm" icon={<Plus />} onClick={() => addTask(d.id)}>
+                            {T.projects.quickTaskAdd}
+                          </Button>
+                        </div>
+                        {!own.length && <span className="small muted">{T.projects.memberNoTasks}</span>}
+                        {own.map((t) => (
+                          <div key={t.key} className="stack-sm" style={{ borderTop: "1px solid var(--border)", paddingTop: 12 }}>
+                            <div className="row">
+                              <input
+                                className="input grow"
+                                placeholder={T.projects.quickTaskPh}
+                                aria-label={T.projects.quickTaskPh}
+                                value={t.title}
+                                onChange={(e) => updateTask(t.key, { title: e.target.value })}
+                              />
+                              <button className="icon-btn" aria-label={T.common.delete} onClick={() => setTasks((xs) => xs.filter((x) => x.key !== t.key))}>
+                                <Trash2 />
+                              </button>
+                            </div>
+                            <div className="grid-2">
+                              <Field label={T.tasks.startsAt}>
+                                {(id) => <input id={id} type="datetime-local" className="input" value={t.starts} onChange={(e) => updateTask(t.key, { starts: e.target.value })} />}
+                              </Field>
+                              <Field label={T.tasks.dueAt} error={badDates(t) ? T.projects.taskEndBeforeStart : undefined}>
+                                {(id, bad) => (
+                                  <input
+                                    id={id}
+                                    type="datetime-local"
+                                    className="input"
+                                    aria-invalid={bad}
+                                    min={t.starts || undefined}
+                                    value={t.due}
+                                    onChange={(e) => updateTask(t.key, { due: e.target.value })}
+                                  />
+                                )}
+                              </Field>
+                            </div>
+                            <FilePicker files={t.files} onChange={(f) => updateTask(t.key, { files: f })} label={T.projects.taskFiles} />
+                          </div>
+                        ))}
+                      </section>
+                    );
+                  })}
                 </>
               )}
             </div>

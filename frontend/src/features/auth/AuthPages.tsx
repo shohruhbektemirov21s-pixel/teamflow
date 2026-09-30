@@ -49,8 +49,8 @@ export function LoginPage() {
     setBusy(true);
     setError(null);
     try {
-      const me = await login(username.trim(), password);
-      navigate(me.role === "department" ? "/buyurtmalar" : "/", { replace: true });
+      await login(username.trim(), password);
+      navigate("/", { replace: true }); // hamma rolda bosh sahifa — Bosh panel
     } catch (err) {
       setError(err instanceof ApiError ? err : new ApiError(0, T.common.errorGeneric));
     } finally {

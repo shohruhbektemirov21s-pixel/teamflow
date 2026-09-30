@@ -4,18 +4,18 @@ import { useState } from "react";
 
 import { useMe } from "@/app/auth";
 import { useModal } from "@/app/modals";
+import { TaskTable } from "@/features/tasks/TaskTable";
 import { api, qs } from "@/shared/api";
-import { fmtDate } from "@/shared/format";
-import { useMeta } from "@/shared/meta";
 import { T } from "@/shared/text";
 import type { Person, Task } from "@/shared/types";
-import { Avatar, Badge, Button, Modal, Skeleton, Tabs } from "@/shared/ui";
+import { Button, Modal, Skeleton, Tabs } from "@/shared/ui";
+
+import { ProfileHeader } from "./ProfileHeader";
 
 export default function PersonModal({ id }: { id: number }) {
   const me = useMe();
   const isMgr = me.role === "boss" || me.role === "pm";
   const { open, close } = useModal();
-  const meta = useMeta();
 
   const [tab, setTab] = useState<"tasks" | "report">("tasks");
 
@@ -46,25 +46,19 @@ export default function PersonModal({ id }: { id: number }) {
   const disciplineRate = doneTasks.length > 0 ? Math.round((onTimeDone / doneTasks.length) * 100) : 0;
 
   return (
-    <Modal
-      title={
-        person ? (
-          <span className="row">
-            <Avatar user={person} size="lg" />
-            <span className="stack-sm" style={{ gap: 0 }}>
-              <b style={{ fontSize: 16 }}>{person.full_name}</b>
-              <span className="small muted">{person.department_name || person.specialty || person.role_label}</span>
-            </span>
-          </span>
-        ) : (
-          "Yuklanmoqda..."
-        )
-      }
-      onClose={close}
-    >
+    <Modal title={person ? T.people.profileTitle : T.common.loading} onClose={close}>
       {personQuery.isLoading && <Skeleton h={200} />}
       {person && (
         <div className="stack">
+          <ProfileHeader
+            user={person}
+            subtitle={person.department_name || person.specialty || person.role_label}
+            stats={
+              person.role === "developer"
+                ? { active: person.active_tasks, overdue: person.overdue_tasks, review: person.review_tasks, done: person.done_tasks }
+                : null
+            }
+          />
           {isMgr && person.role === "developer" && (
             <div
               className="card card-pad"
@@ -106,28 +100,9 @@ export default function PersonModal({ id }: { id: number }) {
           )}
 
           {person.role === "developer" && tab === "tasks" && (
-            <>
-              {tasksQuery.isLoading && <Skeleton h={80} />}
-              {!tasksQuery.isLoading && tasks.length === 0 && <p className="muted">{T.tasks.empty}</p>}
-              {tasks.map((t) => (
-                <button
-                  key={t.id}
-                  className="card card-pad clickable stack-sm"
-                  style={{ textAlign: "left", font: "inherit", color: "inherit" }}
-                  onClick={() => open({ task: t.id })}
-                >
-                  <span className="row">
-                    <b className="grow">{t.title}</b>
-                    <Badge tone={t.status === "done" ? "success" : t.is_overdue ? "danger" : "info"}>
-                      {meta.label("task_statuses", t.status)}
-                    </Badge>
-                  </span>
-                  <span className="small muted">
-                    {t.project.name} · {t.due_at ? fmtDate(t.due_at) : T.common.notSet}
-                  </span>
-                </button>
-              ))}
-            </>
+            <div className="card">
+              <TaskTable tasks={tasksQuery.data} loading={tasksQuery.isLoading} emptyHint={T.people.noTasksHint} />
+            </div>
           )}
 
           {person.role === "developer" && tab === "report" && (

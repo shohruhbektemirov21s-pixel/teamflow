@@ -48,3 +48,19 @@ def dates(days=10):
 
 def future(days=5):
     return date.today() + timedelta(days=days)
+
+
+def make_project(pm, *devs, name="Portal"):
+    from apps.projects.models import Project, ProjectMember
+    project = Project.objects.create(name=name, start_date=today(), end_date=today(), created_by=pm)
+    for d in devs:
+        ProjectMember.objects.create(project=project, developer=d)
+    return project
+
+
+def make_task(project, pm, *devs, title="Vazifa", **kw):
+    from apps.tasks.models import Task, TaskAssignment
+    task = Task.objects.create(project=project, title=title, created_by=pm, **kw)
+    for d in devs:
+        TaskAssignment.objects.create(task=task, developer=d)
+    return task

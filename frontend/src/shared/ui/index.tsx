@@ -19,6 +19,11 @@ import type { FileInfo, OrderStatus, Priority, ProjectStage, TaskStatus, UserBri
 
 export { Modal } from "./Modal";
 
+/** Vazifa/loyiha kodi (`TSK-12`, `PRJ-3`) — hamma joyda bir xil ko'rinish; qidiruvda shu kod yoziladi. */
+export function CodeTag({ code }: { code: string }) {
+  return <span className="code-tag">{code}</span>;
+}
+
 // ─── Tugma ───────────────────────────────────────────────────────────────────
 type Variant = "primary" | "danger" | "success" | "ghost" | "default";
 
@@ -33,7 +38,8 @@ export function Button({
 }: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: Variant; size?: "sm" | "lg"; loading?: boolean; icon?: ReactNode }) {
   const cls = ["btn", variant !== "default" && `btn-${variant}`, size && `btn-${size}`, className].filter(Boolean).join(" ");
   return (
-    <button type="button" className={cls} disabled={loading || rest.disabled} {...rest}>
+    // `disabled` — `rest` dan keyin: yuklanayotganda tugma baribir o'chiq bo'lsin (ikki marta yuborilmasin)
+    <button type="button" className={cls} {...rest} disabled={loading || rest.disabled}>
       {loading ? <Loader2 className="spin" /> : icon}
       {children}
     </button>

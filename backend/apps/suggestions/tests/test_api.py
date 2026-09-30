@@ -98,3 +98,26 @@ class SuggestionApiTests(TestCase):
         s.refresh_from_db()
         self.assertEqual(s.status, Suggestion.Status.PENDING)
         self.assertIsNone(s.decided_by)
+
+    def test_decided_suggestion_cannot_be_decided_again(self):
+        s = Suggestion.objects.create(title="T1", body="B1", author=self.dev, status=Suggestion.Status.REJECTED)
+
+        self.client.login(username="boss1", password="testpass123")
+        url = reverse("suggestion-decide", kwargs={"pk": s.pk})
+        res = self.client.post(url, {"status": Suggestion.Status.ACCEPTED}, content_type="application/json")
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+
+        s.refresh_from_db()
+        self.assertEqual(s.status, Suggestion.Status.REJECTED)
+
+    def test_author_cannot_vote_or_delete_others(self):
+        s = Suggestion.objects.create(title="T1", body="B1", author=self.dev)
+
+        self.client.login(username=self.dev.username, password="testpass123")
+        res = self.client.post(reverse("suggestion-vote", kwargs={"pk": s.pk}), {"kind": "for"}, content_type="application/json")
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+
+        self.client.login(username="pm1", password="testpass123")
+        res = self.client.delete(reverse("suggestion-detail", kwargs={"pk": s.pk}))
+        self.assertEqual(res.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertTrue(Suggestion.objects.filter(pk=s.pk).exists())

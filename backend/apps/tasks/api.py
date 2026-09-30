@@ -1,11 +1,14 @@
 from django.db.models import Prefetch
 from django.shortcuts import get_object_or_404
 from rest_framework import mixins, status, viewsets
-from rest_framework.decorators import action
-from rest_framework.exceptions import PermissionDenied
+from rest_framework.decorators import action, api_view, permission_classes
+from rest_framework.exceptions import PermissionDenied, ValidationError
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from apps.core.api_utils import require_manager
+from apps.core.api_utils import IsManager, require_manager
+from apps.core.codes import project_code
+from apps.orders.permissions import visible_orders
 from apps.projects.permissions import visible_projects
 
 from . import services
@@ -15,6 +18,7 @@ from .permissions import visible_tasks
 from .serializers import (
     BulkTaskSerializer,
     FilesSerializer,
+    ProjectSetupSerializer,
     ReviewSerializer,
     SubmitSerializer,
     SubTaskCreateSerializer,
@@ -162,3 +166,32 @@ class TaskViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.Gen
         entry = get_object_or_404(WorkLog.objects.select_related("task"), pk=entry_id, task=task)
         services.delete_worklog(entry, request.user)
         return Response(self._detail(task))
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated, IsManager])
+def project_setup(request):
+    """Loyiha yaratish oynasi: loyiha + jamoa + har bir xodimga alohida vazifalar (sana va fayllar bilan).
+
+    multipart: loyiha maydonlari, `files` (loyiha fayllari), `tasks` (JSON ro'yxat), `task_files_<n>` (n-vazifa fayllari).
+    Hammasi bitta tranzaksiyada (services.create_project_with_tasks).
+    """
+    s = ProjectSetupSerializer(data=request.data)
+    s.is_valid(raise_exception=True)
+    data = dict(s.validated_data)
+    order_id = data.pop("order", None)
+    order = get_object_or_404(visible_orders(request.user), pk=order_id) if order_id else None
+    data["files"] = request.FILES.getlist("files") or data.get("files")
+    task_files = {}
+    for index in range(len(data["tasks"])):
+        files = request.FILES.getlist(f"task_files_{index}")
+        if not files:
+            continue
+        fs = FilesSerializer(data={"files": files})
+        if not fs.is_valid():
+            errors = fs.errors["files"]  # ListField: {tartib_raqami: [xato, ...]}
+            messages = {str(m) for group in (errors.values() if isinstance(errors, dict) else [errors]) for m in group}
+            raise ValidationError({"tasks": [f"{index + 1}-vazifa fayli: {' '.join(sorted(messages))}"]})
+        task_files[index] = fs.validated_data["files"]
+    project = services.create_project_with_tasks(request.user, order=order, task_files=task_files, **data)
+    return Response({"id": project.pk, "code": project_code(project.pk)}, status=status.HTTP_201_CREATED)

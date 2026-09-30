@@ -6,7 +6,7 @@ import { fmtDateTime } from "@/shared/format";
 import { useMeta } from "@/shared/meta";
 import { T } from "@/shared/text";
 import type { Task } from "@/shared/types";
-import { Button, Due, Empty, Field, People, PriorityBadge, SkeletonRows, TaskStatusBadge } from "@/shared/ui";
+import { Button, CodeTag, Due, Empty, Field, People, PriorityBadge, SkeletonRows, TaskStatusBadge } from "@/shared/ui";
 
 export interface TaskFilterState {
   q: string;
@@ -139,7 +139,9 @@ export function TaskTable({ tasks, loading, emptyHint }: { tasks: Task[] | undef
             >
               <td className="muted">{i + 1}</td>
               <td style={{ minWidth: 260 }}>
-                <div className="task-title">{t.title}</div>
+                <div className="task-title">
+                  <CodeTag code={t.code} /> {t.title}
+                </div>
                 <div className="small muted ellipsis" style={{ maxWidth: 480 }}>
                   {t.project.name}
                   {t.description && ` · ${t.description}`}

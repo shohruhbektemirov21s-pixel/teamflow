@@ -67,3 +67,17 @@ class ChatApiTests(TestCase):
         untouched.refresh_from_db()
         self.assertTrue(incoming.is_read)
         self.assertFalse(untouched.is_read)
+
+    def test_people_excludes_accounts_without_role(self):
+        admin = make_user("", is_superuser=True, first_name="Administrator")
+        response = self.client.get("/api/chat/people/?q=Administrator")
+        self.assertNotIn(admin.pk, [p["id"] for p in response.data])
+
+    def test_messages_returns_latest_limit_in_order(self):
+        from apps.chat.services import MESSAGE_LIMIT
+        ChatMessage.objects.bulk_create(
+            ChatMessage(author=self.partner, recipient=self.me, text=str(i)) for i in range(MESSAGE_LIMIT + 5)
+        )
+        response = self.client.get(f"/api/chat/messages/?partner={self.partner.pk}")
+        self.assertEqual(len(response.data), MESSAGE_LIMIT)
+        self.assertEqual(response.data[-1]["text"], str(MESSAGE_LIMIT + 4))

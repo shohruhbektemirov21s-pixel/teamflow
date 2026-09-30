@@ -6,7 +6,7 @@ import { api, qs } from "@/shared/api";
 import { fmtDateTime } from "@/shared/format";
 import { T } from "@/shared/text";
 import type { Task } from "@/shared/types";
-import { Button, Due, Empty, ErrorBox, People, PriorityBadge, SkeletonRows } from "@/shared/ui";
+import { Button, CodeTag, Due, Empty, ErrorBox, People, PriorityBadge, SkeletonRows } from "@/shared/ui";
 
 /** Tekshiruv navbati (PM/Boshliq): dasturchi yuborgan vazifalar. Bosilsa — vazifa modali tekshiruv tabida. */
 export default function ReviewPage() {
@@ -40,7 +40,9 @@ export default function ReviewPage() {
             onClick={() => open({ task: t.id })}
           >
             <div className="grow" style={{ minWidth: 240 }}>
-              <div className="task-title">{t.title}</div>
+              <div className="task-title">
+                <CodeTag code={t.code} /> {t.title}
+              </div>
               <div className="small muted">{t.project.name}</div>
             </div>
             <PriorityBadge priority={t.priority} />

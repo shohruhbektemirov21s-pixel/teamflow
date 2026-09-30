@@ -16,10 +16,12 @@ from apps.accounts.models import Role, User
 from apps.accounts.serializers import SELF_REGISTER_ROLES
 from apps.core.choices import Priority
 from apps.core.api_utils import require_manager, user_brief
+from apps.core.codes import parse_code, project_code, task_code
 from apps.core.models import ActivityLog, Comment
 from apps.core.services import log
 from apps.notifications.models import Notification
 from apps.notifications.services import notify
+from apps.orders.filters import department_dashboard
 from apps.orders.models import Order, OrderVersion
 from apps.orders.permissions import can_view_order, visible_orders
 from apps.projects.models import Project, ProjectFile
@@ -70,14 +72,7 @@ def dashboard(request):
     """Karta sonlari. Dasturchi — faqat o'ziga biriktirilganlar, menejer — hammasi."""
     user = request.user
     if user.is_department:
-        qs = visible_orders(user)
-        return Response({
-            "orders": {
-                "submitted": qs.filter(status=Order.Status.SUBMITTED).count(),
-                "rejected": qs.filter(status=Order.Status.REJECTED).count(),
-                "approved": qs.filter(status__in=[Order.Status.APPROVED, Order.Status.PROJECT_CREATED]).count(),
-            }
-        })
+        return Response(department_dashboard(visible_orders(user)))
     qs = visible_tasks(user)
     if user.is_developer:
         qs = qs.filter(assignments__developer=user).distinct()
@@ -141,8 +136,16 @@ def people(request):
 def search(request):
     q = request.query_params.get("q", "").strip()
     user = request.user
+    empty = {"tasks": [], "projects": [], "orders": [], "people": []}
     if len(q) < 2:
-        return Response({"tasks": [], "projects": [], "orders": [], "people": []})
+        return Response(empty)
+    code = parse_code(q)
+    if code:
+        # Kod yozilsa (TSK-12 / PRJ-3) — faqat aynan shu yozuv, ko'rish huquqi bo'lsa
+        kind, pk = code
+        if kind == "task":
+            return Response({**empty, "tasks": _search_tasks(visible_tasks(user).filter(pk=pk))})
+        return Response({**empty, "projects": _search_projects(visible_projects(user).filter(pk=pk))})
     tasks = visible_tasks(user).filter(Q(title__icontains=q) | Q(description__icontains=q))[:6]
     projects = visible_projects(user).filter(name__icontains=q)[:6]
     orders = visible_orders(user).filter(Q(title__icontains=q) | Q(submitted_by__department_name__icontains=q))[:6]
@@ -155,11 +158,20 @@ def search(request):
             )[:6]
         ]
     return Response({
-        "tasks": [{"id": t.pk, "title": t.title, "status": t.status, "project": t.project.name} for t in tasks],
-        "projects": [{"id": p.pk, "name": p.name, "stage": p.stage} for p in projects],
+        "tasks": _search_tasks(tasks),
+        "projects": _search_projects(projects),
         "orders": [{"id": o.pk, "title": o.title, "status": o.status} for o in orders],
         "people": people,
     })
+
+
+def _search_tasks(tasks):
+    return [{"id": t.pk, "code": task_code(t.pk), "title": t.title, "status": t.status, "project": t.project.name}
+            for t in tasks]
+
+
+def _search_projects(projects):
+    return [{"id": p.pk, "code": project_code(p.pk), "name": p.name, "stage": p.stage} for p in projects]
 
 
 # ─── Izohlar ─────────────────────────────────────────────────────────────────

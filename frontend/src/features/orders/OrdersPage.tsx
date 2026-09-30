@@ -5,21 +5,21 @@ import { useState } from "react";
 import { useMe } from "@/app/auth";
 import { useModal } from "@/app/modals";
 import { api, qs } from "@/shared/api";
-import { fmtDate } from "@/shared/format";
 import { useDebounced } from "@/shared/hooks";
-import { useMeta } from "@/shared/meta";
 import { T } from "@/shared/text";
 import type { DepartmentDashboard, Order, OrderStatus, Paged } from "@/shared/types";
-import { Button, Empty, ErrorBox, OrderStatusBadge, PriorityBadge, SkeletonRows } from "@/shared/ui";
+import { Button, Empty, ErrorBox, SkeletonRows } from "@/shared/ui";
 
-const TABS: ("" | OrderStatus)[] = ["submitted", "approved", "rejected", "project_created", ""];
+import { OrdersTable, OrderStatusCards } from "./OrdersTable";
+
+// "Hammasi" birinchi va standart tanlov (foydalanuvchi talabi)
+const TABS: ("" | OrderStatus)[] = ["", "submitted", "approved", "rejected", "project_created"];
 
 export default function OrdersPage() {
   const me = useMe();
   const dept = me.role === "department";
   const { open } = useModal();
-  const meta = useMeta();
-  const [status, setStatus] = useState<"" | OrderStatus>(dept ? "" : "submitted");
+  const [status, setStatus] = useState<string>("");
   const [q, setQ] = useState("");
   const search = useDebounced(q);
 
@@ -48,29 +48,7 @@ export default function OrdersPage() {
         )}
       </div>
 
-      {dept && summary.data && (
-        <div className="total-grid">
-          {(
-            [
-              ["submitted", summary.data.orders.submitted, "info"],
-              ["rejected", summary.data.orders.rejected, "danger"],
-              ["approved", summary.data.orders.approved, "success"],
-            ] as const
-          ).map(([key, n, tone]) => (
-            <button key={key} className="card total clickable" aria-pressed={status === key} onClick={() => setStatus(status === key ? "" : key)}>
-              <span className={`total-icon tone-${tone}`}>
-                <FileText />
-              </span>
-              <span>
-                <span className="stat-label" style={{ display: "block" }}>
-                  {meta.label("order_statuses", key)}
-                </span>
-                <span className="stat-num">{n}</span>
-              </span>
-            </button>
-          ))}
-        </div>
-      )}
+      {dept && summary.data && <OrderStatusCards counts={summary.data.orders} value={status} onChange={setStatus} />}
 
       <div className="card">
         <div className="card-toolbar">
@@ -106,48 +84,7 @@ export default function OrdersPage() {
             }
           />
         )}
-        {query.data && query.data.results.length > 0 && (
-          <div className="table-wrap">
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>{T.orders.name}</th>
-                  {!dept && <th>{T.orders.department}</th>}
-                  <th>{T.filters.status}</th>
-                  <th>{T.orders.priority}</th>
-                  <th>{T.orders.requestedDue}</th>
-                  <th>{T.orders.sentAt}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {query.data.results.map((o) => (
-                  <tr key={o.id} tabIndex={0} onClick={() => open({ order: o.id })} onKeyDown={(e) => e.key === "Enter" && open({ order: o.id })}>
-                    <td style={{ minWidth: 240 }}>
-                      <div className="task-title">
-                        {o.title} {o.version && o.version > 1 && <span className="badge tone-slate">{T.orders.version(o.version)}</span>}
-                      </div>
-                      {o.description && <div className="small muted ellipsis" style={{ maxWidth: 420 }}>{o.description}</div>}
-                    </td>
-                    {!dept && (
-                      <td>
-                        <div style={{ fontWeight: 600 }}>{o.submitted_by.department_name}</div>
-                        <div className="small muted">{o.submitted_by.full_name}</div>
-                      </td>
-                    )}
-                    <td>
-                      <OrderStatusBadge status={o.status} />
-                    </td>
-                    <td>
-                      <PriorityBadge priority={o.priority} />
-                    </td>
-                    <td className="nowrap">{fmtDate(o.requested_due_date)}</td>
-                    <td className="nowrap muted">{fmtDate(o.created_at)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+        {query.data && query.data.results.length > 0 && <OrdersTable orders={query.data.results} showDepartment={!dept} />}
       </div>
     </>
   );

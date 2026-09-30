@@ -7,6 +7,7 @@ from rest_framework.response import Response
 from apps.core.api_utils import IsDepartment, require_manager
 
 from . import services
+from .filters import filter_orders
 from .permissions import visible_orders
 from .serializers import (
     ApproveSerializer,
@@ -27,6 +28,7 @@ class OrderViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.Crea
         if self.action == "retrieve":
             qs = qs.select_related("project").prefetch_related("versions__decided_by")
         params = self.request.query_params
+        qs = filter_orders(qs, params)
         if params.get("status"):
             qs = qs.filter(status__in=params["status"].split(","))
         if params.get("q"):

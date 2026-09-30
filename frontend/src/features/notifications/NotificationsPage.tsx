@@ -1,14 +1,59 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { Bell, CheckCheck } from "lucide-react";
+import {
+  Bell,
+  BellOff,
+  CheckCheck,
+  CheckCircle2,
+  FilePlus2,
+  FileText,
+  FileX2,
+  Hourglass,
+  ListChecks,
+  type LucideIcon,
+  MessageSquare,
+  RotateCcw,
+} from "lucide-react";
 import { useState } from "react";
 
 import { useModal } from "@/app/modals";
-import { useRefresh } from "@/app/queries";
+import { useRefresh, useUnreadCount } from "@/app/queries";
 import { api, qs } from "@/shared/api";
-import { timeAgo } from "@/shared/format";
+import { fmtDate, isoDate, timeAgo } from "@/shared/format";
+import { NOTICE_TONE } from "@/shared/status";
 import { T } from "@/shared/text";
 import type { Notice, Paged } from "@/shared/types";
 import { Button, Empty, ErrorBox, Segmented, SkeletonRows } from "@/shared/ui";
+
+/** Bildirishnoma turi → ikonka (rangi `NOTICE_TONE` da). */
+const NOTICE_ICON: Record<string, LucideIcon> = {
+  order_submitted: FileText,
+  order_resubmitted: FilePlus2,
+  order_approved: CheckCircle2,
+  order_rejected: FileX2,
+  task_assigned: ListChecks,
+  task_submitted: Hourglass,
+  task_accepted: CheckCircle2,
+  task_returned: RotateCcw,
+  comment: MessageSquare,
+};
+
+/** Kun bo'yicha guruhlash: "Bugun", "Kecha", keyin sana. Tartib serverdagidek (yangisi tepada). */
+function groupByDay(items: Notice[], now = new Date()): { label: string; items: Notice[] }[] {
+  const today = isoDate(now);
+  const yesterday = isoDate(new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1));
+  const groups: { key: string; label: string; items: Notice[] }[] = [];
+  for (const n of items) {
+    const key = isoDate(new Date(n.created_at));
+    let group = groups.at(-1);
+    if (!group || group.key !== key) {
+      const label = key === today ? T.notifications.today : key === yesterday ? T.notifications.yesterday : fmtDate(key);
+      group = { key, label, items: [] };
+      groups.push(group);
+    }
+    group.items.push(n);
+  }
+  return groups;
+}
 
 /** Bildirishnomalar: bosilganda o'qildi deb belgilanadi va tegishli modal ochiladi. */
 export default function NotificationsPage() {
@@ -19,25 +64,28 @@ export default function NotificationsPage() {
     queryKey: ["notifications", "list", filter],
     queryFn: () => api.get<Paged<Notice>>(`/notifications/${qs({ unread: filter })}`),
   });
+  const unread = useUnreadCount().data ?? 0;
   const readAll = useMutation({ mutationFn: () => api.post("/notifications/read_all/"), onSuccess: () => refresh() });
 
-  const click = async (n: Notice) => {
+  const click = (n: Notice) => {
     if (!n.is_read) api.post(`/notifications/${n.id}/read/`).then(() => refresh());
     if (n.target?.type === "task") open({ task: n.target.id });
     else if (n.target?.type === "order") open({ order: n.target.id });
     else if (n.target?.type === "project") open({ project: n.target.id });
   };
 
-  const unread = query.data?.results.filter((n) => !n.is_read).length ?? 0;
+  const items = query.data?.results ?? [];
   return (
     <>
       <div className="page-head">
         <div className="grow">
           <h1>{T.notifications.title}</h1>
+          <p>{unread ? T.notifications.unreadCount(unread) : T.notifications.allRead}</p>
         </div>
         <Segmented
           value={filter}
           onChange={setFilter}
+          label={T.notifications.title}
           options={[
             { value: "", label: T.common.all },
             { value: "1", label: T.notifications.unread },
@@ -47,35 +95,48 @@ export default function NotificationsPage() {
           {T.notifications.readAll}
         </Button>
       </div>
-      <div className="card">
-        {query.error && (
-          <div className="card-pad">
-            <ErrorBox error={query.error} onRetry={() => query.refetch()} />
+
+      {query.error && <ErrorBox error={query.error} onRetry={() => query.refetch()} />}
+      {query.isLoading && (
+        <div className="card">
+          <SkeletonRows />
+        </div>
+      )}
+      {query.data && !items.length && (
+        <div className="card">
+          {filter ? (
+            <Empty icon={<BellOff />} title={T.notifications.emptyUnread} hint={T.notifications.emptyUnreadHint} />
+          ) : (
+            <Empty icon={<Bell />} title={T.notifications.empty} hint={T.notifications.emptyHint} />
+          )}
+        </div>
+      )}
+
+      {groupByDay(items).map((g) => (
+        <section key={g.label} className="notice-group" aria-label={g.label}>
+          <h2 className="section-title">{g.label}</h2>
+          <div className="card">
+            {g.items.map((n) => {
+              const Icon = NOTICE_ICON[n.kind] ?? Bell;
+              return (
+                <button key={n.id} type="button" className={`notice ${n.is_read ? "" : "unread"}`} onClick={() => click(n)}>
+                  <span className={`total-icon tone-${NOTICE_TONE[n.kind] ?? "slate"}`} aria-hidden>
+                    <Icon />
+                  </span>
+                  <span className="grow stack-sm" style={{ gap: 2 }}>
+                    <span className="notice-kind">{n.kind_label}</span>
+                    <span className="notice-msg">{n.message}</span>
+                  </span>
+                  <span className="notice-meta">
+                    <span className="small muted nowrap">{timeAgo(n.created_at)}</span>
+                    {!n.is_read && <span className="notice-dot" role="img" aria-label={T.notifications.unread} />}
+                  </span>
+                </button>
+              );
+            })}
           </div>
-        )}
-        {query.isLoading && <SkeletonRows />}
-        {query.data && !query.data.results.length && <Empty icon={<Bell />} title={T.notifications.empty} hint={T.notifications.emptyHint} />}
-        {query.data?.results.map((n) => (
-          <button
-            key={n.id}
-            className="list-row clickable"
-            style={{ width: "100%", textAlign: "left", background: n.is_read ? undefined : "var(--primary-soft)" }}
-            onClick={() => click(n)}
-          >
-            <span
-              style={{ width: 8, height: 8, borderRadius: "50%", background: n.is_read ? "transparent" : "var(--primary)", flex: "none" }}
-              aria-label={n.is_read ? undefined : T.notifications.unread}
-            />
-            <span className="grow stack-sm" style={{ gap: 2 }}>
-              <span className="small muted" style={{ fontWeight: 600 }}>
-                {n.kind_label}
-              </span>
-              <span style={{ fontWeight: n.is_read ? 500 : 650 }}>{n.message}</span>
-            </span>
-            <span className="small muted nowrap">{timeAgo(n.created_at)}</span>
-          </button>
-        ))}
-      </div>
+        </section>
+      ))}
     </>
   );
 }

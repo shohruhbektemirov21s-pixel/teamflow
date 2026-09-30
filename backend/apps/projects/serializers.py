@@ -1,6 +1,7 @@
 from rest_framework import serializers
 
 from apps.core.api_utils import JSONListField, file_info, user_brief
+from apps.core.codes import project_code
 from apps.core.files import validate_upload
 
 from .models import Project
@@ -8,8 +9,6 @@ from .models import Project
 
 class ProjectListSerializer(serializers.ModelSerializer):
     code = serializers.SerializerMethodField()
-    def get_code(self, obj):
-        return f"PRJ-{obj.id}"
     stage_label = serializers.CharField(source="get_stage_display")
     members = serializers.SerializerMethodField()
     progress = serializers.SerializerMethodField()
@@ -18,6 +17,9 @@ class ProjectListSerializer(serializers.ModelSerializer):
         model = Project
         fields = ["id", "code", "name", "description", "stage", "stage_label", "start_date", "end_date",
                   "order_id", "members", "progress", "created_at"]
+
+    def get_code(self, obj):
+        return project_code(obj.pk)
 
     def get_members(self, obj):
         return [user_brief(m.developer) for m in obj.memberships.all()]

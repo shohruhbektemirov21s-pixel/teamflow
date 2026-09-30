@@ -10,6 +10,9 @@ from django.db.models import F, Q
 from django.utils import timezone
 from django.utils.dateparse import parse_date
 
+from apps.core.codes import parse_code
+from apps.core.periods import PERIOD_KEYS, period_cards, period_starts
+
 from .models import Task
 
 S = Task.Status
@@ -23,21 +26,6 @@ BUCKETS = {
     "late": "Kechikib bajarilgan",
     "review": "Tekshiruv kutilmoqda",
 }
-
-
-def period_starts(now=None):
-    """Mahalliy vaqt bo'yicha yil, oy va hafta (dushanba) boshlanishi."""
-    today = timezone.localdate(now)
-    tz = timezone.get_current_timezone()
-
-    def at(d):
-        return timezone.make_aware(datetime.combine(d, time.min), tz)
-
-    return {
-        "year": at(today.replace(month=1, day=1)),
-        "month": at(today.replace(day=1)),
-        "week": at(today - timedelta(days=today.weekday())),
-    }
 
 
 def apply_bucket(qs, bucket, since=None):
@@ -70,13 +58,14 @@ def filter_tasks(qs, params, user):
     if params.get("mine") == "1":
         qs = qs.filter(assignments__developer=user)
     if params.get("q"):
-        import re
-        m = re.match(r"^(?:TSK|PRJ)-?(\d+)$", params["q"].strip(), re.I)
-        if m:
-            return qs.filter(id=m.group(1))
-
-        q = params["q"].strip()
-        qs = qs.filter(Q(title__icontains=q) | Q(description__icontains=q) | Q(project__name__icontains=q))
+        code = parse_code(params["q"])
+        if code:
+            kind, pk = code
+            # TSK-12 — aynan shu vazifa; PRJ-3 — shu loyihaning vazifalari
+            qs = qs.filter(id=pk) if kind == "task" else qs.filter(project_id=pk)
+        else:
+            q = params["q"].strip()
+            qs = qs.filter(Q(title__icontains=q) | Q(description__icontains=q) | Q(project__name__icontains=q))
     if params.get("status"):
         qs = qs.filter(status__in=params["status"].split(","))
     if params.get("priority"):
@@ -95,12 +84,12 @@ def filter_tasks(qs, params, user):
         )
 
     since = None
-    if params.get("period") in ("year", "month", "week"):
+    if params.get("period") in PERIOD_KEYS:
         since = period_starts()[params["period"]]
     if params.get("bucket") in BUCKETS or since is not None:
         qs = apply_bucket(qs, params.get("bucket"), since)
 
-    # Muddat bo'yicha: aniq kun, oraliq, "bugun"/"shu hafta" tezkor filtri, oy yarmi
+    # Muddat bo'yicha: aniq kun, oraliq, "bugun"/"shu hafta" tezkor filtri
     today = timezone.localdate()
     due = params.get("due")
     if due == "today":
@@ -120,22 +109,11 @@ def filter_tasks(qs, params, user):
         qs = qs.filter(due_at__gte=_day_range(d)[0])
     if params.get("due_to") and (d := parse_date(params["due_to"])):
         qs = qs.filter(due_at__lt=_day_range(d)[1])
-    if params.get("half") in ("1", "2"):
-        qs = qs.filter(due_at__day__lte=15) if params["half"] == "1" else qs.filter(due_at__day__gt=15)
     return qs.distinct()
 
 
 def dashboard_counts(qs):
     """Bosh panel kartalari: davrlar bo'yicha (yil/oy/hafta) va umumiy."""
-    starts = period_starts()
-    labels = {"year": "Yil boshidan", "month": "Oy boshidan", "week": "Hafta boshidan"}
-    periods = []
-    for key in ("year", "month", "week"):
-        periods.append({
-            "key": key,
-            "label": labels[key],
-            "since": timezone.localtime(starts[key]).date(),
-            "counts": {b: apply_bucket(qs, b, starts[key]).count() for b in ("active", "overdue", "done")},
-        })
+    periods = period_cards(lambda since: {b: apply_bucket(qs, b, since).count() for b in ("active", "overdue", "done")})
     totals = {b: apply_bucket(qs, b).count() for b in ("late", "overdue", "review", "active")}
     return {"periods": periods, "totals": totals, "labels": BUCKETS}

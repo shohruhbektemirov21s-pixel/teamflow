@@ -10,7 +10,7 @@ from apps.orders.api import OrderViewSet
 from apps.panel import api as panel
 from apps.projects.api import ProjectViewSet
 from apps.suggestions.api import SuggestionViewSet
-from apps.tasks.api import TaskViewSet
+from apps.tasks.api import TaskViewSet, project_setup
 from apps.chat.api import ChatViewSet
 
 admin.site.site_header = "TeamFlow — Boshqaruv paneli"
@@ -44,6 +44,7 @@ api = [
     path("comments/", panel.comments),
     path("history/", panel.history),
     path("files/<str:kind>/<int:pk>/", panel.file_download),
+    path("projects/setup/", project_setup),  # router'dagi projects/<pk>/ dan oldin turishi shart
     path("", include(router.urls)),
 ]
 

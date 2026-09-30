@@ -14,6 +14,7 @@ import { MetaProvider } from "./shared/meta";
 import { Skeleton, ToastProvider } from "./shared/ui";
 
 const Dashboard = lazy(() => import("./features/dashboard/Dashboard"));
+const DepartmentHome = lazy(() => import("./features/dashboard/DepartmentHome"));
 const TasksPage = lazy(() => import("./features/tasks/TasksPage"));
 const BoardPage = lazy(() => import("./features/tasks/BoardPage"));
 const ReviewPage = lazy(() => import("./features/tasks/ReviewPage"));
@@ -69,7 +70,7 @@ function AppRoutes() {
       ) : (
         <Routes>
           <Route element={<Layout />}>
-            <Route index element={dept ? <Navigate to="/buyurtmalar" replace /> : page(<Dashboard />)} />
+            <Route index element={page(dept ? <DepartmentHome /> : <Dashboard />)} />
             {!dept && <Route path="vazifalar" element={page(<TasksPage />)} />}
             {!dept && <Route path="taqvim" element={page(<CalendarPage />)} />}
             {dev && <Route path="mening-ishim" element={page(<BoardPage />)} />}
@@ -83,7 +84,7 @@ function AppRoutes() {
             <Route path="tarix" element={page(<HistoryPage />)} />
             <Route path="profil" element={page(<ProfilePage />)} />
             {manager && <Route path="qilingan-ishlar" element={page(<WorkDonePage />)} />}
-            <Route path="*" element={<Navigate to={dept ? "/buyurtmalar" : "/"} replace />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
           </Route>
         </Routes>
       )}

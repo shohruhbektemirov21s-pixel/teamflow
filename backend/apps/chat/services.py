@@ -42,12 +42,17 @@ def conversation_summaries(user):
     return summaries
 
 
+MESSAGE_LIMIT = 200  # suhbatda oxirgi N ta xabar — uzun yozishma butunlay yuklanmasin
+
+
 def messages_with_partner(user, partner):
-    messages = ChatMessage.objects.filter(
-        Q(author=user, recipient=partner) | Q(author=partner, recipient=user)
-    ).order_by("created_at", "id")
+    """Suhbatning oxirgi `MESSAGE_LIMIT` ta xabari (eskidan yangiga). Kiruvchi xabarlar o'qildi deb belgilanadi."""
+    latest = list(
+        ChatMessage.objects.filter(Q(author=user, recipient=partner) | Q(author=partner, recipient=user))
+        .order_by("-created_at", "-id")[:MESSAGE_LIMIT]
+    )
     ChatMessage.objects.filter(author=partner, recipient=user, is_read=False).update(is_read=True)
-    return messages
+    return latest[::-1]
 
 
 def send_message(author, partner, text):

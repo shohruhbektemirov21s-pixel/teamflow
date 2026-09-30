@@ -1,10 +1,12 @@
 /**
- * Modallar URL ga bog'langan (CLAUDE.md, 4-bo'lim): `?task=12`, `?order=5`, `?project=3`, `?new=task`.
- * Havolani yuborsa bo'ladi, "Orqaga" modalni yopadi, bildirishnoma bosilganda kerakli modal ochiladi.
+ * Modallar holati brauzer tarixining `state` qismida saqlanadi — manzil satri toza qoladi
+ * (`/qilingan-ishlar`, `?task=4` emas; foydalanuvchi talabi, 2026-09-30).
+ * "Orqaga" modalni yopadi, sahifa yangilansa modal qayta ochiladi, bildirishnoma bosilganda kerakli modal ochiladi.
+ * Eski havolalar (`?task=12`) ham ishlaydi: modal ochiladi va manzil darrov tozalanadi.
  * Modallar reestri: docs/FLOWS_MODALS.md
  */
-import { lazy, Suspense } from "react";
-import { useSearchParams } from "react-router-dom";
+import { lazy, Suspense, useEffect } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 
 const TaskModal = lazy(() => import("@/features/tasks/TaskModal"));
 const TaskFormModal = lazy(() => import("@/features/tasks/TaskFormModal"));
@@ -29,33 +31,83 @@ export type ModalTarget =
   | { new: "project"; order?: number }
   | { new: "suggestion" };
 
-const KEYS = ["task", "order", "project", "suggestion", "person", "new", "bulk", "edit", "submit", "assignee"];
+/** Tarixdagi holat. `pushed` — modal ilova ichidan yangi tarix yozuvi bilan ochilgan (yopilganda orqaga qaytiladi). */
+interface ModalState {
+  modal?: ModalTarget;
+  pushed?: boolean;
+}
+
+/**
+ * Eski havolalardagi (`?task=12&submit=1`) modal kalitlari. Yordamchi kalitlar (`assignee`, `project`, `order`, `edit`,
+ * `submit`) faqat asosiy kalit bilan birga modalniki: `?assignee=3` yolg'iz — Vazifalar sahifasining filtri.
+ */
+const LEGACY_GROUPS: [string, string[]][] = [
+  ["new", ["project", "order", "edit", "assignee"]],
+  ["bulk", ["project"]],
+  ["task", ["submit"]],
+  ["order", []],
+  ["project", []],
+  ["suggestion", []],
+  ["person", []],
+];
+
+function toParams(target: ModalTarget | undefined): URLSearchParams {
+  const p = new URLSearchParams();
+  for (const [k, v] of Object.entries(target ?? {})) {
+    if (v !== undefined && v !== false) p.set(k, v === true ? "1" : String(v));
+  }
+  return p;
+}
+
+function legacyTarget(search: string): { target: ModalTarget; rest: string } | null {
+  const p = new URLSearchParams(search);
+  const group = LEGACY_GROUPS.find(([main]) => p.has(main));
+  if (!group) return null;
+  const [main, extras] = group;
+  const t: Record<string, string | number | boolean> = {};
+  for (const k of [main, ...extras]) {
+    const v = p.get(k);
+    if (v === null) continue;
+    t[k] = k === "new" || k === "bulk" ? v : k === "submit" ? v === "1" : Number(v);
+    p.delete(k);
+  }
+  const rest = p.toString();
+  return { target: t as ModalTarget, rest: rest ? `?${rest}` : "" };
+}
 
 export function useModal() {
-  const [params, setParams] = useSearchParams();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const state = (location.state as ModalState | null) ?? {};
+  const here = { pathname: location.pathname, search: location.search };
 
   const open = (target: ModalTarget, replace = false) => {
-    const next = new URLSearchParams(params);
-    KEYS.forEach((k) => next.delete(k));
-    for (const [k, v] of Object.entries(target)) {
-      if (v !== undefined && v !== false) next.set(k, v === true ? "1" : String(v));
-    }
-    // "new=project&order=5" — `order` bu yerda oldindan to'ldirish uchun
-    setParams(next, { replace });
+    // replace: modal almashadi (masalan, yaratish → ko'rish), tarixda yangi yozuv qo'shilmaydi
+    navigate(here, { state: { modal: target, pushed: replace ? state.pushed : true } satisfies ModalState, replace });
   };
 
   const close = () => {
-    const next = new URLSearchParams(params);
-    KEYS.forEach((k) => next.delete(k));
-    if (params.get("new")) next.delete("order"), next.delete("project"), next.delete("assignee");
-    setParams(next);
+    if (state.pushed) navigate(-1);
+    else navigate(here, { state: null, replace: true });
   };
 
-  return { params, open, close };
+  return { params: toParams(state.modal), open, close };
+}
+
+/** Eski havola: `?task=4` → modal ochiladi, manzil tozalanadi (`/qilingan-ishlar`). */
+export function useLegacyModalLinks() {
+  const location = useLocation();
+  const navigate = useNavigate();
+  useEffect(() => {
+    const legacy = legacyTarget(location.search);
+    if (legacy) navigate({ pathname: location.pathname, search: legacy.rest }, { state: { modal: legacy.target } satisfies ModalState, replace: true });
+  }, [location.search, location.pathname, navigate]);
 }
 
 export function ModalHost() {
   const { params } = useModal();
+  useLegacyModalLinks();
+
   const num = (k: string) => (params.get(k) ? Number(params.get(k)) : undefined);
   const kind = params.get("new");
 

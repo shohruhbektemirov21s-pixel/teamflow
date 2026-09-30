@@ -70,6 +70,8 @@ Boshqarma buyurtma yuboradi (TZ v1)
              → Loyiha buyurtma ma'lumotlari bilan yaratiladi, sanalar PM kiritganlar
 ```
 
+"Buyurtmalar (TZ)" sahifasida filtrlar: **Hammasi** (birinchi, standart) · Yangi · Tasdiqlangan · Rad etilgan · Loyiha bo'lgan.
+
 Buyurtma tarkibi (Boshqarma kiritadi): **nomi**, **qisqacha izoh**, **TZ fayli (.docx)**, **tugatish muddati** (qachongacha kerak), **muhimlik turi**.
 Ko'rinadi: qaysi boshqarma va kim yuborgan.
 
@@ -88,6 +90,10 @@ Qoidalar:
 - **Loyiha darajasi (4 ta):** Rejalashtirilgan → Boshlangan → Tuzatish kerak → Yakunlangan. PM qo'lda o'zgartiradi.
 - Loyihaga bir nechta dasturchi biriktiriladi, har biriga bir nechta vazifa berish mumkin.
 - Loyiha yaratish modali 3 qadamli: Asosiy → Jamoa → Vazifalar va fayllar. Buyurtmadan yaratilsa, 1-qadam oldindan to'ldirilgan.
+- 3-qadamda: **loyiha fayllari** va **har bir xodimga alohida vazifalar** — har bir tanlangan xodim uchun alohida blok, unda "Vazifa qo'shish": vazifa nomi, **boshlanish** va **tugash vaqti**, **vazifa fayllari**. Tugash vaqti boshlanishdan oldin bo'lsa, yaratib bo'lmaydi.
+- Loyiha, jamoa va vazifalar bitta so'rovda yaratiladi: biror vazifada xato bo'lsa, hech narsa saqlanmaydi (chala loyiha qolmaydi).
+- Loyiha oynasidagi **Jamoa** bo'limida faqat shu loyiha a'zolari ko'rinadi. Yangi dasturchi qidiruv maydoni orqali topilib qo'shiladi, keyin "Jamoani saqlash". Har bir a'zo qatorida **"Vazifa berish"** tugmasi — shu xodimga alohida vazifa (loyiha va ijrochi oldindan tanlangan). Jamoa saqlanmaguncha bu tugma o'chiq.
+- Dasturchi jamoadan chiqarilsa, shu loyihaning tugallanmagan vazifalari va sub-vazifalaridan ham olib tashlanadi (bajarilganlari tarix sifatida qoladi). Agar u faol vazifaning yagona ijrochisi bo'lsa, avval vazifani boshqa xodimga berish so'raladi.
 
 ## 6. Vazifalar
 
@@ -115,7 +121,7 @@ Muddati o'tgan vazifalar "Muddati o'tgan" deb hisoblanadi; muddatdan keyin bajar
 
 **Dasturchi:** Bosh panel · Vazifalar · **Mening ishim** · Taqvim | Xabarlar · Bildirishnomalar · Takliflar | Umumiy tarix
 **Loyiha menejeri va Boshliq:** Bosh panel · Loyihalar · **Buyurtmalar (TZ)** · Vazifalar · Taqvim | Xodimlar · Xabarlar · Bildirishnomalar · **Tekshiruv navbati** · Takliflar | Umumiy tarix · Qilingan ishlar
-**Boshqarma:** Buyurtmalarim | Xabarlar · Bildirishnomalar · Takliflar | Umumiy tarix
+**Boshqarma:** Bosh panel · Buyurtmalarim | Xabarlar · Bildirishnomalar · Takliflar | Umumiy tarix
 
 Chap menyu 3 bo'limga bo'lingan: *Asosiy ish*, *Muloqot*, *Kuzatuv*. Pastda foydalanuvchi kartasi (ism, rol; bosilsa — Profil) va "Chiqish". Yuqorida qidiruv (`Ctrl K`, `TSK-12` / `PRJ-3` kodlari bilan ham), tungi rejim, bildirishnomalar.
 Kirilmagan foydalanuvchi uchun bosh sahifa (landing): qisqa tavsif, "Ro'yxatdan o'tish" va "Kirish".
@@ -124,7 +130,22 @@ Kirilmagan foydalanuvchi uchun bosh sahifa (landing): qisqa tavsif, "Ro'yxatdan 
 - Tepada salomlashish va asosiy amallar: Xodimlar, (yangi buyurtma bo'lsa) Buyurtmalar, Yangi loyiha, **Yangi vazifa**. Xodimlar ro'yxati alohida `/xodimlar` sahifasida.
 - Davr kartalari: Yil boshidan, Oy boshidan, Hafta boshidan (Faol, Muddati o'tgan, Bajarilgan).
 - Qo'shimcha kartalar: Kechikib bajarilgan, Muddati o'tgan, Tekshiruv kutilmoqda.
+- Bosh panelga kirganda **"Hafta boshidan — Faol"** vazifalar jadvali darrov ochiq turadi (boshqa kartani bossa almashadi, "Yopish" bilan yopiladi).
 - Kartani bossa, filtrli vazifalar jadvali ochiladi (qidiruv, muddat, sana oralig'i, holat, xodim). "Loyiha" filtri vazifalar jadvallarida yo'q (foydalanuvchi qarori). Telefonda qidiruvdan boshqa filtrlar "Filtrlar" tugmasi ortida.
+
+### Bildirishnomalar
+- Kun bo'yicha guruhlangan (Bugun, Kecha, sana), har bir turning o'z rangli ikonkasi bor, o'qilmaganlar ajratib ko'rsatiladi.
+- Sarlavha ostida o'qilmaganlar soni; "Hammasi / O'qilmagan" filtri, "Hammasini o'qildi deb belgilash". Bosilsa tegishli oyna ochiladi.
+
+### Profil
+- Barcha profillar bir xil ko'rinishda (o'z profilim va xodim oynasi): avatar, ism, lavozim, 4 ko'rsatkich (faol, kechikkan, tekshiruvda, bajarilgan) va vazifalar jadvali.
+- Ism, familiya, Telegram, parolni almashtirish. Dasturchi profilida **"Mening vazifalarim"** jadvali — faqat o'ziga biriktirilgan vazifalar.
+
+### Bosh panel (Boshqarma)
+- Salomlashish, boshqarma nomi, "Yangi buyurtma" va "Buyurtmalarim" tugmalari.
+- Davr kartalari (boshqa bosh panellar bilan bir xil ko'rinish): **Yil boshidan, Oy boshidan, Hafta boshidan** — har birida **Yuborilgan** (shu davrda yuborilgan), **Rad etilgan** va **Tasdiqlangan** (shu davrda qaror chiqqan, loyiha bo'lganlari bilan). Raqam bosilsa pastdagi ro'yxat shu buyurtmalar bilan filtrlanadi.
+- Holat kartalari: Yuborilgan, Rad etilgan, Tasdiqlangan (loyiha bo'lganlari bilan). Bosilsa pastdagi ro'yxat filtrlanadi.
+- Pastda faqat o'z buyurtmalari jadvali. Qo'shimcha eslatma matnlari chiqmaydi (foydalanuvchi qarori).
 
 ### Bosh panel (Dasturchi)
 Xuddi shu tuzilma, sonlar faqat shu dasturchining o'z vazifalari bo'yicha.
@@ -150,13 +171,15 @@ Xuddi shu tuzilma, sonlar faqat shu dasturchining o'z vazifalari bo'yicha.
 - Xodimni bossa, uning oynasi (modal) ochiladi: statistika, joriy ishlari, vazifa berish.
 
 ### Telegram bildirishnomalari
-- Ro'yxatdan o'tishda Telegram username (`@username`) yoziladi.
+- Ro'yxatdan o'tishda Telegram username (`@username`) yoziladi. Bitta username faqat bitta akkauntda bo'ladi (ro'yxatdan o'tishda ham, profilda ham tekshiriladi).
 - Foydalanuvchi botga `/start` yozadi → akkaunti topilsa (faol, username bitta akkauntda), chat bog'lanadi.
 - Shundan keyin tizimdagi har bir bildirishnoma Telegram'ga ham yuboriladi (amal muvaffaqiyatli saqlangandan keyin).
 - Token: `TELEGRAM_BOT_TOKEN` muhit o'zgaruvchisi. Bo'sh bo'lsa Telegram o'chiq, tizim odatdagidek ishlaydi.
 
 ### Kodlar
-Vazifa va loyihalarning qisqa kodi bor: `TSK-12`, `PRJ-3`. Qidiruvda kod bilan topish mumkin.
+Vazifa va loyihalarning qisqa kodi bor: `TSK-12`, `PRJ-3`. Kod ro'yxatlarda, doskada, tekshiruv navbatida va modallar sarlavhasida ko'rinadi.
+- Ctrl K qidiruvida kod yozilsa (`TSK-12`, `tsk12`, `PRJ-3`) — aynan o'sha vazifa yoki loyiha darrov chiqadi (ko'rish huquqi bo'lsa).
+- Vazifalar jadvali qidiruvida `TSK-12` — shu vazifa, `PRJ-3` — shu loyihaning vazifalari.
 
 ## 8. Modallar (amalda: 9 ta)
 
@@ -164,7 +187,7 @@ Ko'rish, yaratish, tahrirlash — hammasi modalda. Batafsil: `docs/FLOWS_MODALS.
 1. Buyurtma yaratish · 2. Buyurtma ko'rish · 3. Loyiha yaratish · 4. Loyiha ko'rish/tahrirlash · 5. Vazifa yaratish/tahrirlash · 6. Vazifa ko'rish (tekshiruv shu yerda) · 7. Xodim profili · 8. Taklif yaratish · 9. Taklif ko'rish.
 Word ko'rish alohida modal emas — joriy modal ichini almashtiradi ("← Orqaga").
 
-Modal qoidalari: sarlavha + ✕ tepada, tugmalar paneli pastda doim ko'rinadi, modal ustida modal ochilmaydi, manzilga bog'lanadi (`/buyurtmalar/12`), `Esc` yopadi, telefonda butun ekran.
+Modal qoidalari: sarlavha + ✕ tepada, tugmalar paneli pastda doim ko'rinadi, modal ustida modal ochilmaydi, manzil satriga yozilmaydi (manzil toza qoladi, masalan `/qilingan-ishlar`; "Orqaga" modalni yopadi), `Esc` yopadi, telefonda butun ekran.
 
 ## 9. Flow cheklovi
 
@@ -179,7 +202,7 @@ Bitta bo'limda **3–4 ta flow**, istisnoda **5 ta**. Amalda: 12 ta flow (auth 1
 - **Xabarlar (Chat):** Foydalanuvchilar orasida shaxsiy yozishma qilish funksiyasi qo'shildi.
 - **Ommaviy vazifalar:** Bir qancha vazifalarni matn shaklida birdan yaratish.
 - **Mutaxassisliklar ro'yxati:** Backend, Frontend, Mobil, UI/UX Dizayner, QA (Tester), Loyiha Menejeri (PM).
-- **Boshqarma rolining yon paneli:** Buyurtmalar, Xabarlar, Bildirishnomalar, Takliflar, Umumiy tarix.
+- **Boshqarma rolining yon paneli:** Bosh panel, Buyurtmalarim, Xabarlar, Bildirishnomalar, Takliflar, Umumiy tarix.
 - **Autentifikatsiya usuli:** Cookie / Session asosida (Django REST Framework standard cookie auth).
 - **Fayl turlari va hajm:** .docx, .pdf, .png, .jpg. Hajm chegarasi: 20 MB.
 - **Takliflar bo'limi:** Tizimni yaxshilash bo'yicha g'oyalar (Kutmoqda, Qabul qilingan, Rad etilgan holatlari bilan).
@@ -206,7 +229,7 @@ cd backend
 .venv\Scripts\python manage.py migrate
 .venv\Scripts\python manage.py seed_demo                  # demo ma'lumotlarni yuklash
 .venv\Scripts\python manage.py runserver 127.0.0.1:8020   # http://127.0.0.1:8020/
-.venv\Scripts\python manage.py test                       # testlarni yurgizish (101 ta)
+.venv\Scripts\python manage.py test                       # testlarni yurgizish (132 ta)
 set TELEGRAM_BOT_TOKEN=...  &  .venv\Scripts\python manage.py runbot   # Telegram bot (ixtiyoriy)
 ```
 
@@ -216,7 +239,7 @@ cd frontend
 npm install
 npx vite                                                  # http://127.0.0.1:5173/
 npx tsc --noEmit -p .                                     # tur tekshiruvi
-npx vitest run                                            # testlar (14 ta: jsdom + Testing Library)
+npx vitest run                                            # testlar (27 ta: jsdom + Testing Library)
 ```
 
 **3. Ishlab chiqarish (Production build — Node talab etilmaydi):**

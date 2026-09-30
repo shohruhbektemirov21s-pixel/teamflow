@@ -7,11 +7,12 @@ import { isManager, useMe } from "@/app/auth";
 import { useModal } from "@/app/modals";
 import { EMPTY_FILTERS, filterParams, TaskFilters, type TaskFilterState, TaskTable } from "@/features/tasks/TaskTable";
 import { api, qs } from "@/shared/api";
-import { fmtDate } from "@/shared/format";
 import { useDebounced } from "@/shared/hooks";
 import { T } from "@/shared/text";
 import type { Bucket, Dashboard as DashboardData, Paged, PeriodKey, Task } from "@/shared/types";
-import { Button, ErrorBox, Skeleton } from "@/shared/ui";
+import { Button, ErrorBox } from "@/shared/ui";
+
+import { PeriodCards } from "./PeriodCards";
 
 interface Selection {
   bucket: Bucket;
@@ -19,9 +20,9 @@ interface Selection {
   title: string;
 }
 
-const PERIOD_BUCKETS: { key: "active" | "overdue" | "done"; label: string }[] = [
+const PERIOD_BUCKETS: { key: "active" | "overdue" | "done"; label: string; alert?: boolean }[] = [
   { key: "active", label: T.dashboard.active },
-  { key: "overdue", label: T.dashboard.overdue },
+  { key: "overdue", label: T.dashboard.overdue, alert: true },
   { key: "done", label: T.dashboard.done },
 ];
 
@@ -29,7 +30,8 @@ export default function Dashboard() {
   const me = useMe();
   const manager = isManager(me);
   const { open } = useModal();
-  const [selected, setSelected] = useState<Selection | null>(null);
+  // Bosh panelga kirganda haftalik faol vazifalar jadvali darrov ochiq turadi (foydalanuvchi yopishi mumkin).
+  const [selected, setSelected] = useState<Selection | null>({ bucket: "active", period: "week", title: T.dashboard.weekActive });
   const dash = useQuery({ queryKey: ["dashboard"], queryFn: () => api.get<DashboardData>("/dashboard/") });
   const d = dash.data;
 
@@ -70,35 +72,12 @@ export default function Dashboard() {
 
       {dash.error && <ErrorBox error={dash.error} onRetry={() => dash.refetch()} />}
 
-      <div className="grid-3" style={{ marginBottom: 24 }}>
-        {d ? d.periods.map((p) => (
-          <div key={p.key} className="card period" style={{ padding: "20px" }}>
-            <div style={{ marginBottom: 16 }}>
-              <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600 }}>{p.label}</h3>
-              <span className="small muted">{T.dashboard.since(fmtDate(p.since))}</span>
-            </div>
-            <div className="period-nums" style={{ display: "flex", gap: 12 }}>
-              {PERIOD_BUCKETS.map((b) => {
-                const n = p.counts[b.key];
-                return (
-                  <button
-                    key={b.key}
-                    className="stat"
-                    aria-pressed={isOn(b.key, p.key)}
-                    onClick={() => pick({ bucket: b.key, period: p.key, title: `${p.label} — ${b.label}` })}
-                    style={{ flex: 1, padding: "12px 8px", background: isOn(b.key, p.key) ? "var(--bg)" : "transparent" }}
-                  >
-                    <span className={`stat-num ${n ? "" : "zero"}`} style={{ fontSize: 24, marginBottom: 4, color: b.key === "overdue" && n ? "var(--danger)" : "var(--text)" }}>
-                      {n}
-                    </span>
-                    <span className="stat-label" style={{ fontSize: 12, opacity: 0.8 }}>{b.label}</span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        )) : [0, 1, 2].map((i) => <Skeleton key={i} h={140} />)}
-      </div>
+      <PeriodCards
+        periods={d?.periods}
+        buckets={PERIOD_BUCKETS}
+        isOn={isOn}
+        onPick={(bucket, period, title) => pick({ bucket, period, title })}
+      />
 
       <div className="grid-3" style={{ marginBottom: 24 }}>
         {(

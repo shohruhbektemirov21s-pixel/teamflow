@@ -2,11 +2,14 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 
 import { useAuth, useMe } from "@/app/auth";
-import { api, ApiError } from "@/shared/api";
+import { TaskTable } from "@/features/tasks/TaskTable";
+import { api, ApiError, qs } from "@/shared/api";
 import { fmtDate } from "@/shared/format";
 import { T } from "@/shared/text";
-import type { Profile } from "@/shared/types";
-import { Avatar, Badge, Button, Field, SkeletonRows, useToast } from "@/shared/ui";
+import type { Profile, Task } from "@/shared/types";
+import { Button, ErrorBox, Field, SkeletonRows, useToast } from "@/shared/ui";
+
+import { ProfileHeader } from "./ProfileHeader";
 
 const fieldError = (err: unknown, name: string) => (err instanceof ApiError ? err.field(name) : undefined);
 /** Maydonga bog'lanmagan xato bo'lsa — toast bilan ko'rsatiladi (maydon xatolari maydon yonida). */
@@ -27,6 +30,13 @@ export default function ProfilePage() {
 
   const q = useQuery({ queryKey: ["profile"], queryFn: () => api.get<Profile>("/auth/profile/") });
   const p = q.data;
+  // Dasturchi profilida — faqat o'ziga biriktirilgan vazifalar (server `mine=1` bo'yicha filtrlaydi)
+  const developer = me.role === "developer";
+  const myTasks = useQuery({
+    queryKey: ["tasks", "mine", "profile"],
+    queryFn: () => api.get<Task[]>(`/tasks/${qs({ mine: 1, all: 1 })}`),
+    enabled: developer,
+  });
 
   useEffect(() => {
     if (p) {
@@ -67,22 +77,11 @@ export default function ProfilePage() {
       <h1>{T.profile.title}</h1>
 
       <div className="card card-pad stack">
-        <div className="row">
-          <Avatar user={me} size="lg" />
-          <div>
-            <h2 style={{ margin: 0 }}>{me.full_name}</h2>
-            <div className="small muted">{me.department_name || me.specialty || me.role_label}</div>
-          </div>
-        </div>
-
-        {p?.stats && (
-          <div className="row-wrap" aria-label={T.profile.stats}>
-            <Badge tone="info">{T.people.activeN(p.stats.active)}</Badge>
-            <Badge tone="danger">{T.people.overdueN(p.stats.overdue)}</Badge>
-            <Badge tone="violet">{T.people.reviewN(p.stats.in_review)}</Badge>
-            <Badge tone="success">{T.people.doneN(p.stats.done)}</Badge>
-          </div>
-        )}
+        <ProfileHeader
+          user={me}
+          subtitle={me.department_name || me.specialty || me.role_label}
+          stats={p?.stats && { active: p.stats.active, overdue: p.stats.overdue, review: p.stats.in_review, done: p.stats.done }}
+        />
 
         <h3>{T.profile.editInfoTitle}</h3>
         {q.isLoading ? (
@@ -118,6 +117,23 @@ export default function ProfilePage() {
           </form>
         )}
       </div>
+
+      {developer && (
+        <section className="card" aria-label={T.profile.myTasks}>
+          <div className="card-head">
+            <h3 className="grow">
+              {T.profile.myTasks} {myTasks.data && <span className="count-pill soft">{myTasks.data.length}</span>}
+            </h3>
+          </div>
+          {myTasks.error ? (
+            <div className="card-pad">
+              <ErrorBox error={myTasks.error} onRetry={() => myTasks.refetch()} />
+            </div>
+          ) : (
+            <TaskTable tasks={myTasks.data} loading={myTasks.isLoading} emptyHint={T.profile.myTasksEmpty} />
+          )}
+        </section>
+      )}
 
       <form
         className="card card-pad stack"

@@ -63,7 +63,7 @@ export interface Task {
   code: string;
   title: string;
   description: string;
-  project: { id: number; name: string };
+  project: { id: number; name: string; code: string };
   status: TaskStatus;
   priority: Priority;
   starts_at: string | null;
@@ -197,8 +197,11 @@ export interface Dashboard {
   orders_pending?: number;
 }
 
+export type OrderBucket = "sent" | "rejected" | "approved";
+
 export interface DepartmentDashboard {
   orders: { submitted: number; rejected: number; approved: number };
+  periods: { key: PeriodKey; label: string; since: string; counts: Record<OrderBucket, number> }[];
 }
 
 export interface Notice {

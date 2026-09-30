@@ -41,7 +41,7 @@ Ro'yxatdan o'tganlar Django adminda faollashtirilmaguncha kira olmaydi. Ruxsatla
 - **Modal ustida modal ochilmaydi.** Ichki amal (rad etish sababi, sana kiritish) modal ichidagi pastki panelda. Word ko'rish — modal ichini almashtiradi va "← Orqaga" tugmasi bor.
 - Modal tuzilmasi: tepada sarlavha va ✕, o'rtada aylanuvchi tarkib, pastda doim ko'rinadigan tugmalar paneli (asosiy amal o'ngda, xavfli amal chapda).
 - Tugmalar rolga va holatga qarab chiqadi. Keraksiz tugma ko'rsatilmaydi.
-- Modal manzilga bog'lanadi (`/buyurtmalar/12`), `Esc` yopadi, fokus modal ichida qoladi, saqlanmagan o'zgarish bo'lsa so'raydi.
+- Modal manzil satriga yozilmaydi (manzil toza: `/qilingan-ishlar`, `?task=4` emas) — holat brauzer tarixida; "Orqaga" yopadi, sahifa yangilansa qayta ochiladi. `Esc` yopadi, fokus modal ichida qoladi, saqlanmagan o'zgarish bo'lsa so'raydi.
 - Muddat rang bilan va matn bilan ("5 kun qoldi"). Bo'sh maydonlar yashiriladi.
 - Yuklanganda skeleton, xato maydon yonida. 8px setka, bitta asosiy rang, tungi/kunduzgi rejim, telefonda ishlaydi.
 - **Auditoriya: 18–40 yosh.** Interfeys birinchi qarashdayoq tushunarli bo'lsin, o'qitish kerak bo'lmasin: qisqa va oddiy so'zlar (texnik atama yo'q), har bir ekranda bitta asosiy amal, aniq ikonka + matn (ikonka yolg'iz emas), tanish naqshlar (doska, sudrab o'tkazish, qidiruv), bo'sh holatda "keyingi qadam" tushuntirishi, xatoda nima qilish kerakligi yoziladi. Zamonaviy, sodda ko'rinish; keraksiz bezak va uzun matn yo'q.
@@ -91,7 +91,7 @@ Backend (`backend/` papkasida, virtual muhit `backend/.venv`):
 .venv/Scripts/python manage.py createsuperuser            # admin (Boshliqni adminda yaratish uchun)
 .venv/Scripts/python manage.py seed_demo                  # demo ma'lumotlar
 .venv/Scripts/python manage.py runserver 127.0.0.1:8020   # http://127.0.0.1:8020/ (8020-port)
-.venv/Scripts/python manage.py test                       # testlar (101 ta test)
+.venv/Scripts/python manage.py test                       # testlar (132 ta test)
 .venv/Scripts/python manage.py runbot                     # Telegram bot (TELEGRAM_BOT_TOKEN muhit o'zgaruvchisi bilan)
 .venv/Scripts/python manage.py makemigrations --check --dry-run   # sxema mosligi
 ```
@@ -101,7 +101,7 @@ Frontend (`frontend/` papkasida):
 npm install               # bog'liqliklar
 npx vite                  # dev-server: http://127.0.0.1:5173/ (8020 ga proksi qiladi)
 npx tsc --noEmit -p .     # TypeScript tur tekshiruvi
-npx vitest run            # testlar (14 ta, jsdom + @testing-library/react)
+npx vitest run            # testlar (27 ta, jsdom + @testing-library/react)
 npx vite build            # prod build: dist/ (Django orqali beriladi)
 ```
 
@@ -152,3 +152,16 @@ Har bir app ichidagi qatlamlar (`models`, `workflow`, `services`, `permissions`,
 - 2026-09-30: Frontend komponent testlari uchun `jsdom` va `@testing-library/react` qo'shildi (foydalanuvchi ruxsati bilan). Umumiy sozlama: `frontend/src/test/` (API va joriy foydalanuvchi soxtalashtiriladi).
 - 2026-09-30: Loyiha GitHub'ga push qilindi (foydalanuvchi so'rovi bilan).
 - 2026-09-30: "Barcha kamchiliklarni tuzat" bo'yicha qo'shimcha tuzatildi: Takliflar bo'limi (`/api/api/` 404 va sahifalash), xodim oynasi (hamma vazifalar chiqardi, "undefined" soni), profilda Telegram saqlanmasdi, chatda o'z xabarlari ko'rinmasdi va telefonga moslanmagan edi, aniqlanmagan CSS tokenlari, qattiq yozilgan matnlar `text.ts` ga ko'chirildi.
+- 2026-09-30: Loyiha oynasi "Jamoa" bo'limida ro'yxatda faqat loyiha a'zolari ko'rinadi; boshqa dasturchilar qidiruv orqali topilib qo'shiladi. Har bir a'zo qatorida "Vazifa berish" tugmasi (shu xodimga alohida vazifa, loyiha va ijrochi oldindan tanlangan).
+- 2026-09-30: Bosh panelga kirganda "Hafta boshidan — Faol" vazifalar jadvali darrov ochiq turadi (yopish mumkin).
+- 2026-09-30: Loyiha va vazifalar kodlari (`TSK-12`, `PRJ-3`) ro'yxatlarda, doskada, modallarda va qidiruvda ko'rinadi; Ctrl K yoki Vazifalar qidiruvida kod yozilsa aynan o'sha yozuv darrov chiqadi. Kod qoidasi bitta joyda: `backend/apps/core/codes.py`.
+- 2026-09-30: Ko'rib chiqishda topilgan kamchiliklar tuzatildi: `PRJ-n` qidiruvi, profildagi "Muddati o'tgan" soni, `Button` yuklanishda o'chmasligi, jamoadan chiqarilgan dasturchi vazifalari, Takliflar `workflow.py`/`services.py` ga ko'chirildi, `half` filtri olib tashlandi, `chat`/`suggestions` app fayllari, chatda rolsiz akkaunt chiqmaydi va oxirgi 200 xabar, Telegram username takrorlanmaydi.
+- 2026-09-30: Loyiha yaratish oynasining 3-qadamida har bir tanlangan xodimga alohida vazifalar beriladi: nomi, boshlanish va tugash vaqti, vazifa fayllari (loyiha fayllari alohida). Loyiha, jamoa va vazifalar bitta so'rovda (`POST /api/projects/setup/`) bitta tranzaksiyada yaratiladi — biror vazifada xato bo'lsa, loyiha ham yaratilmaydi.
+- 2026-09-30: Bildirishnomalar sahifasi qayta bezaldi: kun bo'yicha guruhlar (Bugun / Kecha / sana), tur bo'yicha rangli ikonka, o'qilmaganlar ajratib ko'rsatiladi, sarlavha ostida o'qilmaganlar soni; mavjud dizayn tokenlari bilan (boshqa sahifalardan ajralmaydi).
+- 2026-09-30: Modal ochilganda manzilga `?task=4` kabi parametr qo'shilmaydi — manzil `/qilingan-ishlar` shaklida qoladi. Eski havolalar ishlaydi va darrov tozalanadi (`frontend/src/app/modals.tsx`).
+- 2026-09-30: Dasturchi profilida (`/profil`) "Mening vazifalarim" jadvali — faqat o'ziga biriktirilgan vazifalar.
+- 2026-09-30: Barcha profillar bir xil ko'rinishda: o'z profilim (`/profil`) va xodim oynasi umumiy `ProfileHeader` (avatar, ism, lavozim, 4 ko'rsatkich) va umumiy vazifalar jadvalidan (`TaskTable`) foydalanadi; "Faol" soni hamma joyda bir xil qoida bilan.
+- 2026-09-30: Boshqarma uchun Bosh panel (`/`): salomlashish, "Yangi buyurtma", holat kartalari (bosilsa filtr) va o'z buyurtmalari jadvali. Menyuda "Bosh panel · Buyurtmalarim".
+- 2026-09-30: Buyurtmalar (TZ) sahifasida "Hammasi" filtri birinchi o'rinda va standart tanlangan.
+- 2026-09-30: Boshqarma bosh panelidagi "N ta buyurtmangiz rad etilgan…" eslatmasi olib tashlandi — bunday izoh kerak emas.
+- 2026-09-30: Boshqarma bosh panelida "Yil boshidan / Oy boshidan / Hafta boshidan" kartalari — har birida Yuborilgan, Rad etilgan, Tasdiqlangan; ko'rinishi boshqa bosh panellar bilan bir xil (umumiy `PeriodCards`). Raqam bosilsa ro'yxat shu davr va toifa bo'yicha filtrlanadi (son va ro'yxat bitta qoidadan: `orders/filters.py`). Davr boshlanishi bitta joyda: `core/periods.py`.

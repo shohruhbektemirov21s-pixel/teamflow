@@ -3,6 +3,8 @@ from rest_framework import serializers
 from apps.core.api_utils import user_brief
 
 from .models import Suggestion, SuggestionVote
+from .services import is_author
+from .workflow import suggestion_targets
 
 
 class SuggestionListSerializer(serializers.ModelSerializer):
@@ -36,13 +38,12 @@ class SuggestionDetailSerializer(SuggestionListSerializer):
 
     def get_actions(self, obj):
         user = self.context["request"].user
-        is_boss = user.is_boss
-        is_author = obj.author_id == user.pk and not obj.is_anonymous
+        author = is_author(user, obj)
         pending = obj.status == Suggestion.Status.PENDING
         return {
-            "decide": is_boss and pending,
-            "vote": pending and not is_author,
-            "delete": is_author and pending,
+            "decide": bool(suggestion_targets(obj.status, user.role)),
+            "vote": pending and not author,
+            "delete": author and pending,
         }
 
 

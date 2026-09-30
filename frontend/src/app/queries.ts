@@ -11,13 +11,19 @@ export function useRefresh() {
   return () => qc.invalidateQueries();
 }
 
-/** Yon paneldagi raqamlar. */
-export function useCounters(me: Me): Record<Counter, number> {
-  const notif = useQuery({
+/** O'qilmagan bildirishnomalar soni (yon panel, sarlavha va Bildirishnomalar sahifasi — bitta kesh). */
+export function useUnreadCount() {
+  return useQuery({
     queryKey: ["notifications", "unread"],
     queryFn: () => api.get<{ count: number }>("/notifications/unread_count/"),
     refetchInterval: 30_000,
+    select: (d) => d.count,
   });
+}
+
+/** Yon paneldagi raqamlar. */
+export function useCounters(me: Me): Record<Counter, number> {
+  const notif = useUnreadCount();
   const dash = useQuery({
     queryKey: ["dashboard"],
     queryFn: () => api.get<Dashboard>("/dashboard/"),
@@ -25,7 +31,7 @@ export function useCounters(me: Me): Record<Counter, number> {
     refetchInterval: 60_000,
   });
   return {
-    notifications: notif.data?.count ?? 0,
+    notifications: notif.data ?? 0,
     myWork: me.role === "developer" ? (dash.data?.totals.active ?? 0) : 0,
     review: dash.data?.totals.review ?? 0,
     orders: dash.data?.orders_pending ?? 0,

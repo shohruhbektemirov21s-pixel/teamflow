@@ -52,7 +52,7 @@ export function taskDetail(overrides: Partial<TaskDetail> = {}): TaskDetail {
     code: "TSK-1",
     title: "Kirish sahifasini yaratish",
     description: "",
-    project: { id: 1, name: "Portal" },
+    project: { id: 1, name: "Portal", code: "PRJ-1" },
     status: "in_progress",
     priority: "medium",
     starts_at: null,

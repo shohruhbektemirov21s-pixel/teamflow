@@ -5,7 +5,9 @@ from rest_framework import serializers
 
 from apps.core.api_utils import JSONListField, file_info, user_brief
 from apps.core.choices import Priority
+from apps.core.codes import project_code, task_code
 from apps.core.files import validate_upload
+from apps.projects.serializers import ProjectCreateSerializer
 
 from .models import Task
 from .permissions import can_work_on
@@ -14,8 +16,6 @@ from .workflow import task_targets
 
 class TaskListSerializer(serializers.ModelSerializer):
     code = serializers.SerializerMethodField()
-    def get_code(self, obj):
-        return f"TSK-{obj.id}"
     project = serializers.SerializerMethodField()
     status_label = serializers.CharField(source="get_status_display")
     priority_label = serializers.CharField(source="get_priority_display")
@@ -30,8 +30,11 @@ class TaskListSerializer(serializers.ModelSerializer):
                   "starts_at", "due_at", "completed_at", "is_overdue", "finished_late", "assignees",
                   "subtasks_progress", "created_at"]
 
+    def get_code(self, obj):
+        return task_code(obj.pk)
+
     def get_project(self, obj):
-        return {"id": obj.project_id, "name": obj.project.name}
+        return {"id": obj.project_id, "name": obj.project.name, "code": project_code(obj.project_id)}
 
     def get_assignees(self, obj):
         return [user_brief(a.developer) for a in obj.assignments.all()]
@@ -163,6 +166,22 @@ class BulkTaskSerializer(serializers.Serializer):
                 for title in data["titles"]
             ]
         return data
+
+
+class SetupTaskSerializer(serializers.Serializer):
+    """Loyiha yaratishda bitta xodimga beriladigan vazifa (fayllari `task_files_<n>` bilan alohida keladi)."""
+
+    title = serializers.CharField(max_length=255)
+    description = serializers.CharField(required=False, allow_blank=True, default="")
+    assignee_id = serializers.IntegerField(min_value=1)
+    starts_at = serializers.DateTimeField(required=False, allow_null=True)
+    due_at = serializers.DateTimeField(required=False, allow_null=True)
+
+
+class ProjectSetupSerializer(ProjectCreateSerializer):
+    """Loyiha + jamoa + har bir xodimga alohida vazifalar — bitta so'rovda."""
+
+    tasks = JSONListField(child=SetupTaskSerializer(), required=False, default=list, max_length=100)
 
 
 class SubmitSerializer(serializers.Serializer):

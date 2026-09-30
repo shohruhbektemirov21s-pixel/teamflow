@@ -1,5 +1,4 @@
 from django.contrib.auth import password_validation
-from django.utils import timezone
 from rest_framework import serializers
 
 from .models import Role, Specialty, User
@@ -9,8 +8,16 @@ SELF_REGISTER_ROLES = [Role.PM, Role.DEVELOPER, Role.DEPARTMENT]  # Boshliq faqa
 
 def normalize_telegram(value):
     """Telegram username bir xil shaklda saqlanadi: "@username" (bo'sh bo'lishi mumkin)."""
-    value = (value or "").strip()
-    return f"@{value.lstrip('@')}" if value else ""
+    value = (value or "").strip().lstrip("@")
+    return f"@{value}" if value else ""
+
+
+TELEGRAM_TAKEN = "Bu Telegram username boshqa akkauntda yozilgan. O'zingizning username'ingizni yozing."
+
+
+def telegram_taken(value, exclude_pk=None):
+    """Bitta Telegram username faqat bitta akkauntda bo'ladi — aks holda bot chatni bog'lay olmaydi."""
+    return bool(value) and User.objects.filter(telegram_username__iexact=value).exclude(pk=exclude_pk).exists()
 
 
 class SpecialtySerializer(serializers.ModelSerializer):
@@ -45,6 +52,8 @@ class RegisterSerializer(serializers.Serializer):
         attrs["department_name"] = dept if attrs["role"] == Role.DEPARTMENT else ""
         
         attrs["telegram_username"] = normalize_telegram(telegram)
+        if telegram_taken(attrs["telegram_username"]):
+            raise serializers.ValidationError({"telegram_username": [TELEGRAM_TAKEN]})
 
         candidate = User(
             username=attrs["username"], first_name=attrs["first_name"], last_name=attrs["last_name"]
@@ -96,16 +105,17 @@ class ProfileSerializer(serializers.ModelSerializer):
         ]
 
     def get_stats(self, user):
+        # "Faol" va "Muddati o'tgan" — bosh panel va xodim oynasi bilan bir xil qoida (tasks.filters.apply_bucket)
+        from apps.tasks.filters import apply_bucket
         from apps.tasks.models import Task
-        from django.db.models import Q
         if not user.is_developer:
             return None
         qs = Task.objects.filter(assignments__developer=user)
         return {
-            "active": qs.filter(status__in=["control", "in_progress"]).count(),
-            "in_review": qs.filter(status="in_review").count(),
-            "done": qs.filter(status="done").count(),
-            "overdue": qs.filter(status__in=["control", "in_progress"], due_at__lt=timezone.now()).count(),
+            "active": apply_bucket(qs, "active").count(),
+            "in_review": qs.filter(status=Task.Status.IN_REVIEW).count(),
+            "done": qs.filter(status=Task.Status.DONE).count(),
+            "overdue": apply_bucket(qs, "overdue").count(),
         }
 
 
@@ -115,7 +125,10 @@ class ProfileUpdateSerializer(serializers.Serializer):
     telegram_username = serializers.CharField(max_length=100, required=False, allow_blank=True)
 
     def validate_telegram_username(self, value):
-        return normalize_telegram(value)
+        value = normalize_telegram(value)
+        if telegram_taken(value, exclude_pk=self.context["request"].user.pk):
+            raise serializers.ValidationError(TELEGRAM_TAKEN)
+        return value
 
 
 class ChangePasswordSerializer(serializers.Serializer):

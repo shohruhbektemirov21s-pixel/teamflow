@@ -8,7 +8,7 @@ from .models import ChatMessage
 class ChatPartnerSerializer(serializers.Serializer):
     """Validates a chat counterpart for both query strings and request bodies."""
 
-    partner = serializers.PrimaryKeyRelatedField(queryset=User.objects.filter(is_active=True))
+    partner = serializers.PrimaryKeyRelatedField(queryset=User.objects.filter(is_active=True).exclude(role=""))
 
     def validate_partner(self, partner):
         if partner.pk == self.context["request"].user.pk:

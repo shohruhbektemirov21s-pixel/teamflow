@@ -31,6 +31,19 @@ export const PRIORITY_TONE: Record<Priority, Tone> = {
   urgent: "danger",
 };
 
+/** Bildirishnoma turi (backend `Notification.Kind`) → rang. Noma'lum tur — slate. */
+export const NOTICE_TONE: Record<string, Tone> = {
+  order_submitted: "info",
+  order_resubmitted: "info",
+  order_approved: "success",
+  order_rejected: "danger",
+  task_assigned: "primary",
+  task_submitted: "violet",
+  task_accepted: "success",
+  task_returned: "warning",
+  comment: "slate",
+};
+
 /**
  * Doskada sudrab o'tkazish. Ruxsat etilgan o'tishlar SERVERDAN keladi (`/api/meta/` → `task_moves`,
  * manba: backend `tasks/workflow.py`). Doskada faqat ikki amal bor:

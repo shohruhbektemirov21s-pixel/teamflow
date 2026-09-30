@@ -58,7 +58,7 @@ export function navFor(role: Role): NavGroup[] {
       ];
     case "department":
       return [
-        { title: T.nav.groupMain, items: [{ to: "/buyurtmalar", label: T.nav.myOrders, icon: FileText }] },
+        { title: T.nav.groupMain, items: [dashboard, { to: "/buyurtmalar", label: T.nav.myOrders, icon: FileText }] },
         { title: T.nav.groupTeam, items: [messages, notifications, suggestions] },
         { title: T.nav.groupControl, items: [history] },
       ];

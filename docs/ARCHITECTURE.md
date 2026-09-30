@@ -28,7 +28,7 @@ Deployment: bitta Django jarayoni (`127.0.0.1:8020`). Frontend build (`frontend/
 | Auth | **Sessiya + CSRF** (DRF `SessionAuthentication`) | Bir origin (SPA Django orqali beriladi). Token `localStorage`da saqlanmaydi, XSS xavfi kam. Qo'shimcha kutubxona kerak emas. |
 | Foydalanuvchi | `AbstractUser` kengaytmasi, `role` maydoni | Rollar 4 ta, qat'iy. Alohida Role/Permission jadvali ortiqcha. |
 | Frontend | React + TypeScript + Vite | Kelishilgan. Node faqat build uchun. |
-| Frontend kutubxonalar | react-router, TanStack Query, dnd-kit, docx-preview | Marshrut (modal manzilga bog'lanadi), server holati keshi, sudrab o'tkazish, .docx ko'rish. UI kutubxonasi (MUI va h.k.) olinmaydi, o'z dizayn tokenlarimiz bor. |
+| Frontend kutubxonalar | react-router, TanStack Query, dnd-kit, docx-preview | Marshrut (modal holati brauzer tarixida, manzil toza), server holati keshi, sudrab o'tkazish, .docx ko'rish. UI kutubxonasi (MUI va h.k.) olinmaydi, o'z dizayn tokenlarimiz bor. |
 | Stil | Oddiy CSS + CSS o'zgaruvchilar (tokenlar) | Tungi/kunduzgi rejim tokenlarni almashtirish bilan. |
 | Fayl saqlash | `MEDIA_ROOT`, `FileField` | SQLite bilan mos, sodda. |
 
@@ -40,13 +40,14 @@ backend/
   requirements.txt
   config/            settings.py, urls.py, wsgi.py, asgi.py
   apps/
-    core/            umumiy: choices, fayl validatsiyasi, Comment, ActivityLog
+    core/            umumiy: choices, fayl validatsiyasi, kodlar (codes.py: TSK-12/PRJ-3), davrlar (periods.py), Comment, ActivityLog
     accounts/        User, Specialty, ro'yxatdan o'tish, login, ruxsat yordamchilari
     orders/          Order, OrderVersion, buyurtma holat mashinasi, servislar
     projects/        Project, ProjectMember, ProjectFile
     tasks/           Task, TaskAssignment, SubTask, Submission, WorkLog, holat mashinasi
     notifications/   Notification, notify(); telegram.py (Bot API: yuborish, /start bilan chat bog'lash), runbot buyrug'i
-    chat/            ChatMessage, validatsiya va suhbat servislar
+    chat/            ChatMessage, validatsiya va suhbat servislar (suhbatda oxirgi 200 xabar)
+    suggestions/     Suggestion, SuggestionVote; holat o'tishi workflow.py, amallar services.py
     panel/           modelsiz yig'uvchi qatlam: dashboard, people, search, comments, history, files, meta
 ```
 
@@ -175,6 +176,8 @@ POST       /api/orders/{id}/create-project/
 GET/POST   /api/projects/           POST: PM/Boshliq
 GET/PATCH  /api/projects/{id}/
 POST/DELETE /api/projects/{id}/members/, /files/
+POST       /api/projects/setup/     loyiha + jamoa + har bir xodimga vazifa (multipart: tasks JSON, task_files_<n>);
+                                    bitta tranzaksiya, tasks.services.create_project_with_tasks (tasks yuqori qatlam)
 
 GET/POST   /api/tasks/
 GET/PATCH  /api/tasks/{id}/
@@ -192,7 +195,8 @@ POST       /api/chat/send/                {partner, text}
 
 GET/POST   /api/comments/?target=order:12
 GET        /api/notifications/  POST /api/notifications/{id}/read/
-GET        /api/dashboard/      rolga mos hisob-kitob kartalari
+GET        /api/dashboard/      rolga mos hisob-kitob kartalari (Boshqarma: orders + periods — orders/filters.py)
+GET        /api/orders/?period=week&bucket=sent|rejected|approved   bosh panel kartasi bilan bir xil ro'yxat
 GET        /api/people/         xodimlar va bandligi (vazifasi yo'qlar tepada)
 GET        /api/developers/     dasturchilar ro'yxati
 GET        /api/search/?q=...   global qidiruv (Ctrl K)
@@ -224,7 +228,7 @@ frontend/src/
     chat/          MessagesPage
 ```
 
-- **Modal:** yagona `Modal` komponenti (o'lcham, sarlavha, footer). Modallar URL parametrlariga bog'langan (`?task=12`, `?order=5`, `?project=3`, `?new=task|order|project`). Sahifa ro'yxat bo'lib qoladi, ustida modal ochiladi; havolani ulashish va brauzer "Orqaga" tugmasi ishlaydi. Modal ustida modal ochilmaydi.
+- **Modal:** yagona `Modal` komponenti (o'lcham, sarlavha, footer). Modal holati brauzer tarixining `state` qismida (`{ modal: { task: 12 } }`), manzil satri toza qoladi (foydalanuvchi talabi). Sahifa ro'yxat bo'lib qoladi, ustida modal ochiladi; brauzer "Orqaga" tugmasi modalni yopadi, sahifa yangilansa modal qayta ochiladi. Eski `?task=12` havolalar modalni ochib, manzilni tozalaydi. Modal ustida modal ochilmaydi.
 - **Ruxsatlar frontendda** faqat tugmalarni ko'rsatish/yashirish uchun; haqiqiy tekshiruv serverda.
 - **Matnlar** `shared/text.ts` da; kodda qattiq yozilmaydi.
 - **Holat/rang tokenlari** bitta joyda: `styles.css` va `status.ts`.

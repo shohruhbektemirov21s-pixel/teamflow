@@ -9,6 +9,7 @@ from apps.core.api_utils import ServiceError
 from apps.core.services import log
 from apps.notifications.models import Notification
 from apps.notifications.services import managers, notify
+from apps.projects.services import create_project
 
 from .models import SubTask, Submission, SubmissionFile, Task, TaskAssignment, TaskFile, WorkLog
 from .permissions import can_work_on, is_assignee
@@ -97,6 +98,23 @@ def create_bulk_tasks(user, project, items):
         except ServiceError as exc:
             raise ServiceError(f"{index}-vazifa: {exc.detail}", "tasks") from exc
     return created
+
+
+@transaction.atomic
+def create_project_with_tasks(user, *, tasks, task_files, **project_data):
+    """Loyiha yaratish oynasi: loyiha, jamoa va har bir xodimga alohida vazifalar (sana, fayl bilan).
+
+    Bitta tranzaksiya — biror vazifada xato bo'lsa, loyiha ham yaratilmaydi (chala loyiha qolmaydi).
+    Loyiha `projects.services` da yaratiladi; tasks yuqori qatlam bo'lgani uchun orkestratsiya shu yerda.
+    """
+    project = create_project(user, **project_data)
+    for index, item in enumerate(tasks):
+        item = dict(item)
+        try:
+            create_task(user, project, assignee_ids=[item.pop("assignee_id")], files=task_files.get(index, []), **item)
+        except ServiceError as exc:
+            raise ServiceError(f"{index + 1}-vazifa: {exc.detail}", "tasks") from exc
+    return project
 
 
 @transaction.atomic

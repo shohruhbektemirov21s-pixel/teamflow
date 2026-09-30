@@ -1,9 +1,11 @@
 """Loyiha biznes amallari. Faqat PM va Boshliq."""
+from django.apps import apps
 from django.contrib.auth import get_user_model
 from django.db import transaction
 
 from apps.accounts.models import Role
 from apps.core.api_utils import ServiceError
+from apps.core.codes import task_code
 from apps.core.services import log
 from apps.orders.models import Order
 from apps.orders.workflow import check_order_transition
@@ -97,15 +99,42 @@ def update_project(project, user, **data):
 
 @transaction.atomic
 def set_members(project, user, member_ids):
+    """Jamoani yangilaydi. Chiqarilgan dasturchi shu loyihaning tugallanmagan vazifalari va sub-vazifalaridan ham
+    olib tashlanadi (loyihani ko'rmay turib vazifasi qolmasin). Bajarilgan vazifalar tarix sifatida qoladi.
+    Faol vazifaning yagona ijrochisini chiqarib bo'lmaydi — vazifa ijrochisiz qolmasligi uchun."""
     _require_manager(user)
     wanted = {d.pk: d for d in _developers(member_ids)}
     current = set(project.memberships.values_list("developer_id", flat=True))
+    removed = current - set(wanted)
+    if removed:
+        _release_developers(project, removed)
     project.memberships.exclude(developer_id__in=wanted).delete()
     ProjectMember.objects.bulk_create(
         ProjectMember(project=project, developer=d) for pk, d in wanted.items() if pk not in current
     )
     log(user, "project_members", f"{user.full_name} loyiha jamoasini o'zgartirdi: {project.name}", project)
     return project
+
+
+def _release_developers(project, developer_ids):
+    # tasks app projects'dan yuqorida turadi (ARCHITECTURE 3-bo'lim), shuning uchun tasks modellari
+    # import qilinmaydi — teskari bog'lanish va `apps.get_model` orqali olinadi.
+    open_tasks = project.tasks.exclude(status="done")
+    blocked = [
+        task for task in open_tasks.filter(assignments__developer_id__in=developer_ids)
+        .prefetch_related("assignments__developer").distinct()
+        if all(a.developer_id in developer_ids for a in task.assignments.all())
+    ]
+    if blocked:
+        names = ", ".join(sorted({a.developer.full_name for t in blocked for a in t.assignments.all()}))
+        codes = ", ".join(task_code(t.pk) for t in blocked)
+        raise ServiceError(
+            f"{names} — {codes} vazifasining yagona ijrochisi. Avval bu vazifani boshqa xodimga bering.",
+            "member_ids",
+        )
+    open_ids = open_tasks.values("pk")
+    apps.get_model("tasks", "TaskAssignment").objects.filter(task__in=open_ids, developer_id__in=developer_ids).delete()
+    apps.get_model("tasks", "SubTask").objects.filter(task__in=open_ids, assignee_id__in=developer_ids).update(assignee=None)
 
 
 def add_files(project, user, files):

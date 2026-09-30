@@ -111,7 +111,7 @@ def profile(request):
     """
     if request.method == "GET":
         return Response(ProfileSerializer(request.user).data)
-    s = ProfileUpdateSerializer(data=request.data)
+    s = ProfileUpdateSerializer(data=request.data, context={"request": request})
     s.is_valid(raise_exception=True)
     user = request.user
     fields = list(s.validated_data.keys())

@@ -30,6 +30,7 @@ import {
   Badge,
   Button,
   Callout,
+  CodeTag,
   ConfirmButton,
   Due,
   ErrorBox,
@@ -258,7 +259,7 @@ export default function TaskModal({ id, submitMode }: { id: number; submitMode?:
   return (
     <Modal
       size="lg"
-      title={<><span className="muted">{task.code}</span> {task.title}</>}
+      title={<><CodeTag code={task.code} /> {task.title}</>}
       subtitle={
         <>
           <TaskStatusBadge status={task.status} />

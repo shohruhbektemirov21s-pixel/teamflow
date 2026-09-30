@@ -22,7 +22,7 @@ import { useMeta } from "@/shared/meta";
 import { boardMove, TASK_TONE } from "@/shared/status";
 import { T } from "@/shared/text";
 import type { Task, TaskStatus } from "@/shared/types";
-import { Button, Due, ErrorBox, PriorityBadge, Segmented, Skeleton, useToast } from "@/shared/ui";
+import { Button, CodeTag, Due, ErrorBox, PriorityBadge, Segmented, Skeleton, useToast } from "@/shared/ui";
 
 type DueFilter = "" | "today" | "week";
 
@@ -263,7 +263,9 @@ function Card({ task, overlay, dragging, onClick, menu }: { task: Task; overlay?
         <span className="tcard-project grow ellipsis">{task.project.name}</span>
         {menu}
       </div>
-      <div style={{ fontWeight: 650 }}>{task.title}</div>
+      <div style={{ fontWeight: 650 }}>
+        <CodeTag code={task.code} /> {task.title}
+      </div>
       {task.description && <div className="small muted clamp-2">{task.description}</div>}
       {task.subtasks_progress.total > 0 && (
         <div className="stack-sm" style={{ gap: 4 }}>

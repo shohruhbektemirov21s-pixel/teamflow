@@ -57,7 +57,7 @@ export default function Layout() {
   }, []);
 
   const groups = navFor(me.role);
-  const home = me.role === "department" ? "/buyurtmalar" : "/";
+  const home = "/"; // hamma rolda bosh sahifa — Bosh panel (Boshqarmada o'z buyurtmalari)
   const isHome = location.pathname === home;
 
   return (

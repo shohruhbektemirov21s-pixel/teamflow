@@ -10,7 +10,7 @@ import { useDebounced } from "@/shared/hooks";
 import { useMeta } from "@/shared/meta";
 import { T } from "@/shared/text";
 import type { Paged, Project, ProjectStage } from "@/shared/types";
-import { Badge, Button, Empty, ErrorBox, People, Skeleton, StageBadge } from "@/shared/ui";
+import { Badge, Button, CodeTag, Empty, ErrorBox, People, Skeleton, StageBadge } from "@/shared/ui";
 
 export default function ProjectsPage() {
   const me = useMe();
@@ -91,7 +91,9 @@ export default function ProjectsPage() {
                 )}
               </div>
               <div>
-                <h3>{p.name}</h3>
+                <h3>
+                  <CodeTag code={p.code} /> {p.name}
+                </h3>
                 {p.description && <p className="small muted clamp-2" style={{ marginTop: 4 }}>{p.description}</p>}
               </div>
               <div className="stack-sm" style={{ gap: 4 }}>
