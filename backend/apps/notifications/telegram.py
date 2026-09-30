@@ -28,7 +28,9 @@ def send_message(chat_id, text):
         response = requests.post(api_url("sendMessage"), json={"chat_id": chat_id, "text": text}, timeout=TIMEOUT)
         response.raise_for_status()
     except requests.RequestException as exc:
-        logger.warning("Telegram xabari yuborilmadi (chat_id=%s): %s", chat_id, exc)
+        # Xato matnida URL (demak token) bo'lishi mumkin — logga faqat turi/holat kodi yoziladi
+        reason = getattr(getattr(exc, "response", None), "status_code", None) or type(exc).__name__
+        logger.warning("Telegram xabari yuborilmadi (chat_id=%s): %s", chat_id, reason)
 
 
 def send_many(pairs):

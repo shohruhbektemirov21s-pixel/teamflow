@@ -5,6 +5,21 @@ from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+
+def _load_env_file(path):
+    """`backend/.env` (gitga tushmaydi): `KALIT=qiymat` qatorlari. Haqiqiy muhit o'zgaruvchisi ustun turadi."""
+    if not path.exists():
+        return
+    for line in path.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, value = line.split("=", 1)
+        os.environ.setdefault(key.strip(), value.strip().strip('"').strip("'"))
+
+
+_load_env_file(BASE_DIR / ".env")
+
 DEBUG = os.environ.get("DJANGO_DEBUG", "1") == "1"
 
 # Prod'da SECRET_KEY muhit o'zgaruvchisidan olinadi; dev uchun zaxira qiymat.
@@ -108,6 +123,8 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # Telegram bildirishnomalari: token muhit o'zgaruvchisidan. Bo'sh bo'lsa, Telegram'ga hech narsa yuborilmaydi.
 TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "")
+# Bot havolasi (t.me/<username>) — profil va ro'yxatdan o'tishdagi izohda ko'rsatiladi
+TELEGRAM_BOT_USERNAME = os.environ.get("TELEGRAM_BOT_USERNAME", "").lstrip("@")
 if "test" in sys.argv:
     TELEGRAM_BOT_TOKEN = ""  # testlar tashqi tarmoqqa chiqmasin
 

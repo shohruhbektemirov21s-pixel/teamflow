@@ -366,7 +366,15 @@ export const T = {
     weekdays: ["Du", "Se", "Ch", "Pa", "Ju", "Sh", "Ya"],
     months: ["Yanvar", "Fevral", "Mart", "Aprel", "May", "Iyun", "Iyul", "Avgust", "Sentyabr", "Oktyabr", "Noyabr", "Dekabr"],
     more: (n: number) => `yana ${n} ta`,
-    hint: "Vazifalar tugash sanasi bo'yicha",
+    hint: "Vazifalar va loyihalar tugash sanasi bo'yicha. Kunni bosing — o'sha kun ro'yxati ochiladi",
+    openDay: (date: string) => `${date} — kun ro'yxatini ochish`,
+    projectEnds: (name: string) => `${name} — loyiha tugaydi`,
+    dayProjects: "Shu kuni tugaydigan loyihalar",
+    dayTasks: "Shu kungi vazifalar",
+    dayCount: (tasks: number, projects: number) =>
+      [tasks && `${tasks} ta vazifa`, projects && `${projects} ta loyiha`].filter(Boolean).join(" · ") || "Hech narsa yo'q",
+    dayEmpty: "Bu kunga vazifa ham, loyiha muddati ham yo'q",
+    dayEmptyHint: "Boshqa kunni tanlang yoki taqvimni oylar bo'yicha aylantiring.",
   },
 
   notifications: {
@@ -425,6 +433,9 @@ export const T = {
     dateJoined: "Tizimga qo'shilgan vaqt",
     telegram: "Telegram",
     telegramHint: "Bildirishnomalar Telegram'ga ham kelsin desangiz: username yozing va botga /start yuboring.",
+    /** Bot havolasi bilan: "…username yozing, saqlang va [@bot] ga /start yuboring." */
+    telegramHintBefore: "Bildirishnomalar Telegram'ga ham kelsin desangiz: username yozing, saqlang va",
+    telegramHintAfter: "botiga /start yuboring.",
     telegramPh: "@username",
     login: "Login",
     stats: "Vazifalaringiz",

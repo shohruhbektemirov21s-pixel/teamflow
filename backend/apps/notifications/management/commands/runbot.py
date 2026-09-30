@@ -27,10 +27,17 @@ class Command(BaseCommand):
                         params={"timeout": telegram.POLL_TIMEOUT, "offset": offset},
                         timeout=telegram.POLL_TIMEOUT + 10,
                     )
+                    if response.status_code == 409:
+                        # Shu token bilan boshqa joyda ham bot ishlayapti — Telegram yangilanishlarni bittasiga beradi
+                        self.stderr.write("409: shu token bilan boshqa joyda ham bot ishlayapti. O'shasini to'xtating yoki BotFather'da tokenni yangilang.")
+                        time.sleep(5)
+                        continue
                     response.raise_for_status()
                     updates = response.json().get("result", [])
                 except (requests.RequestException, ValueError) as exc:
-                    self.stderr.write(f"Telegram bilan aloqa yo'q, 5 soniyadan keyin qayta urinaman: {exc}")
+                    # Xato matnida URL (demak token) bo'lishi mumkin — logga faqat turi yoziladi
+                    reason = getattr(getattr(exc, "response", None), "status_code", None) or type(exc).__name__
+                    self.stderr.write(f"Telegram bilan aloqa yo'q ({reason}), 5 soniyadan keyin qayta urinaman.")
                     time.sleep(5)
                     continue
                 for update in updates:

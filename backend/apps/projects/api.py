@@ -1,5 +1,6 @@
 from django.db.models import Count, Q
 from django.shortcuts import get_object_or_404
+from django.utils.dateparse import parse_date
 from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -43,7 +44,18 @@ class ProjectViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.
                 qs = qs.filter(id=code[1])
             else:
                 qs = qs.filter(name__icontains=params["q"].strip())
+        # Taqvim: tugash sanasi oralig'i (ikkala chegara ham kiradi)
+        if params.get("end_from") and (d := parse_date(params["end_from"])):
+            qs = qs.filter(end_date__gte=d)
+        if params.get("end_to") and (d := parse_date(params["end_to"])):
+            qs = qs.filter(end_date__lte=d)
         return qs
+
+    def paginate_queryset(self, queryset):
+        # Taqvim butun ro'yxatni oladi: ?all=1 (visible_projects bilan cheklangan)
+        if self.request.query_params.get("all") == "1":
+            return None
+        return super().paginate_queryset(queryset)
 
     def get_serializer_class(self):
         return ProjectDetailSerializer if self.action == "retrieve" else ProjectListSerializer

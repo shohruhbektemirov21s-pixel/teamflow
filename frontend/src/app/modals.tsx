@@ -18,6 +18,7 @@ const ProjectWizard = lazy(() => import("@/features/projects/ProjectWizard"));
 const SuggestionCreateModal = lazy(() => import("@/features/suggestions/SuggestionCreateModal"));
 const SuggestionModal = lazy(() => import("@/features/suggestions/SuggestionModal"));
 const PersonModal = lazy(() => import("@/features/people/PersonModal"));
+const DayModal = lazy(() => import("@/features/calendar/DayModal"));
 
 export type ModalTarget =
   | { task: number; submit?: boolean }
@@ -25,6 +26,7 @@ export type ModalTarget =
   | { project: number }
   | { suggestion: number }
   | { person: number }
+  | { day: string }
   | { new: "task"; project?: number; edit?: number; assignee?: number }
   | { bulk: "task"; project?: number }
   | { new: "order" }
@@ -122,6 +124,7 @@ export function ModalHost() {
   else if (params.get("project")) node = <ProjectModal id={num("project")!} />;
   else if (params.get("suggestion")) node = <SuggestionModal id={num("suggestion")!} />;
   else if (params.get("person")) node = <PersonModal id={num("person")!} />;
+  else if (params.get("day")) node = <DayModal date={params.get("day")!} />;
 
   return <Suspense fallback={null}>{node}</Suspense>;
 }

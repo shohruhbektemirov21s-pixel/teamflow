@@ -1,6 +1,7 @@
 """Yig'uvchi API: bosh panel, xodimlar, qidiruv, izohlar, umumiy tarix, fayllar."""
 import mimetypes
 
+from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
 from django.db.models import Count, Q
 from django.http import FileResponse, Http404
@@ -61,6 +62,8 @@ def meta(request):
         "order_statuses": _choices(Order.Status),
         "project_stages": _choices(Project.Stage),
         "task_moves": moves,
+        # Bot ulangan bo'lsagina havola beriladi (token bo'lmasa bot javob bermaydi)
+        "telegram_bot": settings.TELEGRAM_BOT_USERNAME if settings.TELEGRAM_BOT_TOKEN else "",
     })
 
 

@@ -75,7 +75,8 @@ core  ←  accounts  ←  orders  ←  projects  ←  tasks
 - Pastdagi app yuqoridagini **import qilmaydi**. `orders` → `projects` bog'lanishi (loyiha yaratish) `projects.services` ichida bajariladi, `orders` faqat `Project.order` OneToOne orqali ko'rinadi.
 - **Nima uchun:** eski TeamFlow auditida "qatlam buzilishi" topilgan edi; shu yo'nalishni boshidanoq qat'iy qilamiz.
 - Bildirishnoma va tarix (`ActivityLog`) servislar ichidan bitta yordamchi funksiya bilan yoziladi (`notifications.services.notify`, `core.services.log`).
-- Telegram'ga yuborish `transaction.on_commit` da, bitta fon oqimida, 5 soniya timeout bilan. **Nima uchun:** amal bekor bo'lsa xabar ketmasin, so'rov Telegram'ni kutib qolmasin. Token `TELEGRAM_BOT_TOKEN` muhit o'zgaruvchisida.
+- Telegram'ga yuborish `transaction.on_commit` da, bitta fon oqimida, 5 soniya timeout bilan. **Nima uchun:** amal bekor bo'lsa xabar ketmasin, so'rov Telegram'ni kutib qolmasin. Token `TELEGRAM_BOT_TOKEN` (va havola uchun `TELEGRAM_BOT_USERNAME`) — `backend/.env` da yoki muhit o'zgaruvchisida; `.env` ni `config/settings.py` kutubxonasiz o'qiydi, haqiqiy muhit o'zgaruvchisi ustun. **Nima uchun:** token gitga tushmasin, autostart (`start_server.bat`) ham uni topsin. Xato loglarida URL (demak token) yozilmaydi — faqat holat kodi.
+- Taqvim loyihalarni `GET /api/projects/?end_from=&end_to=&all=1` bilan oladi (`all=1` — sahifalanmaydi, `visible_projects` bilan cheklangan); kun modali vazifalarni `GET /api/tasks/?date=&all=1` bilan oladi.
 
 ## 4. Ma'lumotlar modeli
 

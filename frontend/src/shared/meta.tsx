@@ -21,9 +21,11 @@ export interface MetaData {
   order_statuses: Choice[];
   project_stages: Choice[];
   task_moves: { from: string; to: string }[];
+  /** Telegram bot username'i (`@` siz); bot ulanmagan bo'lsa bo'sh */
+  telegram_bot: string;
 }
 
-export type MetaGroup = Exclude<keyof MetaData, "task_moves">;
+export type MetaGroup = Exclude<keyof MetaData, "task_moves" | "telegram_bot">;
 
 const Ctx = createContext<MetaData | null>(null);
 

@@ -5,6 +5,7 @@ import { useAuth, useMe } from "@/app/auth";
 import { TaskTable } from "@/features/tasks/TaskTable";
 import { api, ApiError, qs } from "@/shared/api";
 import { fmtDate } from "@/shared/format";
+import { useMeta } from "@/shared/meta";
 import { T } from "@/shared/text";
 import type { Profile, Task } from "@/shared/types";
 import { Button, ErrorBox, Field, SkeletonRows, useToast } from "@/shared/ui";
@@ -18,6 +19,7 @@ const generalError = (err: unknown) =>
 
 export default function ProfilePage() {
   const me = useMe();
+  const bot = useMeta().telegram_bot;
   const { refresh } = useAuth();
   const toast = useToast();
   const qc = useQueryClient();
@@ -100,7 +102,22 @@ export default function ProfilePage() {
             <Field label={T.profile.lastName} error={fieldError(infoMut.error, "last_name")}>
               {(id, bad) => <input id={id} className="input" aria-invalid={bad} value={last} onChange={(e) => setLast(e.target.value)} />}
             </Field>
-            <Field label={T.profile.telegram} hint={T.profile.telegramHint} error={fieldError(infoMut.error, "telegram_username")}>
+            <Field
+              label={T.profile.telegram}
+              hint={
+                bot ? (
+                  <>
+                    {T.profile.telegramHintBefore}{" "}
+                    <a href={`https://t.me/${bot}`} target="_blank" rel="noopener noreferrer" style={{ fontWeight: 600 }}>
+                      @{bot}
+                    </a>{" "}
+                    {T.profile.telegramHintAfter}
+                  </>
+                ) : (
+                  T.profile.telegramHint
+                )
+              }
+              error={fieldError(infoMut.error, "telegram_username")}>
               {(id, bad) => (
                 <input id={id} className="input" aria-invalid={bad} value={telegram} placeholder={T.profile.telegramPh} onChange={(e) => setTelegram(e.target.value)} />
               )}

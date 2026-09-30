@@ -90,7 +90,7 @@ export default function DepartmentHome() {
         </div>
       )}
 
-      <section className="card" style={{ marginTop: 24 }} aria-label={T.dashboard.deptOrders}>
+      <section className="card" aria-label={T.dashboard.deptOrders}>
         <div className="card-head">
           <h3 className="grow">
             {selected ? selected.title : T.dashboard.deptOrders} {orders.data && <span className="count-pill soft">{orders.data.count}</span>}

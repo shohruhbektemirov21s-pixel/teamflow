@@ -1,7 +1,7 @@
 # TeamFlow — Flow va Modal reestri
 
 > Yangi flow yoki modal qo'shishdan oldin shu ro'yxatni tekshir. O'xshashi bo'lsa, uni kengaytir.
-> Cheklov: bitta bo'limda **3–4 ta flow**, istisnoda **5 ta**. Modallar amalda **9 ta**.
+> Cheklov: bitta bo'limda **3–4 ta flow**, istisnoda **5 ta**. Modallar amalda **10 ta** (reja 8 ta edi — yangi modal kerak bo'lsa, avval mavjudini kengaytirish ko'rib chiqiladi).
 > Holat: kod to'liq yozilgan va sinovdan o'tgan (2026-09-28). Barcha flow va modallar **Faol**.
 
 ## Flow'lar
@@ -24,7 +24,7 @@
 Bo'limlar bo'yicha son: auth 1 · orders 3 · projects 1 · tasks 3 · profile 1 · history 1 · suggestions 1 · notifications 1. Cheklovdan oshmagan.
 Eslatma: `orders` bo'limidagi 3 flow ham UI da bitta "buyurtma holati" oqimi sifatida (holatga qarab tugma almashadi) amalga oshiriladi, alohida sahifalar ko'paytirilmaydi.
 
-## Modallar (amalda: 9 ta)
+## Modallar (amalda: 10 ta)
 
 Modal holati brauzer tarixida saqlanadi, manzil satri toza qoladi. Quyidagi "Parametr" ustuni — `useModal().open()` ga beriladigan qiymat (eski `?task=12` havolalar ham ishlaydi va tozalanadi).
 
@@ -39,6 +39,7 @@ Modal holati brauzer tarixida saqlanadi, manzil satri toza qoladi. Quyidagi "Par
 | 7 | Xodim profili | Boshliq, PM | Xodim statistikasi, joriy ishlari va to'g'ridan-to'g'ri vazifa berish (Drawer o'rniga keldi) | `?person=:id` | Faol |
 | 8 | Taklif yaratish | Hamma | Anonim yoki ochiq taklif matni, sarlavha kiritish | `?new=suggestion` | Faol |
 | 9 | Taklif ko'rish | Hamma | Taklif tafsilotlari, ovoz berish (yoqlash/qarshi), Boshliq qabul/rad qilish | `?suggestion=:id` | Faol |
+| 10 | Taqvim kuni | Dasturchi, PM, Boshliq | Shu kuni tugaydigan loyihalar va shu kungi vazifalar ro'yxati; bosilsa shu modal o'rniga "Vazifa ko'rish" / "Loyiha ko'rish" ochiladi, "Orqaga" qaytaradi (`features/calendar/DayModal.tsx`) | `{ day: "yyyy-mm-dd" }` | Faol (2026-09-30) |
 
 > Yon panellar (drawer) butunlay taqiqlangan, faqat modal va sahifalardan foydalaniladi.
 
@@ -54,4 +55,4 @@ Modal holati brauzer tarixida saqlanadi, manzil satri toza qoladi. Quyidagi "Par
 
 | Sana | Bo'lim | Flow soni | Izoh |
 |---|---|---|---|
-| — | — | — | — |
+| 2026-09-30 | calendar | 0 (yangi flow emas) | "Taqvim kuni" modali qo'shildi — modallar 10 ta, rejadagi 8 tadan oshdi. Foydalanuvchiga aytildi. Mavjud modallardan birortasi kun ro'yxatini ko'rsatmaydi, shuning uchun kengaytirish o'rniga yangisi. |

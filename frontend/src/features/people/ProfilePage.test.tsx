@@ -38,4 +38,12 @@ describe("ProfilePage", () => {
     expect(screen.queryByRole("region", { name: T.profile.myTasks })).toBeNull();
     expect(api.get).not.toHaveBeenCalledWith("/tasks/?mine=1&all=1");
   });
+
+  it("Telegram izohida bot havolasi bor (bot nomi serverdan, /meta/)", async () => {
+    mockGet({ "/auth/profile/": { ...PROFILE, ...PM, stats: null } });
+    renderApp(<ProfilePage />);
+
+    const link = await screen.findByRole("link", { name: "@teamflow_test_bot" });
+    expect(link.getAttribute("href")).toBe("https://t.me/teamflow_test_bot");
+  });
 });

@@ -1,15 +1,15 @@
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Flag } from "lucide-react";
 import { useMemo, useState } from "react";
 
 import { isManager, useMe } from "@/app/auth";
 import { useModal } from "@/app/modals";
 import { api, qs } from "@/shared/api";
-import { isoDate } from "@/shared/format";
+import { fmtDate, isoDate } from "@/shared/format";
 import { TASK_TONE } from "@/shared/status";
 import { useMeta } from "@/shared/meta";
 import { T } from "@/shared/text";
-import type { Task } from "@/shared/types";
+import type { Project, Task } from "@/shared/types";
 import { Button, ErrorBox } from "@/shared/ui";
 
 const MAX_PER_DAY = 3;
@@ -39,6 +39,13 @@ export default function CalendarPage() {
     placeholderData: keepPreviousData,
   });
 
+  // Loyihalar tugash sanasi (serverda rol bo'yicha cheklangan: dasturchi — faqat o'z loyihalari)
+  const projectsQuery = useQuery({
+    queryKey: ["projects", "calendar", range.due_from],
+    queryFn: () => api.get<Project[]>(`/projects/${qs({ end_from: range.due_from, end_to: range.due_to, all: 1 })}`),
+    placeholderData: keepPreviousData,
+  });
+
   const byDay = useMemo(() => {
     const map = new Map<string, Task[]>();
     for (const t of query.data ?? []) {
@@ -48,6 +55,14 @@ export default function CalendarPage() {
     }
     return map;
   }, [query.data]);
+
+  const projectsByDay = useMemo(() => {
+    const map = new Map<string, Project[]>();
+    for (const p of projectsQuery.data ?? []) map.set(p.end_date, [...(map.get(p.end_date) ?? []), p]);
+    return map;
+  }, [projectsQuery.data]);
+
+  const openDay = (key: string) => open({ day: key });
 
   const today = isoDate(new Date());
   const shift = (n: number) => setMonth((m) => new Date(m.getFullYear(), m.getMonth() + n, 1));
@@ -69,7 +84,9 @@ export default function CalendarPage() {
           <ChevronRight />
         </button>
       </div>
-      {query.error && <ErrorBox error={query.error} onRetry={() => query.refetch()} />}
+      {(query.error || projectsQuery.error) && (
+        <ErrorBox error={query.error ?? projectsQuery.error} onRetry={() => (query.refetch(), projectsQuery.refetch())} />
+      )}
       <div className="card" style={{ overflow: "hidden" }}>
         <div className="cal">
           {T.calendar.weekdays.map((w) => (
@@ -80,26 +97,44 @@ export default function CalendarPage() {
           {days.map((d) => {
             const key = isoDate(d);
             const items = byDay.get(key) ?? [];
+            const ends = projectsByDay.get(key) ?? [];
+            // Loyiha muddatlari birinchi, keyin vazifalar; kunda jami MAX_PER_DAY ta belgi
+            const taskSlots = Math.max(0, MAX_PER_DAY - ends.length);
+            const hidden = Math.max(0, ends.length - MAX_PER_DAY) + Math.max(0, items.length - taskSlots);
             const out = d.getMonth() !== month.getMonth();
             return (
-              <div key={key} className={`cal-day ${out ? "out" : ""} ${key === today ? "today" : ""}`}>
-                <span className="cal-num">{d.getDate()}</span>
-                {items.slice(0, MAX_PER_DAY).map((t) => (
+              // Kunning istalgan joyi bosilsa — kun ro'yxati; klaviatura uchun kun raqami tugma
+              <div key={key} className={`cal-day ${out ? "out" : ""} ${key === today ? "today" : ""}`} onClick={() => openDay(key)}>
+                <button className="cal-num" aria-label={T.calendar.openDay(fmtDate(d))} onClick={(e) => (e.stopPropagation(), openDay(key))}>
+                  {d.getDate()}
+                </button>
+                {ends.slice(0, MAX_PER_DAY).map((p) => (
+                  <button
+                    key={`p${p.id}`}
+                    className="cal-chip cal-chip-project"
+                    title={T.calendar.projectEnds(p.name)}
+                    onClick={(e) => (e.stopPropagation(), open({ project: p.id }))}
+                  >
+                    <Flag aria-hidden />
+                    <span className="ellipsis">{p.name}</span>
+                  </button>
+                ))}
+                {items.slice(0, taskSlots).map((t) => (
                   <button
                     key={t.id}
                     className={`cal-chip tone-${t.is_overdue ? "danger" : TASK_TONE[t.status]}`}
                     title={`${t.title} · ${meta.label("task_statuses", t.status)}`}
-                    onClick={() => open({ task: t.id })}
+                    onClick={(e) => (e.stopPropagation(), open({ task: t.id }))}
                   >
                     <span className="ellipsis" style={{ display: "block" }}>
                       {t.title}
                     </span>
                   </button>
                 ))}
-                {items.length > MAX_PER_DAY && (
-                  <span className="small muted" style={{ paddingLeft: 4 }}>
-                    {T.calendar.more(items.length - MAX_PER_DAY)}
-                  </span>
+                {hidden > 0 && (
+                  <button className="cal-more" onClick={(e) => (e.stopPropagation(), openDay(key))}>
+                    {T.calendar.more(hidden)}
+                  </button>
                 )}
               </div>
             );

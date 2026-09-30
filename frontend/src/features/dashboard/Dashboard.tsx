@@ -79,7 +79,7 @@ export default function Dashboard() {
         onPick={(bucket, period, title) => pick({ bucket, period, title })}
       />
 
-      <div className="grid-3" style={{ marginBottom: 24 }}>
+      <div className="grid-3">
         {(
           [
             { bucket: "late", label: T.dashboard.late, icon: Clock, tone: "danger" },
@@ -87,15 +87,15 @@ export default function Dashboard() {
             { bucket: "review", label: T.dashboard.review, icon: Hourglass, tone: "primary" },
           ] as const
         ).map((c) => (
-          <button key={c.bucket} className="card total clickable" aria-pressed={isOn(c.bucket)} onClick={() => pick({ bucket: c.bucket, title: c.label })} style={{ padding: "16px 20px", display: "flex", alignItems: "center", gap: 16 }}>
-            <span className={`total-icon tone-${c.tone}`} style={{ width: 40, height: 40 }}>
+          <button key={c.bucket} className="card total clickable" aria-pressed={isOn(c.bucket)} onClick={() => pick({ bucket: c.bucket, title: c.label })}>
+            <span className={`total-icon tone-${c.tone}`}>
               <c.icon size={20} />
             </span>
-            <span className="grow" style={{ textAlign: "left" }}>
-              <span className="stat-label" style={{ display: "block", fontSize: 13, marginBottom: 2 }}>
+            <span className="grow">
+              <span className="stat-label">
                 {c.label}
               </span>
-              <span className="stat-num" style={{ fontSize: 20 }}>{d ? d.totals[c.bucket] : "—"}</span>
+              <span className="stat-num">{d ? d.totals[c.bucket] : "—"}</span>
             </span>
             <ChevronRight size={18} className="muted" />
           </button>
@@ -119,7 +119,7 @@ function SelectedTasks({ selection, onClose, manager, mine }: { selection: Selec
     placeholderData: keepPreviousData,
   });
   return (
-    <div className="card" style={{ marginTop: 24 }}>
+    <div className="card">
       <div className="card-head">
         <h3 className="grow">
           {selection.title} {query.data && <span className="count-pill soft">{query.data.count}</span>}

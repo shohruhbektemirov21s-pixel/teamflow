@@ -44,6 +44,7 @@ export const META: MetaData = {
   order_statuses: [],
   project_stages: [],
   task_moves: [],
+  telegram_bot: "teamflow_test_bot",
 };
 
 export function taskDetail(overrides: Partial<TaskDetail> = {}): TaskDetail {

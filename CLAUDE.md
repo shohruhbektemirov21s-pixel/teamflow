@@ -91,7 +91,7 @@ Backend (`backend/` papkasida, virtual muhit `backend/.venv`):
 .venv/Scripts/python manage.py createsuperuser            # admin (Boshliqni adminda yaratish uchun)
 .venv/Scripts/python manage.py seed_demo                  # demo ma'lumotlar
 .venv/Scripts/python manage.py runserver 127.0.0.1:8020   # http://127.0.0.1:8020/ (8020-port)
-.venv/Scripts/python manage.py test                       # testlar (132 ta test)
+.venv/Scripts/python manage.py test                       # testlar (137 ta test)
 .venv/Scripts/python manage.py runbot                     # Telegram bot (TELEGRAM_BOT_TOKEN muhit o'zgaruvchisi bilan)
 .venv/Scripts/python manage.py makemigrations --check --dry-run   # sxema mosligi
 ```
@@ -101,7 +101,7 @@ Frontend (`frontend/` papkasida):
 npm install               # bog'liqliklar
 npx vite                  # dev-server: http://127.0.0.1:5173/ (8020 ga proksi qiladi)
 npx tsc --noEmit -p .     # TypeScript tur tekshiruvi
-npx vitest run            # testlar (27 ta, jsdom + @testing-library/react)
+npx vitest run            # testlar (31 ta, jsdom + @testing-library/react)
 npx vite build            # prod build: dist/ (Django orqali beriladi)
 ```
 
@@ -165,3 +165,6 @@ Har bir app ichidagi qatlamlar (`models`, `workflow`, `services`, `permissions`,
 - 2026-09-30: Buyurtmalar (TZ) sahifasida "Hammasi" filtri birinchi o'rinda va standart tanlangan.
 - 2026-09-30: Boshqarma bosh panelidagi "N ta buyurtmangiz rad etilgan…" eslatmasi olib tashlandi — bunday izoh kerak emas.
 - 2026-09-30: Boshqarma bosh panelida "Yil boshidan / Oy boshidan / Hafta boshidan" kartalari — har birida Yuborilgan, Rad etilgan, Tasdiqlangan; ko'rinishi boshqa bosh panellar bilan bir xil (umumiy `PeriodCards`). Raqam bosilsa ro'yxat shu davr va toifa bo'yicha filtrlanadi (son va ro'yxat bitta qoidadan: `orders/filters.py`). Davr boshlanishi bitta joyda: `core/periods.py`.
+- 2026-09-30: UI vizual uslubi yangilandi (faqat ko'rinish, tuzilma/flow/matnlar o'zgarmadi): tokenlarga shrift o'lchamlari, `--control` balandliklari (32/40/48, 8px setka), `--primary-solid` (tungi rejimda oq matn kontrasti), `--placeholder`; `--muted` AA kontrastga ko'tarildi; focus — `outline`; select inputlar bilan bir xil; tungi rejimda `color-scheme`; bosh panellardagi ikki marta qo'shilgan oraliqlar olib tashlandi; telefonda maydonlar 16px, menyu bandlari 44px. Qaytarish nuqtasi: git tag `ui-before-restyle`.
+- 2026-09-30: Taqvimda kun bosilsa "Taqvim kuni" modali ochiladi (shu kungi vazifalar va shu kuni tugaydigan loyihalar); ro'yxatdagi vazifa/loyiha bosilsa modal o'rniga uning modali ochiladi, "Orqaga" kun ro'yxatiga qaytaradi. Taqvimda loyiha tugash sanalari ko'rinadi. Modallar soni 10 ta (`docs/FLOWS_MODALS.md`).
+- 2026-09-30: Telegram bot ulandi (@taskbildirishnomasi_bot). Token va bot nomi `backend/.env` da (gitga tushmaydi, hech qachon commit qilinmaydi); bot `start_server.bat` bilan avtomatik ishga tushadi (log: `backend/bot.log`, tokensiz). Profildagi Telegram izohida botga havola.

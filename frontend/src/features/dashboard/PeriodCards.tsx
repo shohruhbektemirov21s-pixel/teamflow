@@ -27,15 +27,15 @@ export function PeriodCards<B extends string>({
   onPick: (bucket: B, period: PeriodKey, title: string) => void;
 }) {
   return (
-    <div className="grid-3" style={{ marginBottom: 24 }}>
+    <div className="grid-3">
       {periods
         ? periods.map((p) => (
-            <div key={p.key} className="card period" style={{ padding: "20px" }}>
-              <div style={{ marginBottom: 16 }}>
-                <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600 }}>{p.label}</h3>
+            <div key={p.key} className="card period">
+              <div className="period-head">
+                <h3>{p.label}</h3>
                 <span className="small muted">{T.dashboard.since(fmtDate(p.since))}</span>
               </div>
-              <div className="period-nums" style={{ display: "flex", gap: 12 }}>
+              <div className="period-nums">
                 {buckets.map((b) => {
                   const n = p.counts[b.key];
                   const on = isOn(b.key, p.key);
@@ -45,12 +45,11 @@ export function PeriodCards<B extends string>({
                       className="stat"
                       aria-pressed={on}
                       onClick={() => onPick(b.key, p.key, T.dashboard.tableTitle(p.label, b.label))}
-                      style={{ flex: 1, padding: "12px 8px", background: on ? "var(--bg)" : "transparent" }}
                     >
-                      <span className={`stat-num ${n ? "" : "zero"}`} style={{ fontSize: 24, marginBottom: 4, color: b.alert && n ? "var(--danger)" : "var(--text)" }}>
+                      <span className={`stat-num ${n ? (b.alert ? "alert" : "") : "zero"}`}>
                         {n}
                       </span>
-                      <span className="stat-label" style={{ fontSize: 12, opacity: 0.8 }}>
+                      <span className="stat-label">
                         {b.label}
                       </span>
                     </button>

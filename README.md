@@ -170,11 +170,20 @@ Xuddi shu tuzilma, sonlar faqat shu dasturchining o'z vazifalari bo'yicha.
 - Vazifa doirasida sub-tasklar ochilib, ularga boshqa xodimlar biriktiriladi.
 - Xodimni bossa, uning oynasi (modal) ochiladi: statistika, joriy ishlari, vazifa berish.
 
+### Taqvim (Dasturchi, PM, Boshliq)
+- Oylik ko'rinish: vazifalar tugash sanasi bo'yicha va **loyihalarning tugash sanasi** (binafsha belgi, bayroqcha bilan; dasturchi faqat o'z loyihalarini ko'radi).
+- **Kunni bosganda** shu kun ro'yxati modalda ochiladi: shu kuni tugaydigan loyihalar va shu kungi vazifalar.
+- Ro'yxatdagi vazifa (yoki loyiha) bosilsa, kun modali o'rniga uning modali ochiladi (modal ustida modal yo'q); "Orqaga" yoki ✕ kun ro'yxatiga qaytaradi.
+- Kundagi vazifa/loyiha belgisini to'g'ridan-to'g'ri bossa ham o'z modali ochiladi; "yana N ta" — kun ro'yxatini ochadi.
+
 ### Telegram bildirishnomalari
+- Bot: **@taskbildirishnomasi_bot** (`https://t.me/taskbildirishnomasi_bot`). Profildagi Telegram maydoni izohida botga havola bor (bot nomi serverdan, `/api/meta/` → `telegram_bot`).
 - Ro'yxatdan o'tishda Telegram username (`@username`) yoziladi. Bitta username faqat bitta akkauntda bo'ladi (ro'yxatdan o'tishda ham, profilda ham tekshiriladi).
 - Foydalanuvchi botga `/start` yozadi → akkaunti topilsa (faol, username bitta akkauntda), chat bog'lanadi.
 - Shundan keyin tizimdagi har bir bildirishnoma Telegram'ga ham yuboriladi (amal muvaffaqiyatli saqlangandan keyin).
-- Token: `TELEGRAM_BOT_TOKEN` muhit o'zgaruvchisi. Bo'sh bo'lsa Telegram o'chiq, tizim odatdagidek ishlaydi.
+- Token va bot nomi: `backend/.env` (`TELEGRAM_BOT_TOKEN`, `TELEGRAM_BOT_USERNAME`; gitga tushmaydi) yoki muhit o'zgaruvchilari. Token bo'sh bo'lsa Telegram o'chiq, tizim odatdagidek ishlaydi.
+- Bot (`runbot`) server bilan birga avtomatik ishga tushadi (`backend/start_server.bat`, log: `backend/bot.log`). Logga token yozilmaydi.
+- Bitta token bilan faqat **bitta** bot jarayoni ishlashi mumkin: boshqa joyda ham ishlasa, logda "409" chiqadi va `/start` xabarlari o'sha joyga ketadi.
 
 ### Kodlar
 Vazifa va loyihalarning qisqa kodi bor: `TSK-12`, `PRJ-3`. Kod ro'yxatlarda, doskada, tekshiruv navbatida va modallar sarlavhasida ko'rinadi.
@@ -229,8 +238,8 @@ cd backend
 .venv\Scripts\python manage.py migrate
 .venv\Scripts\python manage.py seed_demo                  # demo ma'lumotlarni yuklash
 .venv\Scripts\python manage.py runserver 127.0.0.1:8020   # http://127.0.0.1:8020/
-.venv\Scripts\python manage.py test                       # testlarni yurgizish (132 ta)
-set TELEGRAM_BOT_TOKEN=...  &  .venv\Scripts\python manage.py runbot   # Telegram bot (ixtiyoriy)
+.venv\Scripts\python manage.py test                       # testlarni yurgizish (137 ta)
+.venv\Scripts\python manage.py runbot                     # Telegram bot (token backend\.env da; start_server.bat o'zi ishga tushiradi)
 ```
 
 **2. Frontend — Ishlab chiqish (Vite dev server):**
