@@ -33,6 +33,8 @@ api = [
     path("auth/me/", accounts.me),
     path("auth/profile/", accounts.profile),
     path("auth/password/", accounts.change_password),
+    path("auth/avatar/", accounts.avatar),
+    path("avatars/<int:pk>/", accounts.avatar_image),
     path("specialties/", accounts.specialties),
     path("developers/", accounts.developers),
     path("meta/", panel.meta),

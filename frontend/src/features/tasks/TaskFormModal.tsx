@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { isManager, useMe } from "@/app/auth";
 import { useModal } from "@/app/modals";
 import { useProjects, useRefresh } from "@/app/queries";
+import { DeveloperPicker } from "@/features/people/DeveloperPicker";
 import { api, ApiError, formData } from "@/shared/api";
 import { fromLocalInput, toLocalInput } from "@/shared/format";
 import { useMeta } from "@/shared/meta";
@@ -14,7 +15,7 @@ import { Avatar, Button, Callout, Field, FilePicker, Modal, Segmented, Skeleton,
 
 interface SubtaskDraft {
   title: string;
-  assignee_id: number | null;
+  assignee_ids: number[];
   is_done?: boolean;
 }
 
@@ -56,7 +57,7 @@ export default function TaskFormModal({ projectId, editId, assigneeId }: { proje
     setStartsAt(toLocalInput(t.starts_at));
     setDueAt(toLocalInput(t.due_at));
     setAssignees(t.assignees.map((a) => a.id));
-    setSubtasks(t.subtasks.map((s) => ({ title: s.title, assignee_id: s.assignee?.id ?? null, is_done: s.is_done })));
+    setSubtasks(t.subtasks.map((s) => ({ title: s.title, assignee_ids: s.assignees.map((u) => u.id), is_done: s.is_done })));
   }, [existing.data]);
 
   // Bitta loyiha bo'lsa — avtomatik tanlanadi
@@ -239,38 +240,32 @@ export default function TaskFormModal({ projectId, editId, assigneeId }: { proje
         <div className="field">
           <span className="field-label">{T.tasks.subtasks}</span>
           {subtasks.map((s, i) => (
-            <div key={i} className="row">
-              <input
-                className="input grow"
-                placeholder={T.tasks.subtaskPh}
-                value={s.title}
-                aria-label={T.tasks.subtaskPh}
-                onChange={(e) => setSubtasks((xs) => xs.map((x, j) => (j === i ? { ...x, title: e.target.value } : x)))}
-              />
+            <div key={i} className="stack-sm">
+              <div className="row">
+                <input
+                  className="input grow"
+                  placeholder={T.tasks.subtaskPh}
+                  value={s.title}
+                  aria-label={T.tasks.subtaskPh}
+                  onChange={(e) => setSubtasks((xs) => xs.map((x, j) => (j === i ? { ...x, title: e.target.value } : x)))}
+                />
+                <button type="button" className="icon-btn" aria-label={T.common.delete} onClick={() => setSubtasks((xs) => xs.filter((_, j) => j !== i))}>
+                  <Trash2 />
+                </button>
+              </div>
               {manager && (
-                <select
-                  className="select"
-                  style={{ width: 180 }}
-                  value={s.assignee_id ?? ""}
-                  aria-label={T.tasks.assignees}
-                  onChange={(e) => setSubtasks((xs) => xs.map((x, j) => (j === i ? { ...x, assignee_id: e.target.value ? Number(e.target.value) : null } : x)))}
-                >
-                  <option value="">{T.tasks.subtaskNobody}</option>
-                  {members.map((m) => (
-                    <option key={m.id} value={m.id}>
-                      {m.full_name}
-                    </option>
-                  ))}
-                </select>
+                <DeveloperPicker
+                  label={`${T.tasks.subtaskPeople}: ${s.title || T.tasks.subtaskPh}`}
+                  options={members}
+                  value={s.assignee_ids}
+                  onChange={(ids) => setSubtasks((xs) => xs.map((x, j) => (j === i ? { ...x, assignee_ids: ids } : x)))}
+                />
               )}
-              <button type="button" className="icon-btn" aria-label={T.common.delete} onClick={() => setSubtasks((xs) => xs.filter((_, j) => j !== i))}>
-                <Trash2 />
-              </button>
             </div>
           ))}
           {fe("subtasks") && <span className="field-error">{fe("subtasks")}</span>}
           <div>
-            <Button size="sm" icon={<Plus />} onClick={() => (setSubtasks((xs) => [...xs, { title: "", assignee_id: null }]), setTouched(true))}>
+            <Button size="sm" icon={<Plus />} onClick={() => (setSubtasks((xs) => [...xs, { title: "", assignee_ids: [] }]), setTouched(true))}>
               {T.tasks.subtaskAdd}
             </Button>
           </div>

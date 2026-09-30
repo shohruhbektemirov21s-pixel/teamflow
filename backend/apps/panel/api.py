@@ -16,7 +16,7 @@ from rest_framework.response import Response
 from apps.accounts.models import Role, User
 from apps.accounts.serializers import SELF_REGISTER_ROLES
 from apps.core.choices import Priority
-from apps.core.api_utils import require_manager, user_brief
+from apps.core.api_utils import avatar_url, require_manager, user_brief
 from apps.core.codes import parse_code, project_code, task_code
 from apps.core.models import ActivityLog, Comment
 from apps.core.services import log
@@ -30,7 +30,7 @@ from apps.projects.permissions import can_view_project, visible_projects
 from apps.tasks.filters import ACTIVE, dashboard_counts
 from apps.tasks.models import SubmissionFile, Task, TaskFile
 from apps.tasks import workflow as task_workflow
-from apps.tasks.permissions import visible_tasks
+from apps.tasks.permissions import listed_tasks, visible_tasks
 
 # ─── Ma'lumotnomalar (frontend ro'yxat va nomlarni shu yerdan oladi) ──────────
 
@@ -76,10 +76,7 @@ def dashboard(request):
     user = request.user
     if user.is_department:
         return Response(department_dashboard(visible_orders(user)))
-    qs = visible_tasks(user)
-    if user.is_developer:
-        qs = qs.filter(assignments__developer=user).distinct()
-    data = dashboard_counts(qs)
+    data = dashboard_counts(listed_tasks(user))
     if user.is_manager:
         data["orders_pending"] = Order.objects.filter(status=Order.Status.SUBMITTED).count()
     return Response(data)
@@ -109,7 +106,7 @@ def _people_rows(qs):
         {
             "id": u.pk, "full_name": u.full_name, "role": u.role, "role_label": u.get_role_display(),
             "specialty": u.specialty.name if u.specialty else "", "department_name": u.department_name,
-            "active_tasks": u.active_tasks, "overdue_tasks": u.overdue_tasks,
+            "avatar": avatar_url(u), "active_tasks": u.active_tasks, "overdue_tasks": u.overdue_tasks,
             "review_tasks": u.review_tasks, "done_tasks": u.done_tasks,
             "doing": doing.get(u.pk, [])[:3],
         }
@@ -147,9 +144,9 @@ def search(request):
         # Kod yozilsa (TSK-12 / PRJ-3) — faqat aynan shu yozuv, ko'rish huquqi bo'lsa
         kind, pk = code
         if kind == "task":
-            return Response({**empty, "tasks": _search_tasks(visible_tasks(user).filter(pk=pk))})
+            return Response({**empty, "tasks": _search_tasks(listed_tasks(user).filter(pk=pk))})
         return Response({**empty, "projects": _search_projects(visible_projects(user).filter(pk=pk))})
-    tasks = visible_tasks(user).filter(Q(title__icontains=q) | Q(description__icontains=q))[:6]
+    tasks = listed_tasks(user).filter(Q(title__icontains=q) | Q(description__icontains=q))[:6]
     projects = visible_projects(user).filter(name__icontains=q)[:6]
     orders = visible_orders(user).filter(Q(title__icontains=q) | Q(submitted_by__department_name__icontains=q))[:6]
     people = []

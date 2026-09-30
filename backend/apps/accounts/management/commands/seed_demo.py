@@ -62,8 +62,8 @@ class Command(BaseCommand):
         t1 = tasks.create_task(pm, project, title="Kirish sahifasini yaratish",
                                description="Login va parolni tiklash formasi", priority="high",
                                due_at=now + timedelta(days=2), assignee_ids=[dev1.pk, dev2.pk],
-                               subtasks=[{"title": "Forma dizayni", "assignee_id": dev2.pk},
-                                         {"title": "API ulash", "assignee_id": dev1.pk}])
+                               subtasks=[{"title": "Forma dizayni", "assignee_ids": [dev2.pk]},
+                                         {"title": "API ulash", "assignee_ids": [dev1.pk]}])
         tasks.start_task(t1, dev1)
         t2 = tasks.create_task(pm, project, title="Telegram bot orqali eslatma", priority="medium",
                                due_at=now - timedelta(days=1), assignee_ids=[dev1.pk])

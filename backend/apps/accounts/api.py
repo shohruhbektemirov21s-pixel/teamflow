@@ -1,13 +1,16 @@
 from django.contrib.auth import authenticate, login, logout
+from django.http import FileResponse, Http404
 from django.views.decorators.csrf import csrf_protect, ensure_csrf_cookie
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes, throttle_classes
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.throttling import AnonRateThrottle
 
-from apps.core.api_utils import require_manager
+from apps.core.api_utils import ServiceError, avatar_url
 
+from . import services
 from .models import Role, Specialty, User
 from .serializers import (
     LoginSerializer, MeSerializer, RegisterSerializer, SpecialtySerializer,
@@ -90,12 +93,15 @@ def me(request):
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def developers(request):
-    """Vazifa/loyiha formalarida tanlash uchun faol dasturchilar."""
-    require_manager(request.user)
+    """Vazifa/loyiha formalarida tanlash uchun faol dasturchilar. Dasturchi ham oladi — vazifa oynasida
+    o'z vazifasiga yoki sub-vazifaga boshqa dasturchini qo'shadi."""
+    if not (request.user.is_manager or request.user.is_developer):
+        raise PermissionDenied("Ruxsat yo'q.")
     qs = User.objects.filter(is_active=True, role=Role.DEVELOPER).select_related("specialty")
     return Response(
         [
-            {"id": u.pk, "full_name": u.full_name, "specialty": u.specialty.name if u.specialty else ""}
+            {"id": u.pk, "full_name": u.full_name, "specialty": u.specialty.name if u.specialty else "",
+             "avatar": avatar_url(u)}
             for u in qs.order_by("first_name", "last_name")
         ]
     )
@@ -122,6 +128,37 @@ def profile(request):
         setattr(user, k, v)
     user.save(update_fields=fields)
     return Response(ProfileSerializer(request.user).data)
+
+
+@api_view(["POST", "DELETE"])
+@permission_classes([IsAuthenticated])
+def avatar(request):
+    """O'z profil rasmi: POST (multipart `avatar`) — yuklash/almashtirish, DELETE — o'chirish."""
+    if request.method == "DELETE":
+        services.remove_avatar(request.user)
+    else:
+        upload = request.FILES.get("avatar")
+        if upload is None:
+            raise ServiceError("Rasm tanlang.", "avatar")
+        services.set_avatar(request.user, upload)
+    return Response(ProfileSerializer(request.user).data)
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def avatar_image(request, pk):
+    """Profil rasmi — faqat tizimga kirganlarga (media papkasi ochiq berilmaydi)."""
+    user = User.objects.filter(pk=pk, is_active=True).first()
+    if user is None or not user.avatar:
+        raise Http404
+    try:
+        handle = user.avatar.open("rb")
+    except (FileNotFoundError, ValueError):
+        raise Http404
+    response = FileResponse(handle, content_type="image/jpeg")
+    response["X-Content-Type-Options"] = "nosniff"
+    response["Cache-Control"] = "private, max-age=86400"  # `?v=` almashadi — eski rasm keshda qolmaydi
+    return response
 
 
 @api_view(["POST"])

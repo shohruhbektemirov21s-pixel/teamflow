@@ -1,6 +1,8 @@
 from django.contrib.auth import password_validation
 from rest_framework import serializers
 
+from apps.core.api_utils import avatar_url
+
 from .models import Role, Specialty, User
 
 SELF_REGISTER_ROLES = [Role.PM, Role.DEVELOPER, Role.DEPARTMENT]  # Boshliq faqat Django adminda
@@ -81,13 +83,17 @@ class MeSerializer(serializers.ModelSerializer):
     full_name = serializers.CharField(read_only=True)
     role_label = serializers.CharField(source="get_role_display", read_only=True)
     specialty = serializers.StringRelatedField()
+    avatar = serializers.SerializerMethodField()
 
     class Meta:
         model = User
         fields = [
             "id", "username", "first_name", "last_name", "full_name",
-            "role", "role_label", "specialty", "department_name", "telegram_username",
+            "role", "role_label", "specialty", "department_name", "telegram_username", "avatar",
         ]
+
+    def get_avatar(self, obj):
+        return avatar_url(obj)
 
 
 class ProfileSerializer(serializers.ModelSerializer):
@@ -95,14 +101,18 @@ class ProfileSerializer(serializers.ModelSerializer):
     role_label = serializers.CharField(source="get_role_display", read_only=True)
     specialty = serializers.StringRelatedField()
     stats = serializers.SerializerMethodField()
+    avatar = serializers.SerializerMethodField()
 
     class Meta:
         model = User
         fields = [
             "id", "username", "first_name", "last_name", "full_name",
             "role", "role_label", "specialty", "department_name",
-            "telegram_username", "date_joined", "stats",
+            "telegram_username", "date_joined", "stats", "avatar",
         ]
+
+    def get_avatar(self, obj):
+        return avatar_url(obj)
 
     def get_stats(self, user):
         # "Faol" va "Muddati o'tgan" — bosh panel va xodim oynasi bilan bir xil qoida (tasks.filters.apply_bucket)

@@ -27,7 +27,7 @@ class TaskFlowTests(TestCase):
     def create(self, user=None, **kw):
         data = {"project": self.project.pk, "title": "Login sahifasi", "assignee_ids": [self.dev1.pk, self.dev2.pk],
                 "due_at": (timezone.now() + timedelta(days=3)).isoformat(),
-                "subtasks": [{"title": "Forma", "assignee_id": self.dev1.pk}, {"title": "API"}]}
+                "subtasks": [{"title": "Forma", "assignee_ids": [self.dev1.pk]}, {"title": "API"}]}
         data.update(kw)
         return client_for(user or self.pm).post("/api/tasks/", data, format="json")
 
@@ -97,22 +97,22 @@ class TaskFlowTests(TestCase):
         self.assertEqual([s["round"] for s in r.data["submissions"]], [1, 2])
 
     def test_non_assignee_cannot_start(self):
-        tid = self.create(assignee_ids=[self.dev1.pk], subtasks=[{"title": "Test", "assignee_id": self.dev2.pk}]).data["id"]
+        tid = self.create(assignee_ids=[self.dev1.pk], subtasks=[{"title": "Test", "assignee_ids": [self.dev2.pk]}]).data["id"]
         # dev2 sub-vazifa orqali ko'radi, lekin vazifani boshlay olmaydi
         self.assertEqual(client_for(self.dev2).post(f"/api/tasks/{tid}/start/").status_code, 400)
 
     def test_subtask_create_validates_input(self):
         tid = self.create(assignee_ids=[self.dev1.pk], subtasks=[]).data["id"]
         client = client_for(self.pm)
-        for payload in ({}, {"title": ""}, {"title": ["ro'yxat"]}, {"title": "A", "assignee_id": "abc"}):
+        for payload in ({}, {"title": ""}, {"title": ["ro'yxat"]}, {"title": "A", "assignee_ids": ["abc"]}):
             with self.subTest(payload=payload):
                 self.assertEqual(client.post(f"/api/tasks/{tid}/subtasks/", payload, format="json").status_code, 400)
-        r = client.post(f"/api/tasks/{tid}/subtasks/", {"title": "Yangi qadam", "assignee_id": self.dev1.pk}, format="json")
+        r = client.post(f"/api/tasks/{tid}/subtasks/", {"title": "Yangi qadam", "assignee_ids": [self.dev1.pk]}, format="json")
         self.assertEqual(r.status_code, 201)
         self.assertEqual(r.data["subtasks"][-1]["title"], "Yangi qadam")
 
     def test_subtask_toggle(self):
-        d = self.create(assignee_ids=[self.dev1.pk], subtasks=[{"title": "A", "assignee_id": self.dev1.pk}]).data
+        d = self.create(assignee_ids=[self.dev1.pk], subtasks=[{"title": "A", "assignee_ids": [self.dev1.pk]}]).data
         sid = d["subtasks"][0]["id"]
         r = client_for(self.dev1).post(f"/api/tasks/{d['id']}/subtasks/{sid}/toggle/", {"is_done": True})
         self.assertTrue(r.data["subtasks"][0]["is_done"])
@@ -121,11 +121,11 @@ class TaskFlowTests(TestCase):
     def test_subtask_add_and_delete(self):
         tid = self.create(assignee_ids=[self.dev1.pk], subtasks=[]).data["id"]
         dev1 = client_for(self.dev1)
-        r = dev1.post(f"/api/tasks/{tid}/subtasks/", {"title": "Sub 1", "assignee_id": self.dev2.pk})
+        r = dev1.post(f"/api/tasks/{tid}/subtasks/", {"title": "Sub 1", "assignee_ids": [self.dev2.pk]}, format="json")
         self.assertEqual(r.status_code, 201)
         sub_id = r.data["subtasks"][0]["id"]
         self.assertEqual(r.data["subtasks"][0]["title"], "Sub 1")
-        self.assertEqual(r.data["subtasks"][0]["assignee"]["id"], self.dev2.pk)
+        self.assertEqual([u["id"] for u in r.data["subtasks"][0]["assignees"]], [self.dev2.pk])
         self.assertTrue(r.data["subtasks"][0]["can_delete"])
 
         r_del = dev1.delete(f"/api/tasks/{tid}/subtasks/{sub_id}/")

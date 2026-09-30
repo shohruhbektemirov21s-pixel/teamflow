@@ -9,10 +9,10 @@ from apps.core.api_utils import ServiceError
 from apps.core.services import log
 from apps.notifications.models import Notification
 from apps.notifications.services import managers, notify
-from apps.projects.services import create_project
+from apps.projects.services import create_project, ensure_members
 
 from .models import SubTask, Submission, SubmissionFile, Task, TaskAssignment, TaskFile, WorkLog
-from .permissions import can_work_on, is_assignee
+from .permissions import can_manage_assignees, can_manage_subtasks, can_work_on, is_assignee
 from .workflow import check_task_transition
 
 K = Notification.Kind
@@ -31,6 +31,16 @@ def _project_developers(project, ids, field="assignee_ids"):
     )
     if len(users) != len(ids):
         raise ServiceError("Ijrochi loyiha jamoasida bo'lishi kerak. Avval uni loyihaga qo'shing.", field)
+    return users
+
+
+def _any_developers(project, ids, field):
+    """Vazifa oynasi: istalgan faol dasturchi tanlanadi; jamoada bo'lmasa, loyiha jamoasiga qo'shiladi."""
+    ids = set(ids or [])
+    users = list(get_user_model().objects.filter(pk__in=ids, role=Role.DEVELOPER, is_active=True))
+    if len(users) != len(ids):
+        raise ServiceError("Faqat faol dasturchilarni biriktirish mumkin.", field)
+    ensure_members(project, users)
     return users
 
 
@@ -53,7 +63,7 @@ def create_task(user, project, *, title, description="", priority="medium", star
         if not project.memberships.filter(developer=user).exists():
             raise ServiceError("Siz bu loyiha jamoasida emassiz.")
         assignee_ids = [user.pk]
-        subtasks = [dict(s, assignee_id=user.pk) for s in (subtasks or [])]
+        subtasks = [dict(s, assignee_ids=[user.pk]) for s in (subtasks or [])]
     elif not user.is_manager:
         raise ServiceError("Vazifa yaratishga ruxsatingiz yo'q.")
     if not title.strip():
@@ -78,14 +88,13 @@ def create_task(user, project, *, title, description="", priority="medium", star
 
 
 def _replace_subtasks(task, items):
-    allowed = {d.pk for d in _project_developers(task.project, {i.get("assignee_id") for i in items} - {None},
-                                                 field="subtasks")}
+    """Formadan: sub-vazifalar qaytadan yoziladi, ijrochilar faqat loyiha jamoasidan."""
+    items = [i for i in items if i.get("title", "").strip()]
+    _project_developers(task.project, {pk for i in items for pk in i.get("assignee_ids") or []}, field="subtasks")
     task.subtasks.all().delete()
-    SubTask.objects.bulk_create(
-        SubTask(task=task, title=i["title"].strip(), assignee_id=i.get("assignee_id") if i.get("assignee_id") in allowed else None,
-                is_done=bool(i.get("is_done")), position=n)
-        for n, i in enumerate(items) if i.get("title", "").strip()
-    )
+    for n, i in enumerate(items):
+        subtask = SubTask.objects.create(task=task, title=i["title"].strip(), is_done=bool(i.get("is_done")), position=n)
+        subtask.assignees.set(set(i.get("assignee_ids") or []))
 
 
 @transaction.atomic
@@ -130,17 +139,41 @@ def update_task(task, user, *, assignee_ids=None, subtasks=None, **data):
     _check_times(task.starts_at, task.due_at)
     task.save()
     if assignee_ids is not None:
-        new = _project_developers(task.project, assignee_ids)
-        if not new:
-            raise ServiceError("Kamida bitta ijrochi tanlang.", "assignee_ids")
-        current = set(task.assignments.values_list("developer_id", flat=True))
-        task.assignments.exclude(developer_id__in=[d.pk for d in new]).delete()
-        added = [d for d in new if d.pk not in current]
-        TaskAssignment.objects.bulk_create(TaskAssignment(task=task, developer=d) for d in added)
-        notify(added, K.TASK_ASSIGNED, f"Sizga vazifa berildi: {task.title}", task, exclude=user)
+        _apply_assignees(task, user, _project_developers(task.project, assignee_ids))
     if subtasks is not None:
         _replace_subtasks(task, subtasks)
     log(user, "task_updated", f"{user.full_name} vazifani o'zgartirdi: {task.title}", task)
+    return task
+
+
+def _apply_assignees(task, user, new):
+    """Ijrochilar ro'yxatini almashtiradi; yangi qo'shilganlarga bildirishnoma."""
+    if not new:
+        raise ServiceError("Kamida bitta ijrochi tanlang.", "assignee_ids")
+    current = set(task.assignments.values_list("developer_id", flat=True))
+    task.assignments.exclude(developer_id__in=[d.pk for d in new]).delete()
+    added = [d for d in new if d.pk not in current]
+    TaskAssignment.objects.bulk_create(TaskAssignment(task=task, developer=d) for d in added)
+    notify(added, K.TASK_ASSIGNED, f"Sizga vazifa berildi: {task.title}", task, exclude=user)
+    return added
+
+
+@transaction.atomic
+def set_task_assignees(task, user, assignee_ids):
+    """Vazifa oynasidan ijrochilar: menejer yoki vazifani yaratgan dasturchi. Istalgan dasturchi tanlanadi
+    (jamoada bo'lmasa, loyihaga qo'shiladi). Dasturchi o'zini olib tashlay olmaydi — vazifa undan yashirinib qoladi."""
+    if not can_manage_assignees(user, task):
+        raise ServiceError("Ijrochilarni faqat menejer yoki vazifani yaratgan dasturchi o'zgartiradi.")
+    if task.status == S.DONE:
+        raise ServiceError("Bajarilgan vazifa o'zgartirilmaydi.")
+    if user.is_developer and user.pk not in set(assignee_ids):
+        raise ServiceError("O'zingizni ijrochilardan olib tashlay olmaysiz.", "assignee_ids")
+    before = set(task.assignments.values_list("developer_id", flat=True))
+    new = _any_developers(task.project, assignee_ids, "assignee_ids")
+    _apply_assignees(task, user, new)
+    if before != {d.pk for d in new}:
+        names = ", ".join(d.full_name for d in new)
+        log(user, "task_assignees", f"{user.full_name} vazifa ijrochilarini o'zgartirdi: {names} ({task.title})", task)
     return task
 
 
@@ -218,7 +251,7 @@ def review_task(task, user, *, decision, note=""):
 def toggle_subtask(subtask, user, is_done):
     """Sub-vazifani belgilash: menejer, vazifa ijrochisi yoki sub-vazifa egasi."""
     task = subtask.task
-    if not (user.is_manager or subtask.assignee_id == user.pk or is_assignee(user, task)):
+    if not (user.is_manager or subtask.assignees.filter(pk=user.pk).exists() or is_assignee(user, task)):
         raise ServiceError("Bu sub-vazifa sizga tegishli emas.")
     if task.status == S.DONE:
         raise ServiceError("Bajarilgan vazifa o'zgartirilmaydi.")
@@ -227,38 +260,51 @@ def toggle_subtask(subtask, user, is_done):
     return subtask
 
 
-def add_subtask(task, user, *, title, assignee_id=None):
-    """Sub-vazifa qo'shish: menejer yoki vazifa ijrochisi (mas'ul xodim)."""
-    if not (user.is_manager or is_assignee(user, task)):
+@transaction.atomic
+def add_subtask(task, user, *, title, assignee_ids=()):
+    """Sub-vazifa qo'shish. Ijrochilar — istalgan dasturchilar (jamoada bo'lmasa, loyihaga qo'shiladi)."""
+    if not can_manage_subtasks(user, task):
         raise ServiceError("Vazifaga sub-vazifa qo'shish uchun ruxsatingiz yo'q.")
     if task.status == S.DONE:
         raise ServiceError("Bajarilgan vazifaga sub-vazifa qo'shib bo'lmaydi.")
     if not title.strip():
         raise ServiceError("Sub-vazifa nomini yozing.", "title")
-
-    assignee = None
-    if assignee_id:
-        devs = _project_developers(task.project, [assignee_id], field="assignee_id")
-        if devs:
-            assignee = devs[0]
+    assignees = _any_developers(task.project, assignee_ids, "assignee_ids")
 
     last_pos = task.subtasks.aggregate(m=Max("position"))["m"] or 0
-    subtask = SubTask.objects.create(
-        task=task,
-        title=title.strip(),
-        assignee=assignee,
-        is_done=False,
-        position=last_pos + 1,
-    )
-    if assignee and assignee != user:
-        notify([assignee], K.TASK_ASSIGNED, f"Sizga sub-vazifa biriktirildi: {subtask.title} ({task.title})", task, exclude=user)
+    subtask = SubTask.objects.create(task=task, title=title.strip(), is_done=False, position=last_pos + 1)
+    subtask.assignees.set(assignees)
+    _notify_subtask(subtask, user, assignees)
     log(user, "subtask_created", f"{user.full_name} sub-vazifa qo'shdi: {subtask.title}", task)
     return subtask
 
 
+@transaction.atomic
+def set_subtask_assignees(task, user, subtask_id, assignee_ids):
+    """Mavjud sub-vazifaga ijrochi qo'shish yoki olib tashlash (bo'sh ro'yxat — ijrochisiz)."""
+    if not can_manage_subtasks(user, task):
+        raise ServiceError("Sub-vazifa ijrochilarini o'zgartirishga ruxsatingiz yo'q.")
+    if task.status == S.DONE:
+        raise ServiceError("Bajarilgan vazifa o'zgartirilmaydi.")
+    subtask = SubTask.objects.filter(pk=subtask_id, task=task).first()
+    if not subtask:
+        raise ServiceError("Sub-vazifa topilmadi.")
+    assignees = _any_developers(task.project, assignee_ids, "assignee_ids")
+    current = set(subtask.assignees.values_list("pk", flat=True))
+    subtask.assignees.set(assignees)
+    _notify_subtask(subtask, user, [d for d in assignees if d.pk not in current])
+    log(user, "subtask_assignees", f"{user.full_name} sub-vazifa ijrochilarini o'zgartirdi: {subtask.title}", task)
+    return subtask
+
+
+def _notify_subtask(subtask, user, people):
+    notify(people, K.TASK_ASSIGNED, f"Sizga sub-vazifa biriktirildi: {subtask.title} ({subtask.task.title})",
+           subtask.task, exclude=user)
+
+
 def delete_subtask(task, user, subtask_id):
     """Sub-vazifani o'chirish: menejer yoki vazifa ijrochisi."""
-    if not (user.is_manager or is_assignee(user, task)):
+    if not can_manage_subtasks(user, task):
         raise ServiceError("Sub-vazifani o'chirishga ruxsatingiz yo'q.")
     if task.status == S.DONE:
         raise ServiceError("Bajarilgan vazifa o'zgartirilmaydi.")

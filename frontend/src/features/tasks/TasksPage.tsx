@@ -22,9 +22,11 @@ export default function TasksPage() {
   const assignee = params.get("assignee");
   const assigneeLabel = params.get("assignee_label");
 
+  // Dasturchiga — faqat o'ziga biriktirilgan vazifalar (sub-vazifasi bor boshqa vazifalar ro'yxatda chiqmaydi)
+  const mine = isManager(me) ? undefined : 1;
   const query = useQuery({
-    queryKey: ["tasks", "list", debounced, assignee],
-    queryFn: () => api.get<Paged<Task>>(`/tasks/${qs({ ...filterParams(debounced), assignee })}`),
+    queryKey: ["tasks", "list", debounced, assignee, mine],
+    queryFn: () => api.get<Paged<Task>>(`/tasks/${qs({ ...filterParams(debounced), assignee, mine })}`),
     placeholderData: keepPreviousData,
   });
 

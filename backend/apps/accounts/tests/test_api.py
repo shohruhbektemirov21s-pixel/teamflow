@@ -84,13 +84,15 @@ class RegisterLoginTests(TestCase):
 
 
 class DevelopersListTests(TestCase):
-    def test_only_managers(self):
+    def test_managers_and_developers_only(self):
         make_user(Role.DEVELOPER)
         make_user(Role.DEVELOPER, active=False)
-        self.assertEqual(client_for(make_user(Role.DEVELOPER)).get("/api/developers/").status_code, 403)
+        self.assertEqual(client_for(make_user(Role.DEPARTMENT)).get("/api/developers/").status_code, 403)
+        # dasturchi ham oladi: vazifa oynasida boshqa dasturchini qo'shadi
+        self.assertEqual(client_for(make_user(Role.DEVELOPER)).get("/api/developers/").status_code, 200)
         r = client_for(make_user(Role.PM)).get("/api/developers/")
         self.assertEqual(r.status_code, 200)
-        self.assertEqual(len(r.data), 2)  # faqat faol dasturchilar (so'rovchi dasturchi ham)
+        self.assertEqual(len(r.data), 2)  # faqat faol dasturchilar
 
 
 class ProfileTests(TestCase):

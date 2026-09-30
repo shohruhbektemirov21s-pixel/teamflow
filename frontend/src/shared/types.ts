@@ -15,6 +15,7 @@ export interface Me {
   specialty: string | null;
   department_name: string;
   telegram_username: string;
+  avatar?: string | null;
 }
 
 export interface Profile extends Me {
@@ -27,6 +28,7 @@ export interface UserBrief {
   full_name: string;
   role: Role;
   department_name: string;
+  avatar?: string | null;
 }
 
 export interface ChatMessage {
@@ -93,12 +95,12 @@ export interface Submission {
 export interface TaskDetail extends Task {
   code: string;
   created_by: UserBrief;
-  subtasks: { id: number; title: string; is_done: boolean; assignee: UserBrief | null; can_toggle: boolean; can_delete?: boolean }[];
+  subtasks: { id: number; title: string; is_done: boolean; assignees: UserBrief[]; can_toggle: boolean; can_delete?: boolean }[];
   files: FileInfo[];
   submissions: Submission[];
   worklogs: WorkLog[];
   worklog_hours: string;
-  actions: { start: boolean; submit: boolean; review: boolean; edit: boolean; delete: boolean; add_files: boolean; manage_subtasks?: boolean; log_work?: boolean };
+  actions: { start: boolean; submit: boolean; review: boolean; edit: boolean; delete: boolean; add_files: boolean; manage_subtasks?: boolean; manage_assignees?: boolean; log_work?: boolean };
 }
 
 export interface WorkLog {
@@ -175,6 +177,7 @@ export interface Person {
   role_label: string;
   specialty: string;
   department_name: string;
+  avatar?: string | null;
   active_tasks: number;
   overdue_tasks: number;
   review_tasks: number;
@@ -186,6 +189,7 @@ export interface Developer {
   id: number;
   full_name: string;
   specialty: string;
+  avatar?: string | null;
 }
 
 export type Bucket = "active" | "overdue" | "done" | "late" | "review";

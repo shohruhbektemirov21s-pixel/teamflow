@@ -53,3 +53,33 @@ class CodeSearchTests(TestCase):
     def test_task_list_task_code_keeps_other_filters(self):
         r = client_for(self.pm).get("/api/tasks/", {"q": f"TSK-{self.task.pk}", "status": "done", "all": 1})
         self.assertEqual(r.data, [])
+
+
+class DeveloperListsOwnTasksTests(TestCase):
+    """Dasturchiga ro'yxat va qidiruvda faqat o'ziga biriktirilgan vazifalar; sub-vazifali boshqa vazifa ochiladi."""
+
+    def setUp(self):
+        from apps.tasks.models import SubTask
+
+        self.pm = make_user(Role.PM)
+        self.dev = make_user(Role.DEVELOPER)
+        self.other = make_user(Role.DEVELOPER)
+        project = make_project(self.pm, self.dev, self.other)
+        self.own = make_task(project, self.pm, self.dev, title="Mening vazifam")
+        self.foreign = make_task(project, self.pm, self.other, title="Boshqaning vazifasi")
+        SubTask.objects.create(task=self.foreign, title="Kichik qadam").assignees.add(self.dev)
+
+    def test_search_hides_subtask_only_task(self):
+        c = client_for(self.dev)
+        self.assertEqual([t["id"] for t in c.get("/api/search/", {"q": "vazifa"}).data["tasks"]], [self.own.pk])
+        self.assertEqual(c.get("/api/search/", {"q": f"TSK-{self.foreign.pk}"}).data["tasks"], [])
+
+    def test_mine_list_and_dashboard_count_only_own(self):
+        c = client_for(self.dev)
+        self.assertEqual([t["id"] for t in c.get("/api/tasks/", {"mine": 1, "all": 1}).data], [self.own.pk])
+        self.assertEqual(c.get("/api/dashboard/").data["totals"]["active"], 1)
+        self.assertEqual(c.get(f"/api/tasks/{self.foreign.pk}/").status_code, 200)
+
+    def test_manager_search_sees_all(self):
+        ids = {t["id"] for t in client_for(self.pm).get("/api/search/", {"q": "vazifa"}).data["tasks"]}
+        self.assertEqual(ids, {self.own.pk, self.foreign.pk})

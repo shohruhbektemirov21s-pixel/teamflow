@@ -1,5 +1,5 @@
-import { screen } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import { fireEvent, screen, waitFor } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { api } from "@/shared/api";
 import { T } from "@/shared/text";
@@ -45,5 +45,19 @@ describe("ProfilePage", () => {
 
     const link = await screen.findByRole("link", { name: "@teamflow_test_bot" });
     expect(link.getAttribute("href")).toBe("https://t.me/teamflow_test_bot");
+  });
+
+  it("profil rasmini yuklash: fayl tanlansa /auth/avatar/ ga yuboriladi", async () => {
+    mockGet({ "/auth/profile/": { ...PROFILE, ...PM, stats: null } });
+    const { container } = renderApp(<ProfilePage />);
+
+    expect(await screen.findByRole("button", { name: T.profile.photoUpload })).toBeTruthy();
+    const input = container.querySelector('input[type="file"]') as HTMLInputElement;
+    const file = new File(["x"], "men.png", { type: "image/png" });
+    fireEvent.change(input, { target: { files: [file] } });
+
+    await waitFor(() => expect(api.post).toHaveBeenCalledWith("/auth/avatar/", expect.any(FormData)));
+    const sent = vi.mocked(api.post).mock.calls[0]![1] as FormData;
+    expect(sent.get("avatar")).toBe(file);
   });
 });

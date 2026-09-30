@@ -18,15 +18,15 @@ class SetMembersTests(TestCase):
 
     def test_removed_developer_leaves_open_tasks_and_subtasks(self):
         shared = make_task(self.project, self.pm, self.dev1, self.dev2)
-        sub = SubTask.objects.create(task=shared, title="Qadam", assignee=self.dev2)
+        sub = SubTask.objects.create(task=shared, title="Qadam")
+        sub.assignees.set([self.dev1, self.dev2])
         done = make_task(self.project, self.pm, self.dev1, self.dev2, status=Task.Status.DONE)
 
         r = self.put([self.dev1.pk])
 
         self.assertEqual(r.status_code, 200, r.data)
         self.assertFalse(TaskAssignment.objects.filter(task=shared, developer=self.dev2).exists())
-        sub.refresh_from_db()
-        self.assertIsNone(sub.assignee)
+        self.assertEqual(list(sub.assignees.all()), [self.dev1])
         # Bajarilgan ish tarix sifatida qoladi
         self.assertTrue(TaskAssignment.objects.filter(task=done, developer=self.dev2).exists())
         # Endi u bu vazifani ko'rmaydi

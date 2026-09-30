@@ -16,6 +16,7 @@ from .filters import filter_tasks
 from .models import SubTask, Submission, TaskAssignment, WorkLog
 from .permissions import visible_tasks
 from .serializers import (
+    AssigneesSerializer,
     BulkTaskSerializer,
     FilesSerializer,
     ProjectSetupSerializer,
@@ -43,7 +44,7 @@ class TaskViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.Gen
             )
         return qs.prefetch_related(
             "worklogs__author",
-            "subtasks__assignee",
+            "subtasks__assignees",
             "files",
             Prefetch(
                 "submissions",
@@ -138,6 +139,24 @@ class TaskViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.Gen
     def remove_subtask(self, request, pk=None, subtask_id=None):
         task = self.get_object()
         services.delete_subtask(task, request.user, subtask_id)
+        return Response(self._detail(task))
+
+    @remove_subtask.mapping.patch
+    def update_subtask(self, request, pk=None, subtask_id=None):
+        """Sub-vazifa ijrochilari: {assignee_ids: [...]} (bo'sh — ijrochisiz)."""
+        task = self.get_object()
+        s = AssigneesSerializer(data=request.data)
+        s.is_valid(raise_exception=True)
+        services.set_subtask_assignees(task, request.user, subtask_id, s.validated_data["assignee_ids"])
+        return Response(self._detail(task))
+
+    @action(detail=True, methods=["put"])
+    def assignees(self, request, pk=None):
+        """Vazifa ijrochilari (vazifa oynasidan): menejer yoki vazifani yaratgan dasturchi."""
+        task = self.get_object()
+        s = AssigneesSerializer(data=request.data)
+        s.is_valid(raise_exception=True)
+        services.set_task_assignees(task, request.user, s.validated_data["assignee_ids"])
         return Response(self._detail(task))
 
 

@@ -56,7 +56,7 @@ class MyTasksTests(TestCase):
         project = make_project(pm, dev, other)
         own = make_task(project, pm, dev, title="Meniki")
         foreign = make_task(project, pm, other, title="Begona")
-        SubTask.objects.create(task=foreign, title="Qadam", assignee=dev)  # sub-vazifa — vazifa uniki emas
+        SubTask.objects.create(task=foreign, title="Qadam").assignees.add(dev)  # sub-vazifa — vazifa uniki emas
 
         titles = [t["title"] for t in client_for(dev).get("/api/tasks/", {"mine": 1, "all": 1}).data]
 

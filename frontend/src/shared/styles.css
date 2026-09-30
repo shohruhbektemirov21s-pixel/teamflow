@@ -72,6 +72,8 @@
   --shadow-md: 0 4px 12px -4px rgba(16, 24, 40, 0.12);
   --shadow-lg: 0 24px 48px -12px rgba(16, 24, 40, 0.24);
   --overlay: rgba(15, 18, 30, 0.5);
+  --photo-backdrop: rgba(0, 0, 0, 0.92); /* rasm ko'rish — ikkala rejimda ham to'q (Telegram kabi) */
+  --photo-text: #fff;
   --sidebar-w: 256px;
   --ease: cubic-bezier(.2, 0, 0, 1);
 }
@@ -304,6 +306,26 @@ button { font: inherit; color: inherit; }
 }
 .avatar.sm { width: 24px; height: 24px; font-size: 10px; }
 .avatar.lg { width: 48px; height: 48px; font-size: var(--fs-md); }
+.avatar.xl { width: 72px; height: 72px; font-size: var(--fs-xl); }
+.avatar { overflow: hidden; }
+.avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.avatar-btn { padding: 0; border: 0; background: none; border-radius: 50%; cursor: zoom-in; flex: none; }
+.photo-viewer {
+  position: fixed; inset: 0; z-index: 100; background: var(--photo-backdrop); display: flex; align-items: center; justify-content: center;
+  padding: 64px 16px 24px; animation: fade .15s ease-out;
+}
+.photo-viewer-bar {
+  position: absolute; top: 0; left: 0; right: 0; display: flex; align-items: center; gap: 8px; padding: 12px 16px;
+  color: var(--photo-text); font-weight: 600; font-size: var(--fs-md);
+}
+.photo-viewer-bar .icon-btn { color: var(--photo-text); }
+.photo-viewer img { width: min(100%, 720px); max-height: 100%; object-fit: contain; animation: photo-in .18s var(--ease); }
+@keyframes photo-in { from { transform: scale(.94); opacity: 0; } to { transform: none; opacity: 1; } }
+.avatar-card {
+  position: fixed; z-index: 150; width: 224px; padding: 16px; display: flex; flex-direction: column; align-items: center; gap: 8px;
+  text-align: center; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow-lg);
+  pointer-events: none; animation: fade .15s ease-out;
+}
 .avatar-stack { display: flex; }
 .avatar-stack .avatar { box-shadow: 0 0 0 2px var(--surface); }
 .avatar-stack .avatar + .avatar { margin-left: -6px; }
@@ -601,6 +623,8 @@ button.list-row:focus-visible { outline-offset: -2px; }
 .chip { height: var(--control-sm); padding: 0 12px; border-radius: var(--radius-full); border: 1px solid var(--border-strong); background: var(--surface); cursor: pointer; font-weight: 600; font-size: var(--fs-sm); color: var(--text-2); display: inline-flex; align-items: center; gap: 6px; transition: background-color .15s var(--ease), border-color .15s var(--ease), color .15s var(--ease); }
 .chip:hover { border-color: var(--muted); color: var(--text); }
 .chip[aria-pressed="true"] { background: var(--primary-solid); border-color: var(--primary-solid); color: var(--primary-text); }
+.chip.person-chip { cursor: default; padding: 0 4px 0 4px; color: var(--text); }
+.chip.person-chip .icon-btn { width: 20px; height: 20px; }
 .pick-list { display: flex; flex-direction: column; gap: 8px; max-height: 320px; overflow-y: auto; }
 .pick { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 10px; cursor: pointer; transition: border-color .15s var(--ease), background-color .15s var(--ease); }
 .pick:hover { border-color: var(--border-strong); background: var(--surface-hover); }

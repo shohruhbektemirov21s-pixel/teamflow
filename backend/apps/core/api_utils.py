@@ -85,6 +85,14 @@ class UserBriefField(serializers.Field):
         return user_brief(user)
 
 
+def avatar_url(user):
+    """Profil rasmi manzili (faqat kirganlarga beriladi). `v` — rasm almashsa brauzer keshi yangilanadi."""
+    if not user.avatar:
+        return None
+    version = user.avatar.name.rsplit("/", 1)[-1].split(".")[0][:12]
+    return f"/api/avatars/{user.pk}/?v={version}"
+
+
 def user_brief(user):
     if user is None:
         return None
@@ -93,6 +101,7 @@ def user_brief(user):
         "full_name": user.full_name,
         "role": user.role,
         "department_name": user.department_name,
+        "avatar": avatar_url(user),
     }
 
 

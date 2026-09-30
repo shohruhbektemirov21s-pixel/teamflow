@@ -84,7 +84,7 @@ core  ←  accounts  ←  orders  ←  projects  ←  tasks
 | Model | Maydonlar | Izoh |
 |---|---|---|
 | `Specialty` | name (unique), is_active | Mutaxassisliklar ro'yxati **Django adminda** boshqariladi (ochiq savol yopildi). |
-| `User` | username (login), first_name, last_name, password, role, specialty FK?, department_name, telegram_username, telegram_chat_id, is_active | `role`: boss / pm / developer / department. Ro'yxatdan o'tganlar `is_active=False` bilan yaratiladi, admin faollashtiradi. Boshliq admin orqali. |
+| `User` | username (login), first_name, last_name, password, role, specialty FK?, department_name, telegram_username, telegram_chat_id, avatar (rasm, 1024px JPEG), is_active | `role`: boss / pm / developer / department. Ro'yxatdan o'tganlar `is_active=False` bilan yaratiladi, admin faollashtiradi. Boshliq admin orqali. |
 
 ### orders
 | Model | Maydonlar |
@@ -108,7 +108,7 @@ Qoida: `order` bilan bog'langan loyihada PM faqat `start_date`/`end_date` ni o'z
 |---|---|
 | `Task` | project FK, title, description, priority, status (control/in_progress/in_review/done), starts_at?, due_at?, completed_at?, created_by, created_at |
 | `TaskAssignment` | task FK, developer FK, `unique(task, developer)` — bitta vazifa bir nechta dasturchiga |
-| `SubTask` | task FK, title, assignee FK?, is_done, position |
+| `SubTask` | task FK, title, assignees M2M (bir nechta dasturchi), is_done, position |
 | `TaskFile` | task FK, file, uploaded_by |
 | `Submission` | task FK, round, submitted_by, note, decision (pending/accepted/returned), reviewed_by?, review_note, submitted_at, reviewed_at? |
 | `SubmissionFile` | submission FK, file |
@@ -165,6 +165,8 @@ Queryset darajasida ham filtr (`visible_orders(user)`, `visible_tasks(user)`), s
 POST   /api/auth/register/          ro'yxatdan o'tish (is_active=False)
 POST   /api/auth/login/  logout/    sessiya
 GET    /api/auth/me/                joriy foydalanuvchi + rol
+POST/DELETE /api/auth/avatar/       o'z profil rasmi (multipart `avatar`)
+GET    /api/avatars/{id}/           profil rasmi (faqat kirganlarga; `?v=` kesh uchun)
 GET    /api/specialties/            ro'yxatdan o'tish formasi uchun
 
 GET/POST   /api/orders/             POST: boshqarma (fayl bilan)
@@ -185,7 +187,9 @@ GET/PATCH  /api/tasks/{id}/
 POST       /api/tasks/{id}/status/        {status}   (dasturchi: control→in_progress)
 POST       /api/tasks/{id}/submit/        {note, files}
 POST       /api/tasks/{id}/review/        {decision: accept|return, note}
-CRUD       /api/tasks/{id}/subtasks/
+CRUD       /api/tasks/{id}/subtasks/            POST {title, assignee_ids}
+PATCH      /api/tasks/{id}/subtasks/{sid}/      {assignee_ids}  (menejer yoki vazifa ijrochisi)
+PUT        /api/tasks/{id}/assignees/           {assignee_ids}  (menejer yoki vazifani yaratgan dasturchi; jamoadan tashqari dasturchi loyihaga qo'shiladi)
 POST       /api/tasks/{id}/worklogs/      {work_date, hours, note}
 DELETE     /api/tasks/{id}/worklogs/{entry_id}/
 
@@ -199,7 +203,7 @@ GET        /api/notifications/  POST /api/notifications/{id}/read/
 GET        /api/dashboard/      rolga mos hisob-kitob kartalari (Boshqarma: orders + periods — orders/filters.py)
 GET        /api/orders/?period=week&bucket=sent|rejected|approved   bosh panel kartasi bilan bir xil ro'yxat
 GET        /api/people/         xodimlar va bandligi (vazifasi yo'qlar tepada)
-GET        /api/developers/     dasturchilar ro'yxati
+GET        /api/developers/     dasturchilar ro'yxati (menejer va dasturchi)
 GET        /api/search/?q=...   global qidiruv (Ctrl K)
 GET        /api/history/        umumiy tarix
 GET        /api/meta/           rollar, holatlar, ruxsat etilgan o'tishlar (yagona manba)

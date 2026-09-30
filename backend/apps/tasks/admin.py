@@ -12,6 +12,7 @@ class TaskAssignmentInline(admin.TabularInline):
 class SubTaskInline(admin.TabularInline):
     model = SubTask
     extra = 0
+    autocomplete_fields = ("assignees",)
 
 
 class TaskFileInline(admin.TabularInline):

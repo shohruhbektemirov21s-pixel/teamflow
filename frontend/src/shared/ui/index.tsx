@@ -6,10 +6,12 @@ import {
   type ReactNode,
   useCallback,
   useContext,
+  useEffect,
   useId,
   useRef,
   useState,
 } from "react";
+import { createPortal } from "react-dom";
 
 import { fileSize, initials, relativeDue } from "../format";
 import { useMeta } from "../meta";
@@ -17,7 +19,7 @@ import { avatarColor, ORDER_TONE, PRIORITY_TONE, STAGE_TONE, TASK_TONE, type Ton
 import { T } from "../text";
 import type { FileInfo, OrderStatus, Priority, ProjectStage, TaskStatus, UserBrief } from "../types";
 
-export { Modal } from "./Modal";
+export { Modal, useDialogBehavior } from "./Modal";
 
 /** Vazifa/loyiha kodi (`TSK-12`, `PRJ-3`) — hamma joyda bir xil ko'rinish; qidiruvda shu kod yoziladi. */
 export function CodeTag({ code }: { code: string }) {
@@ -119,11 +121,60 @@ export function Due({ value, done, format }: { value: string | null; done?: bool
 }
 
 // ─── Avatar ──────────────────────────────────────────────────────────────────
-export function Avatar({ user, size }: { user: Pick<UserBrief, "id" | "full_name">; size?: "sm" | "lg" }) {
+type AvatarUser = Pick<UserBrief, "id" | "full_name"> & Partial<Pick<UserBrief, "avatar" | "role" | "department_name">>;
+
+/**
+ * Avatar: rasm bo'lsa rasm, bo'lmasa bosh harflar. Sichqoncha ustiga kelsa — kichik profil kartochkasi
+ * (rasm, ism familiya, rol). Kartochka `body` ga chiqariladi — jadval va modal chegarasida kesilmaydi.
+ */
+export function Avatar({ user, size, card = size !== "lg" }: { user: AvatarUser; size?: "sm" | "lg" | "xl"; card?: boolean }) {
+  const ref = useRef<HTMLSpanElement>(null);
+  const timer = useRef<number | undefined>(undefined);
+  const [anchor, setAnchor] = useState<DOMRect | null>(null);
+  useEffect(() => () => window.clearTimeout(timer.current), []);
+
+  const show = () => {
+    window.clearTimeout(timer.current);
+    timer.current = window.setTimeout(() => setAnchor(ref.current?.getBoundingClientRect() ?? null), 250);
+  };
+  const hide = () => {
+    window.clearTimeout(timer.current);
+    setAnchor(null);
+  };
+
   return (
-    <span className={`avatar ${size ?? ""}`} style={{ background: avatarColor(user.id) }} title={user.full_name} aria-hidden>
-      {initials(user.full_name)}
-    </span>
+    <>
+      <span
+        ref={ref}
+        className={`avatar ${size ?? ""}`}
+        style={{ background: avatarColor(user.id) }}
+        title={card ? undefined : user.full_name}
+        aria-hidden
+        onMouseEnter={card ? show : undefined}
+        onMouseLeave={card ? hide : undefined}
+      >
+        {user.avatar ? <img src={user.avatar} alt="" loading="lazy" /> : initials(user.full_name)}
+      </span>
+      {anchor && createPortal(<AvatarCard user={user} anchor={anchor} />, document.body)}
+    </>
+  );
+}
+
+function AvatarCard({ user, anchor }: { user: AvatarUser; anchor: DOMRect }) {
+  const meta = useMeta();
+  const below = anchor.bottom + 160 < window.innerHeight;
+  const left = Math.min(Math.max(anchor.left + anchor.width / 2, 124), window.innerWidth - 124);
+  const subtitle = [user.role ? meta.label("roles", user.role) : "", user.department_name].filter(Boolean).join(" · ");
+  return (
+    <div
+      className="avatar-card"
+      role="tooltip"
+      style={{ left, top: below ? anchor.bottom + 8 : anchor.top - 8, transform: below ? "translateX(-50%)" : "translate(-50%, -100%)" }}
+    >
+      <Avatar user={user} size="xl" card={false} />
+      <b>{user.full_name}</b>
+      {subtitle && <span className="small muted">{subtitle}</span>}
+    </div>
   );
 }
 

@@ -1,9 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { ImagePlus, Trash2 } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 
 import { useAuth, useMe } from "@/app/auth";
 import { TaskTable } from "@/features/tasks/TaskTable";
-import { api, ApiError, qs } from "@/shared/api";
+import { api, ApiError, formData, qs } from "@/shared/api";
 import { fmtDate } from "@/shared/format";
 import { useMeta } from "@/shared/meta";
 import { T } from "@/shared/text";
@@ -61,6 +62,18 @@ export default function ProfilePage() {
     },
   });
 
+  const photoInput = useRef<HTMLInputElement>(null);
+  const photoMut = useMutation({
+    mutationFn: (file: File | null) =>
+      file ? api.post<Profile>("/auth/avatar/", formData({}, [file], "avatar")) : api.del<Profile>("/auth/avatar/"),
+    onSuccess: (_d, file) => {
+      toast(file ? T.profile.photoSavedToast : T.profile.photoRemovedToast);
+      void qc.invalidateQueries(); // rasm ro'yxatlar, jadval va chatda ham yangilansin
+      void refresh();
+    },
+    onError: (err) => toast(err instanceof ApiError ? err.field("avatar") || err.message : T.common.errorGeneric, "error"),
+  });
+
   const passMut = useMutation({
     mutationFn: () => api.post("/auth/password/", { current_password: oldPass, new_password: newPass }),
     onSuccess: () => {
@@ -83,6 +96,30 @@ export default function ProfilePage() {
           user={me}
           subtitle={me.department_name || me.specialty || me.role_label}
           stats={p?.stats && { active: p.stats.active, overdue: p.stats.overdue, review: p.stats.in_review, done: p.stats.done }}
+          actions={
+            <>
+              <input
+                ref={photoInput}
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                hidden
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  e.target.value = "";
+                  if (file) photoMut.mutate(file);
+                }}
+              />
+              <Button size="sm" icon={<ImagePlus />} loading={photoMut.isPending} onClick={() => photoInput.current?.click()}>
+                {me.avatar ? T.profile.photoChange : T.profile.photoUpload}
+              </Button>
+              {me.avatar && (
+                <Button size="sm" variant="ghost" icon={<Trash2 />} disabled={photoMut.isPending} onClick={() => photoMut.mutate(null)}>
+                  {T.profile.photoRemove}
+                </Button>
+              )}
+              <span className="small muted">{T.profile.photoHint}</span>
+            </>
+          }
         />
 
         <h3>{T.profile.editInfoTitle}</h3>

@@ -33,7 +33,7 @@ Jamoa ishini boshqarish tizimi: boshqarmalar buyurtma (TZ) yuboradi, loyiha mene
 | Buyurtma yuboradi | — | — | — | ✅ |
 | Buyurtmani tasdiqlaydi/rad etadi | ✅ | ✅ | — | — |
 | Loyiha yaratadi | ✅ | ✅ | ❌ | ❌ |
-| Vazifa beradi | ✅ | ✅ | ❌ | ❌ |
+| Vazifa beradi | ✅ | ✅ | O'zi yaratgan vazifaga boshqa dasturchini qo'shadi | ❌ |
 | Vazifa holatini o'zgartiradi | ✅ | ✅ | Faqat o'zinikini (Jarayonda, Tekshiruvga yuborish) | — |
 | Ishni tekshiradi (qabul/qaytarish) | ✅ | ✅ | — | — |
 | Izoh yozadi | ✅ | ✅ | ✅ | ✅ |
@@ -99,8 +99,9 @@ Qoidalar:
 
 - PM/Boshliq loyiha ichida vazifa yaratadi: nom, izoh, muddat (boshlanish/tugash), muhimlik, fayl.
 - **Ommaviy vazifalar**: PM ko'plab vazifalarni bitta ro'yxat matni (har qatorga bittadan) kiritish orqali bitta urinishda yarata oladi va ularga dasturchilarni biriktirishi mumkin.
-- **Bitta vazifa bir nechta dasturchiga** biriktiriladi.
-- **Sub-vazifalar** bor, ularga ham dasturchi biriktirish mumkin.
+- **Bitta vazifa bir nechta dasturchiga** biriktiriladi. Vazifa oynasida "Ijrochilar → O'zgartirish": PM va Boshliq har qanday vazifaga, dasturchi faqat **o'zi yaratgan** vazifaga boshqa dasturchini qo'shadi (o'zini olib tashlay olmaydi). Bajarilgan vazifa o'zgartirilmaydi.
+- **Sub-vazifalar** bor, har biriga **bir nechta dasturchi** biriktiriladi; mavjud sub-vazifaga ham keyin qo'shish yoki olib tashlash mumkin (PM, Boshliq yoki vazifa ijrochisi). Ijrochisiz sub-vazifa — "Hamma" (vazifaning barcha ijrochilari).
+- Vazifa oynasida dasturchi **qidiruv** bilan tanlanadi, ro'yxatda hamma faol dasturchilar. Loyiha jamoasida bo'lmagan dasturchi tanlansa, u **loyiha jamoasiga avtomatik qo'shiladi**. Vazifa yaratish/tahrirlash formasida esa faqat loyiha jamoasi ko'rinadi.
 - **Ish jurnali:** ijrochi vazifa ichida qilgan ishi va sarflangan vaqtini qayd etadi; menejer uni tekshiruv bilan birga ko'radi.
 - Vazifa berilganda dasturchida **Nazoratda** holatida paydo bo'ladi.
 
@@ -139,6 +140,9 @@ Kirilmagan foydalanuvchi uchun bosh sahifa (landing): qisqa tavsif, "Ro'yxatdan 
 
 ### Profil
 - Barcha profillar bir xil ko'rinishda (o'z profilim va xodim oynasi): avatar, ism, lavozim, 4 ko'rsatkich (faol, kechikkan, tekshiruvda, bajarilgan) va vazifalar jadvali.
+- **Profil rasmi:** "Rasm yuklash" (keyin "Rasmni almashtirish" / "Rasmni o'chirish"). JPG, PNG yoki WEBP, 5 MB gacha. Server rasmni tekshiradi, 1024px gacha kichraytiradi, joylashuv kabi ichki ma'lumotlarni o'chiradi. Rasm faqat tizimga kirganlarga ko'rinadi.
+- **Rasmni ko'rish:** profil sarlavhasidagi rasm (o'z profilim va xodim oynasi) bosilsa, Telegram kabi to'liq ekranda ochiladi — to'q fon, tepada ism va ✕. `Esc`, fonga bosish yoki "Orqaga" yopadi. Xodim oynasidan ochilsa, uning o'rnini egallaydi va "Orqaga" xodim oynasiga qaytaradi.
+- **Avatar kartochkasi:** har qanday joyda (jadval, vazifa oynasi, chat, menyu) avatar ustiga sichqoncha olib borilsa, kichik profil kartochkasi chiqadi: rasm, ism familiya, rol (Boshqarma bo'lsa — boshqarma nomi). Rasm bo'lmasa — bosh harflar.
 - Ism, familiya, Telegram, parolni almashtirish. Dasturchi profilida **"Mening vazifalarim"** jadvali — faqat o'ziga biriktirilgan vazifalar.
 
 ### Bosh panel (Boshqarma)
@@ -149,6 +153,7 @@ Kirilmagan foydalanuvchi uchun bosh sahifa (landing): qisqa tavsif, "Ro'yxatdan 
 
 ### Bosh panel (Dasturchi)
 Xuddi shu tuzilma, sonlar faqat shu dasturchining o'z vazifalari bo'yicha.
+Vazifalar sahifasi va Ctrl K qidiruvida ham dasturchiga faqat o'ziga biriktirilgan vazifalar chiqadi. Faqat sub-vazifasi biriktirilgan boshqa vazifa ro'yxatda chiqmaydi, lekin ochib sub-vazifani bajarish mumkin.
 
 ### Mening ishim (Dasturchi)
 - "+ Yangi vazifa" tugmasi, filtrlar (loyiha, muddat: Bugun / Shu hafta / Hammasi).
@@ -190,10 +195,10 @@ Vazifa va loyihalarning qisqa kodi bor: `TSK-12`, `PRJ-3`. Kod ro'yxatlarda, dos
 - Ctrl K qidiruvida kod yozilsa (`TSK-12`, `tsk12`, `PRJ-3`) — aynan o'sha vazifa yoki loyiha darrov chiqadi (ko'rish huquqi bo'lsa).
 - Vazifalar jadvali qidiruvida `TSK-12` — shu vazifa, `PRJ-3` — shu loyihaning vazifalari.
 
-## 8. Modallar (amalda: 9 ta)
+## 8. Modallar (amalda: 11 ta)
 
 Ko'rish, yaratish, tahrirlash — hammasi modalda. Batafsil: `docs/FLOWS_MODALS.md`.
-1. Buyurtma yaratish · 2. Buyurtma ko'rish · 3. Loyiha yaratish · 4. Loyiha ko'rish/tahrirlash · 5. Vazifa yaratish/tahrirlash · 6. Vazifa ko'rish (tekshiruv shu yerda) · 7. Xodim profili · 8. Taklif yaratish · 9. Taklif ko'rish.
+1. Buyurtma yaratish · 2. Buyurtma ko'rish · 3. Loyiha yaratish · 4. Loyiha ko'rish/tahrirlash · 5. Vazifa yaratish/tahrirlash · 6. Vazifa ko'rish (tekshiruv shu yerda) · 7. Xodim profili · 8. Taklif yaratish · 9. Taklif ko'rish · 10. Taqvim kuni · 11. Rasm ko'rish.
 Word ko'rish alohida modal emas — joriy modal ichini almashtiradi ("← Orqaga").
 
 Modal qoidalari: sarlavha + ✕ tepada, tugmalar paneli pastda doim ko'rinadi, modal ustida modal ochilmaydi, manzil satriga yozilmaydi (manzil toza qoladi, masalan `/qilingan-ishlar`; "Orqaga" modalni yopadi), `Esc` yopadi, telefonda butun ekran.
@@ -238,7 +243,7 @@ cd backend
 .venv\Scripts\python manage.py migrate
 .venv\Scripts\python manage.py seed_demo                  # demo ma'lumotlarni yuklash
 .venv\Scripts\python manage.py runserver 127.0.0.1:8020   # http://127.0.0.1:8020/
-.venv\Scripts\python manage.py test                       # testlarni yurgizish (137 ta)
+.venv\Scripts\python manage.py test                       # testlarni yurgizish (155 ta)
 .venv\Scripts\python manage.py runbot                     # Telegram bot (token backend\.env da; start_server.bat o'zi ishga tushiradi)
 ```
 
@@ -248,7 +253,7 @@ cd frontend
 npm install
 npx vite                                                  # http://127.0.0.1:5173/
 npx tsc --noEmit -p .                                     # tur tekshiruvi
-npx vitest run                                            # testlar (27 ta: jsdom + Testing Library)
+npx vitest run                                            # testlar (44 ta: jsdom + Testing Library)
 ```
 
 **3. Ishlab chiqarish (Production build — Node talab etilmaydi):**

@@ -134,7 +134,18 @@ def _release_developers(project, developer_ids):
         )
     open_ids = open_tasks.values("pk")
     apps.get_model("tasks", "TaskAssignment").objects.filter(task__in=open_ids, developer_id__in=developer_ids).delete()
-    apps.get_model("tasks", "SubTask").objects.filter(task__in=open_ids, assignee_id__in=developer_ids).update(assignee=None)
+    apps.get_model("tasks", "SubTask").assignees.through.objects.filter(
+        subtask__task__in=open_ids, user_id__in=developer_ids
+    ).delete()
+
+
+def ensure_members(project, developers):
+    """Vazifa oynasida jamoadan tashqari dasturchi tanlansa — u loyiha jamoasiga qo'shiladi.
+    Ruxsat chaqiruvchi xizmatda (tasks.services) tekshiriladi. Qo'shilganlar ro'yxati qaytadi."""
+    current = set(project.memberships.values_list("developer_id", flat=True))
+    added = [d for d in developers if d.pk not in current]
+    ProjectMember.objects.bulk_create(ProjectMember(project=project, developer=d) for d in added)
+    return added
 
 
 def add_files(project, user, files):

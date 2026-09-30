@@ -75,12 +75,12 @@ class TaskAssignment(models.Model):
 
 
 class SubTask(models.Model):
-    """Vazifa ichidagi kichik qadam; unga ham dasturchi biriktirish mumkin."""
+    """Vazifa ichidagi kichik qadam; unga bir nechta dasturchi biriktirish mumkin."""
 
     task = models.ForeignKey(Task, on_delete=models.CASCADE, related_name="subtasks")
     title = models.CharField("Nomi", max_length=255)
-    assignee = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name="subtasks"
+    assignees = models.ManyToManyField(
+        settings.AUTH_USER_MODEL, blank=True, related_name="assigned_subtasks", verbose_name="Ijrochilar"
     )
     is_done = models.BooleanField("Bajarildi", default=False)
     position = models.PositiveIntegerField(default=0)

@@ -10,7 +10,7 @@ from apps.core.files import validate_upload
 from apps.projects.serializers import ProjectCreateSerializer
 
 from .models import Task
-from .permissions import can_work_on
+from .permissions import can_manage_assignees, can_manage_subtasks, can_work_on
 from .workflow import task_targets
 
 
@@ -74,13 +74,16 @@ class TaskDetailSerializer(TaskListSerializer):
     def get_subtasks(self, obj):
         user = self.context["request"].user
         mine = user.is_manager or any(a.developer_id == user.pk for a in obj.assignments.all())
-        can_manage = (user.is_manager or mine) and obj.status != Task.Status.DONE
-        return [
-            {"id": s.id, "title": s.title, "is_done": s.is_done, "assignee": user_brief(s.assignee),
-             "can_toggle": obj.status != Task.Status.DONE and (mine or s.assignee_id == user.pk),
-             "can_delete": can_manage}
-            for s in obj.subtasks.all()
-        ]
+        can_manage = can_manage_subtasks(user, obj) and obj.status != Task.Status.DONE
+        rows = []
+        for s in obj.subtasks.all():
+            people = list(s.assignees.all())
+            rows.append({
+                "id": s.id, "title": s.title, "is_done": s.is_done, "assignees": [user_brief(u) for u in people],
+                "can_toggle": obj.status != Task.Status.DONE and (mine or any(u.pk == user.pk for u in people)),
+                "can_delete": can_manage,
+            })
+        return rows
 
     def get_files(self, obj):
         return [file_info(f, "task") for f in obj.files.all()]
@@ -106,13 +109,14 @@ class TaskDetailSerializer(TaskListSerializer):
             "delete": user.is_manager,
             "add_files": worker and obj.status != Task.Status.DONE,
             "log_work": worker,
-            "manage_subtasks": (user.is_manager or worker) and obj.status != Task.Status.DONE,
+            "manage_subtasks": can_manage_subtasks(user, obj) and obj.status != Task.Status.DONE,
+            "manage_assignees": can_manage_assignees(user, obj) and obj.status != Task.Status.DONE,
         }
 
 
 class SubTaskInput(serializers.Serializer):
     title = serializers.CharField(max_length=255, allow_blank=True)
-    assignee_id = serializers.IntegerField(required=False, allow_null=True)
+    assignee_ids = serializers.ListField(child=serializers.IntegerField(min_value=1), required=False, default=list)
     is_done = serializers.BooleanField(required=False, default=False)
 
 
@@ -196,7 +200,12 @@ class ReviewSerializer(serializers.Serializer):
 
 class SubTaskCreateSerializer(serializers.Serializer):
     title = serializers.CharField(max_length=255)
-    assignee_id = serializers.IntegerField(required=False, allow_null=True, min_value=1)
+    assignee_ids = serializers.ListField(child=serializers.IntegerField(min_value=1), required=False, default=list)
+
+
+class AssigneesSerializer(serializers.Serializer):
+    """Vazifa yoki sub-vazifa ijrochilari (vazifa oynasidan)."""
+    assignee_ids = serializers.ListField(child=serializers.IntegerField(min_value=1))
 
 
 class SubTaskToggleSerializer(serializers.Serializer):

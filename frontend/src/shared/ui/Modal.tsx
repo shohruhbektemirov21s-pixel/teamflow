@@ -1,5 +1,5 @@
 import { X } from "lucide-react";
-import { type ReactNode, useEffect, useId, useRef } from "react";
+import { type ReactNode, type RefObject, useEffect, useId, useRef } from "react";
 import { createPortal } from "react-dom";
 
 import { T } from "../text";
@@ -17,23 +17,12 @@ interface ModalProps {
 }
 
 /**
- * Yagona modal komponenti (CLAUDE.md, 4-bo'lim): tepada sarlavha va ✕, o'rtada aylanuvchi tarkib,
- * pastda doim ko'rinadigan tugmalar paneli. Esc yopadi, fokus modal ichida qoladi va yopilganda qaytadi.
+ * Dialog xatti-harakati (Modal va rasm ko'rish oynasi uchun umumiy): ochilganda fokus ichkariga, Esc yopadi,
+ * Tab dialogdan chiqmaydi, orqa sahifa aylanmaydi; yopilganda fokus avvalgi joyiga qaytadi.
  */
-export function Modal({ title, subtitle, headerExtra, size = "md", onClose, dirty, footer, children }: ModalProps) {
-  const ref = useRef<HTMLDivElement>(null);
-  const titleId = useId();
-  const closeRef = useRef(onClose);
-  closeRef.current = onClose;
-  const dirtyRef = useRef(dirty);
-  dirtyRef.current = dirty;
-
-  const tryClose = () => {
-    if (dirtyRef.current && !window.confirm(T.common.unsaved)) return;
-    closeRef.current();
-  };
-  const tryCloseRef = useRef(tryClose);
-  tryCloseRef.current = tryClose;
+export function useDialogBehavior(ref: RefObject<HTMLElement | null>, onEscape: () => void) {
+  const escRef = useRef(onEscape);
+  escRef.current = onEscape;
 
   useEffect(() => {
     const previous = document.activeElement as HTMLElement | null;
@@ -45,7 +34,7 @@ export function Modal({ title, subtitle, headerExtra, size = "md", onClose, dirt
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         e.stopPropagation();
-        tryCloseRef.current();
+        escRef.current();
       }
       if (e.key === "Tab" && node) {
         const items = node.querySelectorAll<HTMLElement>(
@@ -69,7 +58,29 @@ export function Modal({ title, subtitle, headerExtra, size = "md", onClose, dirt
       document.body.style.overflow = "";
       previous?.focus?.();
     };
-  }, []);
+  }, [ref]);
+}
+
+/**
+ * Yagona modal komponenti (CLAUDE.md, 4-bo'lim): tepada sarlavha va ✕, o'rtada aylanuvchi tarkib,
+ * pastda doim ko'rinadigan tugmalar paneli. Esc yopadi, fokus modal ichida qoladi va yopilganda qaytadi.
+ */
+export function Modal({ title, subtitle, headerExtra, size = "md", onClose, dirty, footer, children }: ModalProps) {
+  const ref = useRef<HTMLDivElement>(null);
+  const titleId = useId();
+  const closeRef = useRef(onClose);
+  closeRef.current = onClose;
+  const dirtyRef = useRef(dirty);
+  dirtyRef.current = dirty;
+
+  const tryClose = () => {
+    if (dirtyRef.current && !window.confirm(T.common.unsaved)) return;
+    closeRef.current();
+  };
+  const tryCloseRef = useRef(tryClose);
+  tryCloseRef.current = tryClose;
+
+  useDialogBehavior(ref, () => tryCloseRef.current());
 
   return createPortal(
     <div className="overlay" onMouseDown={(e) => e.target === e.currentTarget && !dirtyRef.current && tryClose()}>

@@ -12,19 +12,22 @@ import {
   Trash2,
   Upload,
   User,
+  UserPlus,
   Users,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 
+import { useMe } from "@/app/auth";
 import { useModal } from "@/app/modals";
 import { useRefresh } from "@/app/queries";
 import { DocTitle, DocViewer } from "@/features/docs/DocViewer";
 import { Comments } from "@/features/comments/Comments";
+import { DeveloperPicker } from "@/features/people/DeveloperPicker";
 import { api, ApiError, formData } from "@/shared/api";
 import { fmtDate, fmtDateTime, timeAgo } from "@/shared/format";
 import { useMeta } from "@/shared/meta";
 import { T } from "@/shared/text";
-import type { FileInfo, ProjectDetail, TaskDetail, WorkLog } from "@/shared/types";
+import type { FileInfo, TaskDetail, WorkLog } from "@/shared/types";
 import {
   Avatar,
   Badge,
@@ -39,6 +42,7 @@ import {
   FilePicker,
   Meta,
   Modal,
+  People,
   PriorityBadge,
   Skeleton,
   Stepper,
@@ -51,6 +55,7 @@ type Panel = null | "submit" | "return";
 
 /** Modal: vazifa ko'rish. Tekshiruv (qabul/qaytarish) ham shu yerda — alohida modal ochilmaydi. */
 export default function TaskModal({ id, submitMode }: { id: number; submitMode?: boolean }) {
+  const me = useMe();
   const { close, open } = useModal();
   const toast = useToast();
   const refresh = useRefresh();
@@ -58,11 +63,6 @@ export default function TaskModal({ id, submitMode }: { id: number; submitMode?:
   const query = useQuery({ queryKey: ["task", id], queryFn: () => api.get<TaskDetail>(`/tasks/${id}/`) });
   const task = query.data;
 
-  const projectTeam = useQuery({
-    queryKey: ["project", task?.project.id],
-    queryFn: () => api.get<ProjectDetail>(`/projects/${task!.project.id}/`),
-    enabled: Boolean(task?.project.id),
-  });
 
   
   const [panel, setPanel] = useState<Panel>(submitMode ? "submit" : null);
@@ -73,7 +73,10 @@ export default function TaskModal({ id, submitMode }: { id: number; submitMode?:
 
   const [isAddingSubtask, setIsAddingSubtask] = useState(false);
   const [newSubtaskTitle, setNewSubtaskTitle] = useState("");
-  const [newSubtaskAssignee, setNewSubtaskAssignee] = useState<number | "">("");
+  const [newSubtaskPeople, setNewSubtaskPeople] = useState<number[]>([]);
+  // Ichki tahrir paneli: vazifa ijrochilari yoki bitta sub-vazifa ijrochilari (modal ustida modal yo'q)
+  const [peopleEdit, setPeopleEdit] = useState<null | { target: "task" } | { target: "subtask"; sid: number }>(null);
+  const [peopleDraft, setPeopleDraft] = useState<number[]>([]);
   const [workNote, setWorkNote] = useState("");
   const [workHours, setWorkHours] = useState("1");
 
@@ -122,13 +125,26 @@ export default function TaskModal({ id, submitMode }: { id: number; submitMode?:
   });
 
   const addSubtask = useMutation({
-    mutationFn: (data: { title: string; assignee_id?: number | null }) => api.post(`/tasks/${id}/subtasks/`, data),
+    mutationFn: (data: { title: string; assignee_ids: number[] }) => api.post(`/tasks/${id}/subtasks/`, data),
     onSuccess: () => {
       refresh();
       setNewSubtaskTitle("");
-      setNewSubtaskAssignee("");
+      setNewSubtaskPeople([]);
       setIsAddingSubtask(false);
       toast(T.tasks.subtaskAddedToast);
+    },
+    onError: (e: Error) => toast(e.message, "error"),
+  });
+
+  const savePeople = useMutation({
+    mutationFn: () =>
+      peopleEdit?.target === "subtask"
+        ? api.patch(`/tasks/${id}/subtasks/${peopleEdit.sid}/`, { assignee_ids: peopleDraft })
+        : api.put(`/tasks/${id}/assignees/`, { assignee_ids: peopleDraft }),
+    onSuccess: () => {
+      toast(peopleEdit?.target === "subtask" ? T.tasks.subtaskPeopleSavedToast : T.tasks.assigneesSavedToast);
+      setPeopleEdit(null);
+      refresh();
     },
     onError: (e: Error) => toast(e.message, "error"),
   });
@@ -298,35 +314,56 @@ export default function TaskModal({ id, submitMode }: { id: number; submitMode?:
                 {task.subtasks.length ? (
                   <div className="stack-sm">
                     {task.subtasks.map((s) => (
-                      <div key={s.id} className="row" style={{ width: "100%", gap: 6 }}>
-                        <label className="pick grow" style={{ cursor: s.can_toggle ? "pointer" : "default", margin: 0 }}>
-                          <input
-                            type="checkbox"
-                            checked={s.is_done}
-                            disabled={!s.can_toggle || toggle.isPending}
-                            onChange={(e) => toggle.mutate({ sid: s.id, done: e.target.checked })}
-                          />
-                          <span className="grow" style={{ textDecoration: s.is_done ? "line-through" : undefined, color: s.is_done ? "var(--muted)" : undefined }}>
-                            {s.title}
-                          </span>
-                          {s.assignee ? (
-                            <span className="row small muted">
-                              <Avatar user={s.assignee} size="sm" /> {s.assignee.full_name}
+                      <div key={s.id} className="stack-sm">
+                        <div className="row" style={{ width: "100%", gap: 6 }}>
+                          <label className="pick grow" style={{ cursor: s.can_toggle ? "pointer" : "default", margin: 0 }}>
+                            <input
+                              type="checkbox"
+                              checked={s.is_done}
+                              disabled={!s.can_toggle || toggle.isPending}
+                              onChange={(e) => toggle.mutate({ sid: s.id, done: e.target.checked })}
+                            />
+                            <span className="grow" style={{ textDecoration: s.is_done ? "line-through" : undefined, color: s.is_done ? "var(--muted)" : undefined }}>
+                              {s.title}
                             </span>
-                          ) : (
-                            <span className="small muted">{T.tasks.subtaskNobody}</span>
+                            {s.assignees.length ? <People users={s.assignees} /> : <span className="small muted">{T.tasks.subtaskNobody}</span>}
+                          </label>
+                          {s.can_delete && (
+                            <button
+                              type="button"
+                              className="icon-btn"
+                              title={T.tasks.subtaskPeople}
+                              aria-label={`${T.tasks.subtaskPeople}: ${s.title}`}
+                              onClick={() => {
+                                setPeopleEdit({ target: "subtask", sid: s.id });
+                                setPeopleDraft(s.assignees.map((u) => u.id));
+                              }}
+                            >
+                              <UserPlus size={14} />
+                            </button>
                           )}
-                        </label>
-                        {s.can_delete && (
-                          <button
-                            type="button"
-                            className="icon-btn"
-                            title={T.common.delete}
-                            disabled={deleteSubtask.isPending}
-                            onClick={() => deleteSubtask.mutate(s.id)}
-                          >
-                            <Trash2 size={14} />
-                          </button>
+                          {s.can_delete && (
+                            <button
+                              type="button"
+                              className="icon-btn"
+                              title={T.common.delete}
+                              disabled={deleteSubtask.isPending}
+                              onClick={() => deleteSubtask.mutate(s.id)}
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          )}
+                        </div>
+                        {peopleEdit?.target === "subtask" && peopleEdit.sid === s.id && (
+                          <PeopleEditor
+                            label={`${T.tasks.subtaskPeople}: ${s.title}`}
+                            value={peopleDraft}
+                            onChange={setPeopleDraft}
+                            known={s.assignees}
+                            saving={savePeople.isPending}
+                            onSave={() => savePeople.mutate()}
+                            onCancel={() => setPeopleEdit(null)}
+                          />
                         )}
                       </div>
                     ))}
@@ -358,31 +395,23 @@ export default function TaskModal({ id, submitMode }: { id: number; submitMode?:
                         onSubmit={(e) => {
                           e.preventDefault();
                           if (!newSubtaskTitle.trim()) return;
-                          addSubtask.mutate({
-                            title: newSubtaskTitle,
-                            assignee_id: newSubtaskAssignee ? Number(newSubtaskAssignee) : null,
-                          });
+                          addSubtask.mutate({ title: newSubtaskTitle, assignee_ids: newSubtaskPeople });
                         }}
                       >
                         <input
                           autoFocus
-                          className="input grow"
+                          className="input"
+                          style={{ width: "100%" }}
                           placeholder={T.tasks.subtaskNewPh}
+                          aria-label={T.tasks.subtaskNewPh}
                           value={newSubtaskTitle}
                           onChange={(e) => setNewSubtaskTitle(e.target.value)}
                         />
-                        <select
-                          className="select"
-                          value={newSubtaskAssignee}
-                          onChange={(e) => setNewSubtaskAssignee(e.target.value ? Number(e.target.value) : "")}
-                        >
-                          <option value="">{T.tasks.subtaskPickPerson}</option>
-                          {projectTeam.data?.members.map((m) => (
-                            <option key={m.id} value={m.id}>
-                              {m.full_name}
-                            </option>
-                          ))}
-                        </select>
+                        <div style={{ width: "100%" }}>
+                          <span className="field-label">{T.tasks.subtaskPickPerson}</span>
+                          <DeveloperPicker label={T.tasks.subtaskPickPerson} value={newSubtaskPeople} onChange={setNewSubtaskPeople} />
+                          <span className="field-hint">{T.tasks.picker.joinHint}</span>
+                        </div>
                         <Button type="submit" size="sm" variant="primary" loading={addSubtask.isPending}>
                           {T.common.save}
                         </Button>
@@ -482,8 +511,42 @@ export default function TaskModal({ id, submitMode }: { id: number; submitMode?:
                   <Due value={task.due_at} done={task.status === "done"} format={fmtDateTime} />
                 </Meta>
                 <Meta icon={<Users />} label={T.tasks.assignees}>
-                  <div className="chips">{task.assignees.map((u) => <Avatar key={u.id} user={u} size="sm" />)}</div>
+                  <div className="stack-sm">
+                    {task.assignees.map((u) => (
+                      <span key={u.id} className="row small">
+                        <Avatar user={u} size="sm" /> {u.full_name}
+                      </span>
+                    ))}
+                    {task.actions.manage_assignees && peopleEdit?.target !== "task" && (
+                      <div>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          icon={<UserPlus size={14} />}
+                          onClick={() => {
+                            setPeopleEdit({ target: "task" });
+                            setPeopleDraft(task.assignees.map((u) => u.id));
+                          }}
+                        >
+                          {T.tasks.assigneesEdit}
+                        </Button>
+                      </div>
+                    )}
+                  </div>
                 </Meta>
+                {peopleEdit?.target === "task" && (
+                  <PeopleEditor
+                    label={T.tasks.assignees}
+                    value={peopleDraft}
+                    onChange={setPeopleDraft}
+                    known={task.assignees}
+                    locked={me.role === "developer" ? [me.id] : []}
+                    saving={savePeople.isPending}
+                    disabled={!peopleDraft.length}
+                    onSave={() => savePeople.mutate()}
+                    onCancel={() => setPeopleEdit(null)}
+                  />
+                )}
                 <Meta icon={<User />} label={T.tasks.createdByShort}>{task.created_by.full_name}</Meta>
               </div>
             </details>
@@ -514,5 +577,45 @@ export default function TaskModal({ id, submitMode }: { id: number; submitMode?:
         </div>
       </div>
     </Modal>
+  );
+}
+
+
+/** Ichki panel: ijrochilarni tanlash va saqlash (vazifa yoki sub-vazifa uchun). */
+function PeopleEditor({
+  label,
+  value,
+  onChange,
+  known,
+  locked,
+  saving,
+  disabled,
+  onSave,
+  onCancel,
+}: {
+  label: string;
+  value: number[];
+  onChange: (ids: number[]) => void;
+  known: { id: number; full_name: string }[];
+  locked?: number[];
+  saving: boolean;
+  disabled?: boolean;
+  onSave: () => void;
+  onCancel: () => void;
+}) {
+  return (
+    <div className="stack-sm" style={{ padding: 12, background: "var(--surface-2)", border: "1px solid var(--border)", borderRadius: "var(--radius-sm)" }}>
+      <span className="field-label">{label}</span>
+      <DeveloperPicker label={label} value={value} onChange={onChange} known={known} locked={locked} />
+      <span className="field-hint">{T.tasks.picker.joinHint}</span>
+      <div className="row" style={{ gap: 8 }}>
+        <Button size="sm" variant="primary" loading={saving} disabled={disabled} onClick={onSave}>
+          {T.common.save}
+        </Button>
+        <Button size="sm" variant="ghost" onClick={onCancel}>
+          {T.common.cancel}
+        </Button>
+      </div>
+    </div>
   );
 }

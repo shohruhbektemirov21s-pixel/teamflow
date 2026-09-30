@@ -224,6 +224,17 @@ export const T = {
     subtaskDeletedToast: "Sub-vazifa o'chirildi",
     subtaskNewPh: "Nima qilinishi kerak?",
     subtaskPickPerson: "Kimga (ixtiyoriy)",
+    subtaskPeople: "Ijrochilar",
+    subtaskPeopleSavedToast: "Sub-vazifa ijrochilari saqlandi",
+    picker: {
+      searchPh: "Dasturchi ismini yozing",
+      add: "Qo'shish",
+      remove: (name: string) => `${name}ni olib tashlash`,
+      noMatch: "Bunday dasturchi topilmadi",
+      joinHint: "Jamoada bo'lmagan dasturchi tanlansa, u loyiha jamoasiga ham qo'shiladi.",
+    },
+    assigneesEdit: "O'zgartirish",
+    assigneesSavedToast: "Ijrochilar saqlandi",
     upload: "Yuklash",
     bulkNew: "Ko'p vazifa qo'shish",
     bulkTitle: "Vazifalarni taqsimlash",
@@ -422,6 +433,12 @@ export const T = {
 
   profile: {
     title: "Profil",
+    photoUpload: "Rasm yuklash",
+    photoChange: "Rasmni almashtirish",
+    photoRemove: "Rasmni o'chirish",
+    photoHint: "JPG, PNG yoki WEBP, 5 MB gacha",
+    photoSavedToast: "Rasm saqlandi",
+    photoRemovedToast: "Rasm o'chirildi",
     passwordTitle: "Parolni almashtirish",
     currentPassword: "Joriy parol",
     newPassword: "Yangi parol",
@@ -445,6 +462,8 @@ export const T = {
   },
 
   people: {
+    photoOpen: "Rasmni kattalashtirish",
+    photoOf: (name: string) => `${name} — profil rasmi`,
     profileTitle: "Xodim profili",
     noTasksHint: "Bu xodimga hali vazifa berilmagan. \"Vazifa berish\" tugmasi orqali bering.",
     onlyFree: "Bo'sh xodimlar",
