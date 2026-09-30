@@ -1,9 +1,30 @@
 # TeamFlow
 
-Jamoa ishini boshqarish tizimi: boshqarmalar buyurtma (TZ) yuboradi, loyiha menejeri uni tasdiqlab loyihaga aylantiradi, dasturchilarga vazifa beradi va bajarilgan ishni tekshiradi. Boshliq hamma narsani kuzatadi va boshqaradi.
+Jamoa ishini boshqarish tizimi. Boshqarmalar buyurtma (TZ) yuboradi, loyiha menejeri uni tasdiqlab loyihaga aylantiradi, dasturchilarga vazifa beradi va bajarilgan ishni tekshiradi. Boshliq hamma narsani kuzatadi va boshqaradi.
 
-> **Holat (2026-09-28):** loyiha to'liq qurilgan, sinovdan o'tgan va ishchi holatda.
-> Agentlar uchun qoidalar: `CLAUDE.md`, `GEMINI.md`. Flow va modal reestri: `docs/FLOWS_MODALS.md`. Arxitektura: `docs/ARCHITECTURE.md`.
+> **Holat (2026-09-30):** loyiha to'liq qurilgan va ishchi holatda. Testlar: backend 157 ta, frontend 44 ta — hammasi o'tadi.
+> Bu fayl — loyihaning **yagona haqiqat manbai**. Agentlar uchun qoidalar: `CLAUDE.md`, `GEMINI.md`. Flow va modal reestri: `docs/FLOWS_MODALS.md`. Arxitektura, ma'lumotlar modeli va API: `docs/ARCHITECTURE.md`.
+
+## Mundarija
+
+1. [Texnologiyalar](#1-texnologiyalar)
+2. [Rollar va ruxsatlar](#2-rollar-va-ruxsatlar)
+3. [Ro'yxatdan o'tish va kirish](#3-royxatdan-otish-va-kirish)
+4. [Buyurtma (TZ) jarayoni](#4-buyurtma-tz-jarayoni)
+5. [Loyihalar](#5-loyihalar)
+6. [Vazifalar](#6-vazifalar)
+7. [Menyu va sahifalar](#7-menyu-va-sahifalar)
+8. [Telegram bildirishnomalari](#8-telegram-bildirishnomalari)
+9. [Modallar](#9-modallar-amalda-11-ta)
+10. [Flow'lar](#10-flowlar-amalda-12-ta)
+11. [Qarorlar va ochiq savollar](#11-qabul-qilingan-qarorlar-va-ochiq-savollar)
+12. [Xavfsizlik](#12-xavfsizlik)
+13. [Ishga tushirish va demo loginlar](#13-ishga-tushirish-va-demo-loginlar)
+14. [Papka tuzilmasi](#14-papka-tuzilmasi)
+15. [UX maqsadi](#15-ux-maqsadi)
+16. [Ish qoidalari](#16-ish-qoidalari)
+
+---
 
 ## 1. Texnologiyalar
 
@@ -11,17 +32,21 @@ Jamoa ishini boshqarish tizimi: boshqarmalar buyurtma (TZ) yuboradi, loyiha mene
 |---|---|
 | Backend | Python + Django + Django REST Framework |
 | Ma'lumotlar bazasi | Django standart bazasi (SQLite) |
-| Admin panel | Django admin |
-| Frontend | React + TypeScript |
+| Admin panel | Django admin (alohida admin panel yozilmaydi) |
+| Frontend | React + TypeScript (Vite). Node faqat ishlab chiqishda kerak |
 | Word (.docx) ko'rish | Brauzerda, modal ichida (`docx-preview`) |
+| Autentifikatsiya | Cookie / Session (DRF standart) + CSRF |
+| Bildirishnomalar | Tizim ichida + Telegram bot |
 | Til | O'zbek (lotin), sana `dd.mm.yyyy` |
 
-## 2. Rollar
+Barcha ma'lumotlar bazadan olinadi. Butun interfeys bitta Design System (ranglar, oraliqlar, radius, tugma va karta uslubi) bilan quriladi, tokenlar bitta joyda: `frontend/src/shared/styles.css`.
+
+## 2. Rollar va ruxsatlar
 
 | Rol | Qanday paydo bo'ladi | Nima qiladi |
 |---|---|---|
-| **Boshliq** | Faqat Django adminda yaratiladi | Hammani va hamma narsani ko'radi, izoh yozadi, hammaning ishini boshqaradi |
-| **Loyiha menejeri (PM)** | Ro'yxatdan o'tadi, admin tasdiqlaydi | Buyurtmani tasdiqlaydi/rad etadi, loyiha yaratadi, dasturchi biriktiradi, vazifa beradi, ishni tekshiradi |
+| **Boshliq** | Faqat Django adminda yaratiladi | Hammani va hamma narsani ko'radi, izoh yozadi, hammaning ishini boshqaradi, takliflar bo'yicha qaror chiqaradi |
+| **Loyiha menejeri (PM)** | Ro'yxatdan o'tadi, admin tasdiqlaydi | Buyurtmani tasdiqlaydi yoki rad etadi, loyiha yaratadi, dasturchi biriktiradi, vazifa beradi, ishni tekshiradi |
 | **Dasturchi** | Ro'yxatdan o'tadi, admin tasdiqlaydi | O'ziga berilgan vazifani bajaradi va tekshiruvga yuboradi |
 | **Boshqarma** | Ro'yxatdan o'tadi (boshqarma nomi bilan), admin tasdiqlaydi | Buyurtma (TZ) yuboradi |
 
@@ -29,33 +54,36 @@ Jamoa ishini boshqarish tizimi: boshqarmalar buyurtma (TZ) yuboradi, loyiha mene
 
 | | Boshliq | PM | Dasturchi | Boshqarma |
 |---|---|---|---|---|
-| Ko'radi | Hamma narsa | Loyihalar, buyurtmalar, dasturchilar | Faqat o'z vazifalari va o'z loyihalari | Faqat o'z buyurtmalari |
+| Ko'radi | Hamma narsa | Loyihalar, buyurtmalar, vazifalar, xodimlar | Faqat o'z vazifalari va o'z loyihalari | Faqat o'z buyurtmalari |
 | Buyurtma yuboradi | — | — | — | ✅ |
-| Buyurtmani tasdiqlaydi/rad etadi | ✅ | ✅ | — | — |
+| Buyurtmani tasdiqlaydi / rad etadi | ✅ | ✅ | — | — |
 | Loyiha yaratadi | ✅ | ✅ | ❌ | ❌ |
 | Vazifa beradi | ✅ | ✅ | O'zi yaratgan vazifaga boshqa dasturchini qo'shadi | ❌ |
 | Vazifa holatini o'zgartiradi | ✅ | ✅ | Faqat o'zinikini (Jarayonda, Tekshiruvga yuborish) | — |
-| Ishni tekshiradi (qabul/qaytarish) | ✅ | ✅ | — | — |
-| Izoh yozadi | ✅ | ✅ | ✅ | ✅ |
-| Foydalanuvchi yaratadi/tasdiqlaydi | Django admin orqali | — | — | — |
+| Ishni tekshiradi (qabul / qaytarish) | ✅ | ✅ | — | — |
+| Izoh yozadi (ko'ra oladigan joyiga) | ✅ | ✅ | ✅ | ✅ |
+| Taklif bo'yicha qaror | ✅ | — | — | — |
+| Foydalanuvchi yaratadi / tasdiqlaydi | Django admin orqali | — | — | — |
 
-Barcha ruxsatlar serverda tekshiriladi.
+Barcha ruxsatlar **serverda** tekshiriladi, frontendda tugmani yashirish yetarli hisoblanmaydi.
 
 ## 3. Ro'yxatdan o'tish va kirish
 
 Forma maydonlari:
 1. Ism
 2. Familiya
-3. Mutaxassislik (tanlanadi)
+3. Mutaxassislik (ro'yxatdan tanlanadi)
 4. Rol: Loyiha menejeri / Dasturchi / Boshqarma
-5. Agar **Boshqarma** tanlansa, pastida **boshqarma nomi** maydoni chiqadi
-6. Login
-7. Parol
+5. **Boshqarma** tanlansa, pastida **boshqarma nomi** maydoni chiqadi
+6. Telegram username (`@username`) — bildirishnomalar uchun (8-bo'lim)
+7. Login
+8. Parol
 
 Qoidalar:
 - Ro'yxatdan o'tgan foydalanuvchi **darrov kira olmaydi**. Django adminda faollashtirilgach kiradi.
 - Kirishga urinsa: "Akkauntingiz hali tasdiqlanmagan".
 - **Boshliq** ro'yxatdan o'tmaydi, Django adminda yaratiladi.
+- Kirilmagan foydalanuvchi uchun bosh sahifa (landing): qisqa tavsif, "Ro'yxatdan o'tish" va "Kirish".
 
 ## 4. Buyurtma (TZ) jarayoni
 
@@ -70,18 +98,20 @@ Boshqarma buyurtma yuboradi (TZ v1)
              → Loyiha buyurtma ma'lumotlari bilan yaratiladi, sanalar PM kiritganlar
 ```
 
-"Buyurtmalar (TZ)" sahifasida filtrlar: **Hammasi** (birinchi, standart) · Yangi · Tasdiqlangan · Rad etilgan · Loyiha bo'lgan.
+Buyurtma holatlari: **Yuborilgan → Tasdiqlangan → Loyiha yaratilgan**, yoki **Rad etilgan → (yangi TZ) → Yuborilgan**. O'tishlar bitta jadvalda: `backend/apps/orders/workflow.py`.
 
-Buyurtma tarkibi (Boshqarma kiritadi): **nomi**, **qisqacha izoh**, **TZ fayli (.docx)**, **tugatish muddati** (qachongacha kerak), **muhimlik turi**.
-Ko'rinadi: qaysi boshqarma va kim yuborgan.
+Buyurtma tarkibi (Boshqarma kiritadi): **nomi**, **qisqacha izoh**, **TZ fayli (.docx)**, **tugatish muddati** (qachongacha kerak), **muhimlik turi** (Past, O'rtacha, Yuqori, Shoshilinch).
+Buyurtmada qaysi boshqarma va kim yuborgani ko'rinadi.
 
 Qoidalar:
 - Boshqarma yuborgan buyurtmani **tahrirlay ham, o'chira ham olmaydi**.
 - **Bitta buyurtma — bitta TZ.** PM tasdiqlamaguncha (yoki rad etmaguncha) boshqarma yangi versiya yubora olmaydi.
 - Rad etilsa, boshqarma yangi TZ yuklaydi (v2, v3…). Versiyalar tarixi saqlanadi.
 - Boshqarma so'ragan muddat va PM belgilagan sanalar **alohida** saqlanadi, PM ikkalasini ham ko'radi.
+- Muhimlik turini boshqarma tanlaydi, PM tasdiqlaganda o'zgartira oladi.
+- Buyurtmani tasdiqlagan PM avtomatik mas'ul bo'ladi.
 - Buyurtmadan loyiha yaratilgach, PM tahrirlashda **faqat sanalarni** o'zgartira oladi (nom, izoh, TZ o'zgarmaydi).
-- Word (.docx) fayllar loyihaning o'zida **modal ichida** ochiladi.
+- Word (.docx) fayllar tizimning o'zida **modal ichida** ochiladi.
 
 ## 5. Loyihalar
 
@@ -89,141 +119,228 @@ Qoidalar:
 - Loyiha: nom, izoh, boshlanish sanasi, tugash sanasi, fayllar, dasturchilar (bir nechta), darajasi.
 - **Loyiha darajasi (4 ta):** Rejalashtirilgan → Boshlangan → Tuzatish kerak → Yakunlangan. PM qo'lda o'zgartiradi.
 - Loyihaga bir nechta dasturchi biriktiriladi, har biriga bir nechta vazifa berish mumkin.
-- Loyiha yaratish modali 3 qadamli: Asosiy → Jamoa → Vazifalar va fayllar. Buyurtmadan yaratilsa, 1-qadam oldindan to'ldirilgan.
-- 3-qadamda: **loyiha fayllari** va **har bir xodimga alohida vazifalar** — har bir tanlangan xodim uchun alohida blok, unda "Vazifa qo'shish": vazifa nomi, **boshlanish** va **tugash vaqti**, **vazifa fayllari**. Tugash vaqti boshlanishdan oldin bo'lsa, yaratib bo'lmaydi.
-- Loyiha, jamoa va vazifalar bitta so'rovda yaratiladi: biror vazifada xato bo'lsa, hech narsa saqlanmaydi (chala loyiha qolmaydi).
-- Loyiha oynasidagi **Jamoa** bo'limida faqat shu loyiha a'zolari ko'rinadi. Yangi dasturchi qidiruv maydoni orqali topilib qo'shiladi, keyin "Jamoani saqlash". Har bir a'zo qatorida **"Vazifa berish"** tugmasi — shu xodimga alohida vazifa (loyiha va ijrochi oldindan tanlangan). Jamoa saqlanmaguncha bu tugma o'chiq.
+
+**Loyiha yaratish oynasi (3 qadam):** Asosiy → Jamoa → Vazifalar va fayllar. Buyurtmadan yaratilsa, 1-qadam oldindan to'ldirilgan.
+- 3-qadamda **loyiha fayllari** va **har bir xodimga alohida vazifalar** beriladi. Har bir tanlangan xodim uchun alohida blok va "Vazifa qo'shish" tugmasi bor: vazifa nomi, **boshlanish** va **tugash vaqti**, **vazifa fayllari**. Tugash vaqti boshlanishdan oldin bo'lsa, yaratib bo'lmaydi.
+- Loyiha, jamoa va vazifalar bitta so'rovda (`POST /api/projects/setup/`) bitta tranzaksiyada yaratiladi. Biror vazifada xato bo'lsa, hech narsa saqlanmaydi (chala loyiha qolmaydi).
+
+**Loyiha oynasi — Jamoa bo'limi:**
+- Ro'yxatda faqat shu loyiha a'zolari ko'rinadi. Yangi dasturchi qidiruv maydoni orqali topilib qo'shiladi, keyin "Jamoani saqlash" bosiladi.
+- Har bir a'zo qatorida **"Vazifa berish"** tugmasi bor: shu xodimga alohida vazifa ochiladi, loyiha va ijrochi oldindan tanlangan bo'ladi. Jamoa saqlanmaguncha bu tugma o'chiq turadi.
 - Dasturchi jamoadan chiqarilsa, shu loyihaning tugallanmagan vazifalari va sub-vazifalaridan ham olib tashlanadi (bajarilganlari tarix sifatida qoladi). Agar u faol vazifaning yagona ijrochisi bo'lsa, avval vazifani boshqa xodimga berish so'raladi.
 
 ## 6. Vazifalar
 
 - PM/Boshliq loyiha ichida vazifa yaratadi: nom, izoh, muddat (boshlanish/tugash), muhimlik, fayl.
-- **Ommaviy vazifalar**: PM ko'plab vazifalarni bitta ro'yxat matni (har qatorga bittadan) kiritish orqali bitta urinishda yarata oladi va ularga dasturchilarni biriktirishi mumkin.
+- **Ommaviy vazifalar:** PM bitta ro'yxat matni (har qatorga bittadan) orqali ko'p vazifani birdaniga yaratadi va har biriga ijrochi biriktira oladi.
 - **Bitta vazifa bir nechta dasturchiga** biriktiriladi. Vazifa oynasida "Ijrochilar → O'zgartirish": PM va Boshliq har qanday vazifaga, dasturchi faqat **o'zi yaratgan** vazifaga boshqa dasturchini qo'shadi (o'zini olib tashlay olmaydi). Bajarilgan vazifa o'zgartirilmaydi.
-- **Sub-vazifalar** bor, har biriga **bir nechta dasturchi** biriktiriladi; mavjud sub-vazifaga ham keyin qo'shish yoki olib tashlash mumkin (PM, Boshliq yoki vazifa ijrochisi). Ijrochisiz sub-vazifa — "Hamma" (vazifaning barcha ijrochilari).
-- Vazifa oynasida dasturchi **qidiruv** bilan tanlanadi, ro'yxatda hamma faol dasturchilar. Loyiha jamoasida bo'lmagan dasturchi tanlansa, u **loyiha jamoasiga avtomatik qo'shiladi**. Vazifa yaratish/tahrirlash formasida esa faqat loyiha jamoasi ko'rinadi.
-- **Ish jurnali:** ijrochi vazifa ichida qilgan ishi va sarflangan vaqtini qayd etadi; menejer uni tekshiruv bilan birga ko'radi.
+- **Sub-vazifalar:** kichik qadamlar, har biriga **bir nechta dasturchi** biriktiriladi. Mavjud sub-vazifaga ham keyin qo'shish yoki olib tashlash mumkin (PM, Boshliq yoki vazifa ijrochisi). Ijrochisiz sub-vazifa "Hamma" deb ko'rinadi (vazifaning barcha ijrochilari).
+- Vazifa oynasida dasturchi **qidiruv** bilan tanlanadi, ro'yxatda hamma faol dasturchilar chiqadi. Loyiha jamoasida bo'lmagan dasturchi tanlansa, u **loyiha jamoasiga avtomatik qo'shiladi**. Vazifa yaratish/tahrirlash formasida esa faqat loyiha jamoasi ko'rinadi.
+- **Ish jurnali:** ijrochi vazifa ichida qilgan ishi va sarflangan vaqtini qayd etadi, menejer uni tekshiruv bilan birga ko'radi.
+- Vazifa tafsilotlari **bitta katta modalda**, telefonda yig'iladigan bo'limlarga ajratilgan: ma'lumot, sub-vazifalar, tekshiruv, ish jurnali, izohlar, fayllar.
 - Vazifa berilganda dasturchida **Nazoratda** holatida paydo bo'ladi.
 
-### Vazifa holatlari va hayot sikli
+### Vazifa holatlari
 
 ```
-[Nazoratda] → dasturchi "Jarayonda" ga o'tkazadi
-   → ish tugagach "Tekshiruvga yuboradi" (izoh: nima qilindi, fayl)
+[Nazoratda] → "Jarayonda" ga o'tkaziladi
+   → ish tugagach "Tekshiruvga yuborish" (izoh: nima qilindi, fayl)
    → PM ga bildirishnoma, "Tekshiruv navbati" da ko'rinadi
         ├─ Qabul qilsa  → [Bajarildi]
         └─ Qaytarsa     → [Jarayonda] (izoh bilan)
 ```
 
-Holatlar: **Nazoratda → Jarayonda → Tekshiruvda → Bajarildi**. "To'xtab qolgan" holati **yo'q** (foydalanuvchi qarori).
-Muddati o'tgan vazifalar "Muddati o'tgan" deb hisoblanadi; muddatdan keyin bajarilgani "Muddati buzib bajarilgan" (aniqlanadi, 10-bo'limga qarang).
+- Holatlar: **Nazoratda → Jarayonda → Tekshiruvda → Bajarildi**. "To'xtab qolgan" holati **yo'q** (foydalanuvchi qarori).
+- **Bajarildi** ga faqat tekshiruvda qabul qilinganda o'tiladi, dasturchi o'zi o'tkaza olmaydi.
+- Muddati o'tgan faol vazifa — **"Muddati o'tgan"**, muddatdan keyin bajarilgani — **"Kechikib bajarilgan"**.
+- O'tishlar bitta jadvalda: `backend/apps/tasks/workflow.py`.
 
-## 7. Sahifalar va yon panel (rolga qarab)
+### Kodlar
 
-**Dasturchi:** Bosh panel · Vazifalar · **Mening ishim** · Taqvim | Xabarlar · Bildirishnomalar · Takliflar | Umumiy tarix
-**Loyiha menejeri va Boshliq:** Bosh panel · Loyihalar · **Buyurtmalar (TZ)** · Vazifalar · Taqvim | Xodimlar · Xabarlar · Bildirishnomalar · **Tekshiruv navbati** · Takliflar | Umumiy tarix · Qilingan ishlar
-**Boshqarma:** Bosh panel · Buyurtmalarim | Xabarlar · Bildirishnomalar · Takliflar | Umumiy tarix
+Vazifa va loyihalarning qisqa kodi bor: `TSK-12`, `PRJ-3`. Kod ro'yxatlarda, doskada, tekshiruv navbatida va modallar sarlavhasida ko'rinadi. Qoida bitta joyda: `backend/apps/core/codes.py`.
+- `Ctrl K` qidiruvida kod yozilsa (`TSK-12`, `tsk12`, `PRJ-3`), aynan o'sha vazifa yoki loyiha darrov chiqadi (ko'rish huquqi bo'lsa).
+- Vazifalar jadvali qidiruvida `TSK-12` — shu vazifa, `PRJ-3` — shu loyihaning vazifalari.
 
-Chap menyu 3 bo'limga bo'lingan: *Asosiy ish*, *Muloqot*, *Kuzatuv*. Pastda foydalanuvchi kartasi (ism, rol; bosilsa — Profil) va "Chiqish". Yuqorida qidiruv (`Ctrl K`, `TSK-12` / `PRJ-3` kodlari bilan ham), tungi rejim, bildirishnomalar.
-Kirilmagan foydalanuvchi uchun bosh sahifa (landing): qisqa tavsif, "Ro'yxatdan o'tish" va "Kirish".
+## 7. Menyu va sahifalar
 
-### Bosh panel (PM)
-- Tepada salomlashish va asosiy amallar: Xodimlar, (yangi buyurtma bo'lsa) Buyurtmalar, Yangi loyiha, **Yangi vazifa**. Xodimlar ro'yxati alohida `/xodimlar` sahifasida.
-- Davr kartalari: Yil boshidan, Oy boshidan, Hafta boshidan (Faol, Muddati o'tgan, Bajarilgan).
-- Qo'shimcha kartalar: Kechikib bajarilgan, Muddati o'tgan, Tekshiruv kutilmoqda.
-- Bosh panelga kirganda **"Hafta boshidan — Faol"** vazifalar jadvali darrov ochiq turadi (boshqa kartani bossa almashadi, "Yopish" bilan yopiladi).
-- Kartani bossa, filtrli vazifalar jadvali ochiladi (qidiruv, muddat, sana oralig'i, holat, xodim). "Loyiha" filtri vazifalar jadvallarida yo'q (foydalanuvchi qarori). Telefonda qidiruvdan boshqa filtrlar "Filtrlar" tugmasi ortida.
+### Chap menyu (rolga qarab)
 
-### Bildirishnomalar
-- Kun bo'yicha guruhlangan (Bugun, Kecha, sana), har bir turning o'z rangli ikonkasi bor, o'qilmaganlar ajratib ko'rsatiladi.
-- Sarlavha ostida o'qilmaganlar soni; "Hammasi / O'qilmagan" filtri, "Hammasini o'qildi deb belgilash". Bosilsa tegishli oyna ochiladi.
+Menyu 3 guruhga bo'lingan: *Asosiy ish* | *Muloqot* | *Kuzatuv*.
 
-### Profil
-- Barcha profillar bir xil ko'rinishda (o'z profilim va xodim oynasi): avatar, ism, lavozim, 4 ko'rsatkich (faol, kechikkan, tekshiruvda, bajarilgan) va vazifalar jadvali.
-- **Profil rasmi:** "Rasm yuklash" (keyin "Rasmni almashtirish" / "Rasmni o'chirish"). JPG, PNG yoki WEBP, 5 MB gacha. Server rasmni tekshiradi, 1024px gacha kichraytiradi, joylashuv kabi ichki ma'lumotlarni o'chiradi. Rasm faqat tizimga kirganlarga ko'rinadi.
-- **Rasmni ko'rish:** profil sarlavhasidagi rasm (o'z profilim va xodim oynasi) bosilsa, Telegram kabi to'liq ekranda ochiladi — to'q fon, tepada ism va ✕. `Esc`, fonga bosish yoki "Orqaga" yopadi. Xodim oynasidan ochilsa, uning o'rnini egallaydi va "Orqaga" xodim oynasiga qaytaradi.
-- **Avatar kartochkasi:** har qanday joyda (jadval, vazifa oynasi, chat, menyu) avatar ustiga sichqoncha olib borilsa, kichik profil kartochkasi chiqadi: rasm, ism familiya, rol (Boshqarma bo'lsa — boshqarma nomi). Rasm bo'lmasa — bosh harflar.
-- Ism, familiya, Telegram, parolni almashtirish. Dasturchi profilida **"Mening vazifalarim"** jadvali — faqat o'ziga biriktirilgan vazifalar.
+| Rol | Asosiy ish | Muloqot | Kuzatuv |
+|---|---|---|---|
+| **Dasturchi** | Bosh panel · Vazifalar · Mening ishim · Taqvim | Xabarlar · Bildirishnomalar · Takliflar | Umumiy tarix |
+| **PM va Boshliq** | Bosh panel · Loyihalar · Buyurtmalar (TZ) · Vazifalar · Taqvim | Xodimlar · Xabarlar · Bildirishnomalar · Tekshiruv navbati · Takliflar | Umumiy tarix · Qilingan ishlar |
+| **Boshqarma** | Bosh panel · Buyurtmalarim | Xabarlar · Bildirishnomalar · Takliflar | Umumiy tarix |
 
-### Bosh panel (Boshqarma)
+- Menyu pastida foydalanuvchi kartasi (ism, rol; bosilsa Profil ochiladi) va "Chiqish".
+- Yuqorida: qidiruv (`Ctrl K`, kodlar bilan ham), tungi/kunduzgi rejim, bildirishnomalar.
+- Yon panel (drawer) **ishlatilmaydi**: ko'rish, yaratish, tahrirlash — faqat modalda.
+- Manzillar: `/`, `/vazifalar`, `/mening-ishim`, `/taqvim`, `/loyihalar`, `/buyurtmalar`, `/xodimlar`, `/tekshiruv`, `/xabarlar`, `/bildirishnomalar`, `/takliflar`, `/tarix`, `/qilingan-ishlar`, `/profil`. Rolga tegishli bo'lmagan sahifa ochilmaydi.
+
+### Bosh panel — PM va Boshliq
+- Tepada salomlashish va asosiy amallar: Xodimlar, (yangi buyurtma bo'lsa) Buyurtmalar, Yangi loyiha, **Yangi vazifa**.
+- Davr kartalari: **Yil boshidan, Oy boshidan, Hafta boshidan** — har birida Faol, Muddati o'tgan, Bajarilgan.
+- Qo'shimcha kartalar aniq nomlar bilan: **Kechikib bajarilgan**, **Muddati o'tgan**, **Tekshiruv kutilmoqda**.
+- Kirganda **"Hafta boshidan — Faol"** vazifalar jadvali darrov ochiq turadi (boshqa kartani bossa almashadi, "Yopish" bilan yopiladi).
+- Kartani bossa, filtrli vazifalar jadvali ochiladi: qidiruv, muddat, sana oralig'i (**Sanadan** / **Sanagacha**), holat, xodim. "Loyiha" filtri vazifalar jadvallarida yo'q (foydalanuvchi qarori). Telefonda qidiruvdan boshqa filtrlar "Filtrlar" tugmasi ortida.
+
+### Bosh panel — Dasturchi
+- Xuddi shu tuzilma, sonlar faqat shu dasturchining o'z vazifalari bo'yicha.
+
+### Bosh panel — Boshqarma
 - Salomlashish, boshqarma nomi, "Yangi buyurtma" va "Buyurtmalarim" tugmalari.
-- Davr kartalari (boshqa bosh panellar bilan bir xil ko'rinish): **Yil boshidan, Oy boshidan, Hafta boshidan** — har birida **Yuborilgan** (shu davrda yuborilgan), **Rad etilgan** va **Tasdiqlangan** (shu davrda qaror chiqqan, loyiha bo'lganlari bilan). Raqam bosilsa pastdagi ro'yxat shu buyurtmalar bilan filtrlanadi.
+- Davr kartalari (boshqa bosh panellar bilan bir xil ko'rinish, umumiy `PeriodCards`): **Yil boshidan, Oy boshidan, Hafta boshidan** — har birida **Yuborilgan** (shu davrda yuborilgan), **Rad etilgan** va **Tasdiqlangan** (shu davrda qaror chiqqan, loyiha bo'lganlari bilan). Raqam bosilsa pastdagi ro'yxat shu buyurtmalar bilan filtrlanadi (son va ro'yxat bitta qoidadan: `orders/filters.py`, davr boshlanishi: `core/periods.py`).
 - Holat kartalari: Yuborilgan, Rad etilgan, Tasdiqlangan (loyiha bo'lganlari bilan). Bosilsa pastdagi ro'yxat filtrlanadi.
 - Pastda faqat o'z buyurtmalari jadvali. Qo'shimcha eslatma matnlari chiqmaydi (foydalanuvchi qarori).
 
-### Bosh panel (Dasturchi)
-Xuddi shu tuzilma, sonlar faqat shu dasturchining o'z vazifalari bo'yicha.
-Vazifalar sahifasi va Ctrl K qidiruvida ham dasturchiga faqat o'ziga biriktirilgan vazifalar chiqadi. Faqat sub-vazifasi biriktirilgan boshqa vazifa ro'yxatda chiqmaydi, lekin ochib sub-vazifani bajarish mumkin.
+### Vazifalar (`/vazifalar`)
+- Vazifalar jadvali: qidiruv (kodlar bilan ham), muddat, sana oralig'i, holat, xodim filtrlari. Telefonda filtrlar "Filtrlar" tugmasi ortida, jadvalda holat va muddat sarlavha ostida ko'rinadi.
+- Dasturchiga **faqat o'ziga biriktirilgan** vazifalar chiqadi (Ctrl K qidiruvida ham). Faqat sub-vazifasi biriktirilgan boshqa vazifa ro'yxatda chiqmaydi, lekin ochib sub-vazifani bajarish mumkin. Qoida bitta joyda: `tasks/permissions.py` → `listed_tasks`.
 
-### Mening ishim (Dasturchi)
-- "+ Yangi vazifa" tugmasi, filtrlar (loyiha, muddat: Bugun / Shu hafta / Hammasi).
+### Mening ishim (`/mening-ishim`, Dasturchi)
+- "+ Yangi vazifa" tugmasi, filtrlar: loyiha, muddat (Bugun / Shu hafta / Hammasi).
 - Doska ustunlari — holatlar: **Nazoratda | Jarayonda | Tekshiruvda | Bajarildi**.
 - Vazifani **sichqoncha bilan sudrab** ustunlar orasida o'tkazish mumkin.
-- **Tekshiruvda** ustuniga tashlanganda "Nima qildingiz?" modali ochiladi (izoh, fayl).
+- **Tekshiruvda** ustuniga tashlanganda "Nima qildingiz?" oynasi ochiladi (izoh, fayl).
 - **Bajarildi** ustuniga dasturchi tashlay olmaydi, uni faqat PM tasdiqlaydi.
 - Sudrab bo'lmaydigan holat uchun kartada "⋯" menyu (klaviatura bilan).
 - Xato bo'lsa o'zgarish orqaga qaytariladi, "Bekor qilish" xabari chiqadi.
 
-### Boshliq
-- `/xodimlar` sahifasida barcha xodimlarni va ularning nima qilayotganini ko'radi.
-- Barcha loyihalar, buyurtmalar, vazifalarni ko'radi va boshqaradi (PM huquqlari + hammasi).
-- Loyiha, vazifa va buyurtmaga izoh yozadi.
-
-### Xodimlar (/xodimlar)
-- Barcha jamoa a'zolari (dasturchilar, menejerlar) ro'yxati, bandligi, faol/kechikkan vazifalari.
-- Bo'sh (vazifasi yo'q) xodimga to'g'ridan-to'g'ri vazifa berish tugmasi.
-- Vazifa doirasida sub-tasklar ochilib, ularga boshqa xodimlar biriktiriladi.
-- Xodimni bossa, uning oynasi (modal) ochiladi: statistika, joriy ishlari, vazifa berish.
-
-### Taqvim (Dasturchi, PM, Boshliq)
+### Taqvim (`/taqvim`, Dasturchi, PM, Boshliq)
 - Oylik ko'rinish: vazifalar tugash sanasi bo'yicha va **loyihalarning tugash sanasi** (binafsha belgi, bayroqcha bilan; dasturchi faqat o'z loyihalarini ko'radi).
-- **Kunni bosganda** shu kun ro'yxati modalda ochiladi: shu kuni tugaydigan loyihalar va shu kungi vazifalar.
-- Ro'yxatdagi vazifa (yoki loyiha) bosilsa, kun modali o'rniga uning modali ochiladi (modal ustida modal yo'q); "Orqaga" yoki ✕ kun ro'yxatiga qaytaradi.
-- Kundagi vazifa/loyiha belgisini to'g'ridan-to'g'ri bossa ham o'z modali ochiladi; "yana N ta" — kun ro'yxatini ochadi.
+- **Kun bosilsa** "Taqvim kuni" oynasi ochiladi: shu kuni tugaydigan loyihalar va shu kungi vazifalar.
+- Ro'yxatdagi vazifa (yoki loyiha) bosilsa, kun oynasi o'rniga uning oynasi ochiladi (modal ustida modal yo'q); "Orqaga" yoki ✕ kun ro'yxatiga qaytaradi.
+- Kundagi vazifa/loyiha belgisini to'g'ridan-to'g'ri bossa ham o'z oynasi ochiladi; "yana N ta" kun ro'yxatini ochadi.
 
-### Telegram bildirishnomalari
-- Bot: **@taskbildirishnomasi_bot** (`https://t.me/taskbildirishnomasi_bot`). Profildagi Telegram maydoni izohida botga havola bor (bot nomi serverdan, `/api/meta/` → `telegram_bot`).
+### Loyihalar (`/loyihalar`, PM, Boshliq)
+- Loyihalar ro'yxati: qidiruv, daraja filtri, har birida jarayon ("5 / 12 vazifa bajarildi") va "Buyurtmadan" belgisi. Eng yangisi tepada.
+- "Yangi loyiha" — 3 qadamli yaratish oynasi (5-bo'lim). Loyiha bosilsa loyiha oynasi ochiladi.
+
+### Buyurtmalar (`/buyurtmalar`)
+- PM/Boshliq uchun "Buyurtmalar (TZ)", Boshqarma uchun "Buyurtmalarim" (faqat o'z buyurtmalari).
+- Filtrlar: **Hammasi** (birinchi, standart tanlangan) · Yangi · Tasdiqlangan · Rad etilgan · Loyiha bo'lgan.
+
+### Xodimlar (`/xodimlar`, PM, Boshliq)
+- Barcha jamoa a'zolari (dasturchilar, menejerlar): bandligi, faol va kechikkan vazifalari, hozir nima qilayotgani. Vazifasi yo'qlar birinchi turadi.
+- Bo'sh (vazifasi yo'q yoki yuklamasi kam) xodimga to'g'ridan-to'g'ri vazifa berish tugmasi.
+- Vazifa sub-vazifalarga ajratilib, ularga boshqa xodimlar biriktiriladi.
+- Xodim bosilsa, xodim oynasi ochiladi: profil sarlavhasi, statistika, joriy ishlari, vazifa berish.
+
+### Tekshiruv navbati (`/tekshiruv`, PM, Boshliq)
+- Tekshiruvga yuborilgan vazifalar ro'yxati, kim yuborgani bilan. "Ko'rib chiqish" vazifa oynasini ochadi, qabul qilish yoki qaytarish shu yerda. Menyuda kutayotganlar soni ko'rinadi.
+
+### Xabarlar (`/xabarlar`)
+- Foydalanuvchilar orasida shaxsiy yozishma. Chapda suhbatlar ro'yxati va ism bo'yicha qidiruv, o'ngda suhbat. Telefonga moslangan.
+- Rolsiz akkaunt ro'yxatda chiqmaydi, suhbatda oxirgi 200 xabar ko'rsatiladi.
+
+### Bildirishnomalar (`/bildirishnomalar`)
+- Kun bo'yicha guruhlangan (Bugun, Kecha, sana), har bir turning o'z rangli ikonkasi bor, o'qilmaganlar ajratib ko'rsatiladi.
+- Sarlavha ostida o'qilmaganlar soni, "Hammasi / O'qilmagan" filtri, "Hammasini o'qildi deb belgilash". Bosilsa tegishli oyna ochiladi.
+- Turlari: yangi buyurtma, buyurtma tasdiqlandi, buyurtma rad etildi, yangi TZ versiyasi, vazifa berildi, tekshiruvga yuborildi, vazifa qabul qilindi, vazifa qaytarildi, yangi izoh.
+
+### Takliflar (`/takliflar`, hamma)
+- Tizimni yaxshilash bo'yicha g'oyalar. Taklif ochiq yoki **anonim** yuboriladi (sarlavha va matn).
+- Hamma ovoz beradi (Yoqlaydi / Qarshi). Qarorni faqat **Boshliq** chiqaradi (izoh bilan).
+- Holatlar: **Ko'rib chiqilmoqda → Qabul qilingan / Rad etilgan**. Taklif tahrirlanmaydi.
+
+### Umumiy tarix (`/tarix`, hamma)
+- Tizimdagi amallar lentasi (kim nima qildi va qachon), qidiruv bilan. PM va Boshliq hammaning amallarini, qolganlar faqat o'z amallarini ko'radi.
+
+### Qilingan ishlar (`/qilingan-ishlar`, PM, Boshliq)
+- 3 ta tab: **Vazifalar** (bajarilgan vazifalar, ijrochilar va sanasi), **Tekshiruvlar** (kim yubordi, kim tekshirdi, qaror, izoh), **Tarix**. Loyiha va oxirgi necha kun bo'yicha filtr, sahifalash.
+
+### Profil (`/profil`)
+- Barcha profillar bir xil ko'rinishda (o'z profilim va xodim oynasi): umumiy `ProfileHeader` (avatar, ism, lavozim, 4 ko'rsatkich: faol, kechikkan, tekshiruvda, bajarilgan) va umumiy vazifalar jadvali (`TaskTable`). "Faol" soni hamma joyda bir xil qoida bilan hisoblanadi.
+- Ism, familiya, Telegram username, parolni almashtirish. Telegram username o'zgarsa, eski chat uziladi (botga `/start` qayta yuboriladi).
+- Dasturchi profilida **"Mening vazifalarim"** jadvali — faqat o'ziga biriktirilgan vazifalar.
+- **Profil rasmi:** "Rasm yuklash" (keyin "Rasmni almashtirish" / "Rasmni o'chirish"). JPG, PNG yoki WEBP, 5 MB gacha. Server rasmni tekshiradi, 1024px gacha kichraytiradi, joylashuv kabi ichki ma'lumotlarni (EXIF) o'chiradi. Rasm faqat tizimga kirganlarga ko'rinadi.
+- **Rasmni ko'rish:** profil sarlavhasidagi rasm (o'z profilim va xodim oynasi) bosilsa, Telegram kabi to'liq ekranda ochiladi: to'q fon, tepada ism va ✕. `Esc`, fonga bosish yoki "Orqaga" yopadi. Xodim oynasidan ochilsa, uning o'rnini egallaydi va "Orqaga" xodim oynasiga qaytaradi.
+- **Avatar kartochkasi:** har qanday joyda (jadval, vazifa oynasi, chat, menyu) avatar ustiga sichqoncha olib borilsa, kichik profil kartochkasi chiqadi: rasm, ism familiya, rol (Boshqarma bo'lsa, boshqarma nomi). Rasm bo'lmasa, bosh harflar. Kartochka modal emas.
+
+### Izohlar
+- Buyurtma, loyiha va vazifa oynalarida izohlar bo'limi bor. Izoh yozilsa, ishtirokchilarga bildirishnoma boradi va umumiy tarixga yoziladi.
+
+## 8. Telegram bildirishnomalari
+
+- Bot: **@taskbildirishnomasi_bot** (`https://t.me/taskbildirishnomasi_bot`). Profildagi Telegram maydoni izohida botga havola bor (bot nomi serverdan: `/api/meta/` → `telegram_bot`).
 - Ro'yxatdan o'tishda Telegram username (`@username`) yoziladi. Bitta username faqat bitta akkauntda bo'ladi (ro'yxatdan o'tishda ham, profilda ham tekshiriladi).
 - Foydalanuvchi botga `/start` yozadi → akkaunti topilsa (faol, username bitta akkauntda), chat bog'lanadi.
-- Shundan keyin tizimdagi har bir bildirishnoma Telegram'ga ham yuboriladi (amal muvaffaqiyatli saqlangandan keyin).
-- Token va bot nomi: `backend/.env` (`TELEGRAM_BOT_TOKEN`, `TELEGRAM_BOT_USERNAME`; gitga tushmaydi) yoki muhit o'zgaruvchilari. Token bo'sh bo'lsa Telegram o'chiq, tizim odatdagidek ishlaydi.
+- Shundan keyin tizimdagi har bir bildirishnoma Telegram'ga ham yuboriladi — faqat amal bazaga muvaffaqiyatli saqlangandan keyin, vaqt chegarasi (timeout) bilan.
+- Token va bot nomi: `backend/.env` (`TELEGRAM_BOT_TOKEN`, `TELEGRAM_BOT_USERNAME`) yoki muhit o'zgaruvchilari. `.env` gitga tushmaydi va **hech qachon commit qilinmaydi**. Token bo'sh bo'lsa Telegram o'chiq, tizim odatdagidek ishlaydi.
 - Bot (`runbot`) server bilan birga avtomatik ishga tushadi (`backend/start_server.bat`, log: `backend/bot.log`). Logga token yozilmaydi.
 - Bitta token bilan faqat **bitta** bot jarayoni ishlashi mumkin: boshqa joyda ham ishlasa, logda "409" chiqadi va `/start` xabarlari o'sha joyga ketadi.
 
-### Kodlar
-Vazifa va loyihalarning qisqa kodi bor: `TSK-12`, `PRJ-3`. Kod ro'yxatlarda, doskada, tekshiruv navbatida va modallar sarlavhasida ko'rinadi.
-- Ctrl K qidiruvida kod yozilsa (`TSK-12`, `tsk12`, `PRJ-3`) — aynan o'sha vazifa yoki loyiha darrov chiqadi (ko'rish huquqi bo'lsa).
-- Vazifalar jadvali qidiruvida `TSK-12` — shu vazifa, `PRJ-3` — shu loyihaning vazifalari.
-
-## 8. Modallar (amalda: 11 ta)
+## 9. Modallar (amalda: 11 ta)
 
 Ko'rish, yaratish, tahrirlash — hammasi modalda. Batafsil: `docs/FLOWS_MODALS.md`.
-1. Buyurtma yaratish · 2. Buyurtma ko'rish · 3. Loyiha yaratish · 4. Loyiha ko'rish/tahrirlash · 5. Vazifa yaratish/tahrirlash · 6. Vazifa ko'rish (tekshiruv shu yerda) · 7. Xodim profili · 8. Taklif yaratish · 9. Taklif ko'rish · 10. Taqvim kuni · 11. Rasm ko'rish.
+
+| # | Modal | # | Modal |
+|---|---|---|---|
+| 1 | Buyurtma yaratish | 7 | Xodim profili |
+| 2 | Buyurtma ko'rish (tasdiqlash / rad etish shu yerda) | 8 | Taklif yaratish |
+| 3 | Loyiha yaratish (3 qadam) | 9 | Taklif ko'rish |
+| 4 | Loyiha ko'rish / tahrirlash | 10 | Taqvim kuni |
+| 5 | Vazifa yaratish / tahrirlash (ommaviy yaratish ham) | 11 | Rasm ko'rish |
+| 6 | Vazifa ko'rish (tekshiruv shu yerda) | | |
+
 Word ko'rish alohida modal emas — joriy modal ichini almashtiradi ("← Orqaga").
 
-Modal qoidalari: sarlavha + ✕ tepada, tugmalar paneli pastda doim ko'rinadi, modal ustida modal ochilmaydi, manzil satriga yozilmaydi (manzil toza qoladi, masalan `/qilingan-ishlar`; "Orqaga" modalni yopadi), `Esc` yopadi, telefonda butun ekran.
+**Modal qoidalari:**
+- Tepada sarlavha va ✕, o'rtada aylanuvchi tarkib, pastda doim ko'rinadigan tugmalar paneli (asosiy amal o'ngda, xavfli amal chapda).
+- **Modal ustida modal ochilmaydi.** Ichki amal (rad etish sababi, sana kiritish) modal ichidagi pastki panelda bajariladi.
+- Manzil satriga yozilmaydi: manzil toza qoladi (masalan `/qilingan-ishlar`, `?task=4` emas). Modal holati brauzer tarixida: "Orqaga" yopadi, sahifa yangilansa qayta ochiladi. Eski `?task=4` havolalar ishlaydi va darrov tozalanadi (`frontend/src/app/modals.tsx`).
+- `Esc` yopadi, fokus modal ichida qoladi, saqlanmagan o'zgarish bo'lsa so'raydi. Telefonda butun ekran.
+- Tugmalar rolga va holatga qarab chiqadi, keraksiz tugma ko'rsatilmaydi.
 
-## 9. Flow cheklovi
+## 10. Flow'lar (amalda: 12 ta)
 
-Bitta bo'limda **3–4 ta flow**, istisnoda **5 ta**. Amalda: 12 ta flow (auth 1, orders 3, projects 1, tasks 3, profil 1, takliflar 1, qilingan ishlar 1, bildirishnomalar 1). Batafsil: `docs/FLOWS_MODALS.md`.
+Cheklov: bitta bo'limda **3–4 ta flow**, istisnoda **5 ta**. Oshsa — flow'lar birlashtiriladi yoki bitta flow ichida holatga qarab UI almashadi.
 
-## 10. Qabul qilingan qarorlar va ochiq savollar
+| Bo'lim | Flow'lar |
+|---|---|
+| auth (1) | Ro'yxatdan o'tish va tasdiqlash |
+| orders (3) | Buyurtma yuborish · Buyurtmani ko'rib chiqish · TZ qayta yuborish (v2, v3…) |
+| projects (1) | Loyiha yaratish |
+| tasks (3) | Vazifa yaratish va biriktirish · Vazifani bajarish · Tekshiruv |
+| profile (1) | Profil tahrirlash (rasm va parol bilan) |
+| suggestions (1) | Takliflar berish va ovoz |
+| history (1) | Qilingan ishlar |
+| notifications (1) | Telegram'ni ulash |
 
-**Qaror sifatida qabul qilinganlar:**
+Batafsil bosqichlar: `docs/FLOWS_MODALS.md`.
+
+## 11. Qabul qilingan qarorlar va ochiq savollar
+
+**Qabul qilingan qarorlar:**
 - **Muhimlik turi:** boshqarma buyurtma yuborganda tanlaydi, PM tasdiqlaganda o'zgartira oladi.
 - **Mas'ul PM:** buyurtmani tasdiqlagan PM avtomatik mas'ul bo'ladi. Dasturchilar loyiha yaratilganda biriktiriladi.
-- **Sub-vazifalar:** kichik qadamlar, har biriga dasturchi biriktirish mumkin.
-- **Xabarlar (Chat):** Foydalanuvchilar orasida shaxsiy yozishma qilish funksiyasi qo'shildi.
-- **Ommaviy vazifalar:** Bir qancha vazifalarni matn shaklida birdan yaratish.
-- **Mutaxassisliklar ro'yxati:** Backend, Frontend, Mobil, UI/UX Dizayner, QA (Tester), Loyiha Menejeri (PM).
-- **Boshqarma rolining yon paneli:** Bosh panel, Buyurtmalarim, Xabarlar, Bildirishnomalar, Takliflar, Umumiy tarix.
-- **Autentifikatsiya usuli:** Cookie / Session asosida (Django REST Framework standard cookie auth).
-- **Fayl turlari va hajm:** .docx, .pdf, .png, .jpg. Hajm chegarasi: 20 MB.
-- **Takliflar bo'limi:** Tizimni yaxshilash bo'yicha g'oyalar (Kutmoqda, Qabul qilingan, Rad etilgan holatlari bilan).
+- **Sub-vazifalar:** kichik qadamlar, har biriga bir nechta dasturchi biriktirish mumkin.
+- **Xabarlar (chat):** foydalanuvchilar orasida shaxsiy yozishma.
+- **Ommaviy vazifalar:** bir nechta vazifani matn shaklida birdaniga yaratish.
+- **Mutaxassisliklar** Django adminda boshqariladi. Demo ro'yxat: Backend dasturchi, Frontend dasturchi, Mobil dasturchi, Dizayner, Tester, Loyiha menejeri, Boshqaruv.
+- **Autentifikatsiya:** Cookie / Session (DRF standart), CSRF himoyasi bilan.
+- **Fayl turlari va hajm:** .docx, .pdf, .png, .jpg, .jpeg — 20 MB gacha. Profil rasmi: JPG, PNG, WEBP — 5 MB gacha.
+- **Takliflar bo'limi:** tizimni yaxshilash bo'yicha g'oyalar, qarorni Boshliq chiqaradi.
+- **Yon panel (drawer) yo'q** — foydalanuvchini chalg'itmasligi uchun faqat modal va sahifalar.
+- **"To'xtab qolgan" vazifa holati yo'q.**
+- **Vazifalar filtrida "Loyiha" va "Oy yarmi" yo'q** — o'rniga "Sanadan / Sanagacha" oralig'i.
 
-## 11. Ishga tushirish yo'riqnomasi va Demo loginlar
+**Ochiq savollar:** hozircha yo'q.
 
-### Demo foydalanuvchilar (parol: `Demo-parol-2026`)
+## 12. Xavfsizlik
+
+- Parollar Django parol hesh mexanizmi bilan saqlanadi. Kirish so'rovlari cheklangan (throttle).
+- Har bir API so'rovda rol va egalik **serverda** tekshiriladi: boshqarma faqat o'z buyurtmasini, dasturchi faqat o'z vazifasi va loyihasini ko'radi.
+- Buyurtma yuborilgach boshqarma uni tahrirlay ham, o'chira ham olmaydi.
+- Fayl yuklashda tur va hajm tekshiriladi. Yuklangan fayllar ochiq berilmaydi — faqat `/api/files/...` orqali ruxsat tekshiruvi bilan. Profil rasmlari — `/api/avatars/<id>/`, faqat tizimga kirganlarga.
+- Maxfiy ma'lumotlar (`DJANGO_SECRET_KEY`, Telegram token) muhit o'zgaruvchilarida yoki `backend/.env` da; `DEBUG=0` bo'lganda maxfiy kalitsiz server ishga tushmaydi.
+
+## 13. Ishga tushirish va demo loginlar
+
+### Demo foydalanuvchilar
+
+`seed_demo` buyrug'i yaratadi (faqat `DEBUG` rejimida). Parol hammasida: `Demo-parol-2026`.
 
 | Login | Ism | Rol | Mutaxassislik / Boshqarma |
 |---|---|---|---|
@@ -233,46 +350,85 @@ Bitta bo'limda **3–4 ta flow**, istisnoda **5 ta**. Amalda: 12 ta flow (auth 1
 | `malika` | Malika Karimova | Dasturchi | Frontend dasturchi |
 | `bobur` | Bobur Rahimov | Dasturchi | Mobil dasturchi |
 | `it_boshqarma` | Shoxrux Hamidov | Boshqarma | Axborot texnologiyalari boshqarmasi |
-| `admin` | Administrator | Superuser | Django admin (parol: `Admin-parol-2026`) |
 
-### Ishga tushirish buyruqlari
+Django admin (`/admin/`): lokal bazada `admin` superuser (parol: `Admin-parol-2026`). Yangi bazada `createsuperuser` bilan yaratiladi — `seed_demo` uni yaratmaydi.
 
-**1. Backend (Django REST Framework):**
+### 1. Backend
+
 ```bash
 cd backend
-.venv\Scripts\python manage.py migrate
-.venv\Scripts\python manage.py seed_demo                  # demo ma'lumotlarni yuklash
+.venv\Scripts\python -m pip install -r requirements.txt   # bog'liqliklar
+.venv\Scripts\python manage.py migrate                    # baza
+.venv\Scripts\python manage.py createsuperuser            # admin (Boshliqni adminda yaratish uchun)
+.venv\Scripts\python manage.py seed_demo                  # demo ma'lumotlar
 .venv\Scripts\python manage.py runserver 127.0.0.1:8020   # http://127.0.0.1:8020/
-.venv\Scripts\python manage.py test                       # testlarni yurgizish (157 ta)
-.venv\Scripts\python manage.py runbot                     # Telegram bot (token backend\.env da; start_server.bat o'zi ishga tushiradi)
+.venv\Scripts\python manage.py test                       # testlar (157 ta)
+.venv\Scripts\python manage.py makemigrations --check --dry-run   # sxema mosligi
+.venv\Scripts\python manage.py runbot                     # Telegram bot (token backend\.env da)
 ```
 
-**2. Frontend — Ishlab chiqish (Vite dev server):**
+### 2. Frontend — ishlab chiqish
+
 ```bash
 cd frontend
 npm install
-npx vite                                                  # http://127.0.0.1:5173/
-npx tsc --noEmit -p .                                     # tur tekshiruvi
-npx vitest run                                            # testlar (44 ta: jsdom + Testing Library)
+npx vite                  # http://127.0.0.1:5173/ (API so'rovlari 8020 ga proksi qilinadi)
+npx tsc --noEmit -p .     # TypeScript tur tekshiruvi
+npx vitest run            # testlar (44 ta: jsdom + Testing Library)
 ```
 
-**3. Ishlab chiqarish (Production build — Node talab etilmaydi):**
+### 3. Production build (ishlashi uchun Node kerak emas)
+
 ```bash
 cd frontend
-npx vite build                                            # frontend/dist ga build qiladi
+npx vite build            # frontend/dist ga yig'adi
 ```
-Frontend Django orqali to'g'ridan-to'g'ri `http://127.0.0.1:8020/` manzilida ochiladi.
 
-**4. Avtomatik ishga tushirish (Windows):** kompyuterga kirilganda `Startup` papkasidagi `TeamFlow.vbs` yashirin oynada `backend/start_server.bat` ni ishga tushiradi → `http://127.0.0.1:8020/`. Log: `backend/server.log`. O'chirish: `shell:startup` papkasidan `TeamFlow.vbs` ni o'chiring. Frontend o'zgarsa, `npx vite build` qilish kerak. Backend kodi o'zgarsa, server qayta ishga tushiriladi (avtoishga tushirish `--noreload` bilan ishlaydi): `shell:startup\TeamFlow.vbs` ni qayta bosing yoki kompyuterni qayta yoqing.
+Build'dan keyin frontend Django orqali `http://127.0.0.1:8020/` manzilida ochiladi.
 
-## 12. UX maqsadi
+### 4. Avtomatik ishga tushirish (Windows)
 
-Auditoriya **18–40 yosh**. Interfeys ko'rgan zahoti tushunarli bo'lishi kerak: oddiy o'zbekcha so'zlar, har ekranda bitta asosiy amal, ikonka doim matn bilan, tanish naqshlar (doska, sudrab o'tkazish, qidiruv), bo'sh holatda keyingi qadam tushuntiriladi, xatoda nima qilish kerakligi yoziladi. Batafsil qoidalar: `CLAUDE.md` 4-bo'lim.
+- Kompyuterga kirilganda `Startup` papkasidagi `TeamFlow.vbs` yashirin oynada `backend/start_server.bat` ni ishga tushiradi → `http://127.0.0.1:8020/`. Server logi: `backend/server.log`, bot logi: `backend/bot.log`.
+- O'chirish: `shell:startup` papkasidan `TeamFlow.vbs` ni o'chiring.
+- Frontend o'zgarsa, `npx vite build` qilish kerak.
+- Backend kodi o'zgarsa, server qayta ishga tushiriladi (avtoishga tushirish `--noreload` bilan ishlaydi): `shell:startup\TeamFlow.vbs` ni qayta bosing yoki kompyuterni qayta yoqing.
 
-## 13. Ish qoidalari
+### 5. Qaytarish nuqtalari (git tag)
+
+Har doim avvalgi holatga qaytish imkoniyati saqlanadi: `v1.0-baseline`, `ui-before-restyle` (UI uslubi yangilanishidan oldin), `before-multi-assignee` (bir nechta ijrochidan oldin).
+
+## 14. Papka tuzilmasi
+
+```
+backend/    Django: config/ (settings, urls), apps/ (core, accounts, orders, projects,
+            tasks, notifications, panel, chat, suggestions), start_server.bat
+frontend/   React + TS: src/app (marshrut, menyu, modallar), src/features (sahifalar),
+            src/shared (UI komponentlar, text.ts, styles.css, types)
+docs/       ARCHITECTURE.md, FLOWS_MODALS.md
+```
+
+- Har bir app ichidagi qatlamlar: `models`, `workflow`, `services`, `permissions`, `serializers`, `api`, `admin`, `tests` (batafsil: `docs/ARCHITECTURE.md` 3-bo'lim).
+- Holat o'tishlari faqat `apps/*/workflow.py` jadvallarida. Kim nimani ko'rishi — `apps/*/permissions.py`.
+- UI matnlari bitta joyda: `frontend/src/shared/text.ts`. Ranglar va o'lchamlar — `styles.css` tokenlari, sanalar — `formatDate`.
+- Vaqtinchalik skriptlar: `backend/scratch/`, `frontend/scratch/`, `docs/scratch/` (ildizda faqat `backend`, `frontend`, `docs` va hujjatlar).
+
+## 15. UX maqsadi
+
+Auditoriya **18–40 yosh**. Interfeys ko'rgan zahoti tushunarli, o'qitish kerak emas:
+- qisqa va oddiy o'zbekcha so'zlar, texnik atama yo'q;
+- har ekranda bitta asosiy amal, ikonka doim matn bilan;
+- tanish naqshlar: doska, sudrab o'tkazish, qidiruv;
+- bo'sh holatda keyingi qadam tushuntiriladi, xatoda nima qilish kerakligi yoziladi;
+- muddat rang va matn bilan ("5 kun qoldi"), bo'sh maydonlar yashiriladi;
+- yuklanganda skeleton, xato maydon yonida; 8px setka, bitta asosiy rang, tungi/kunduzgi rejim, telefonda ishlaydi;
+- SaaS darajasidagi zamonaviy, sodda ko'rinish, keraksiz bezak va uzun matn yo'q.
+
+Batafsil qoidalar: `CLAUDE.md` 4-bo'lim. Dizayn oldingi loyiha skrinshotlaridan nusxa ko'chirilmaydi.
+
+## 16. Ish qoidalari
 
 - "Boshla" degunicha kod yozilmaydi.
-- Faqat foydalanuvchi aytgan narsa qilinadi, o'zboshimchalik yo'q.
-- Yangi talablar `CLAUDE.md`/`GEMINI.md` 13-bo'limiga va shu `README.md` ga qo'shiladi.
-- Dizayn oldingi loyiha skrinshotlaridan nusxa ko'chirilmaydi.
-- Vazifa tafsilotlari bitta katta, mobilga mos modalda bo'limlarga ajratiladi; ommaviy taqsimlash va ish jurnali ham shu oqimda ishlaydi.
+- Faqat foydalanuvchi aytgan narsa qilinadi, o'zboshimchalik yo'q. Taklif bo'lsa, avval aytiladi.
+- Yangi talablar `CLAUDE.md` / `GEMINI.md` 13-bo'limiga sana bilan va shu `README.md` ga qo'shiladi. Noaniq narsa "Ochiq savollar" ga yoziladi.
+- Yangi flow yoki modal `docs/FLOWS_MODALS.md` ga yoziladi, cheklov haqida foydalanuvchiga aytiladi.
+- Commit va push faqat foydalanuvchi so'raganda.
