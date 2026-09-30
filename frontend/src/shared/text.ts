@@ -74,6 +74,7 @@ export const T = {
     searchPlaceholder: "Vazifa, loyiha yoki odamni qidiring",
     profile: "Profil",
     workDone: "Qilingan ishlar",
+    messages: "Xabarlar",
   },
 
   auth: {
@@ -154,6 +155,8 @@ export const T = {
     person: "Xodim",
     personPh: "Xodim ismi",
     allProjects: "Barcha loyihalar",
+    toggle: "Filtrlar",
+    clear: "Filtrni tozalash",
   },
 
   tasks: {
@@ -200,6 +203,15 @@ export const T = {
     acceptedToast: "Vazifa qabul qilindi",
     returnedToast: "Vazifa qaytarildi",
     deletedToast: "Vazifa o'chirildi",
+    info: "Ma'lumotlar",
+    createdByShort: "Yaratdi",
+    noFiles: "Fayllar yo'q",
+    worklog: (hours: number) => `Ish jurnali (${hours} soat)`,
+    worklogHours: "Sarflangan soat",
+    worklogPh: "Bugun nima qildingiz?",
+    worklogSave: "Qayd etish",
+    worklogEmpty: "Hali ish qayd etilmagan. Qilgan ishingizni va sarflangan vaqtni yozib boring.",
+    worklogItem: (hours: number) => `${hours} soat`,
   },
 
   board: {
@@ -408,5 +420,18 @@ export const T = {
     sentToast: "Taklif yuborildi",
     votedToast: "Ovoz berildi",
     decidedToast: "Qaror qabul qilindi",
+  },
+  landing: {
+    title: "Jamoangiz bir joyda ishlaydigan platforma",
+    subtitle: "Loyiha oching, jamoani mutaxassisligi bo'yicha yig'ing, vazifalarni bering va hammasini bitta tizimda kuzatib boring.",
+    register: "Ro'yxatdan o'tish",
+    login: "Kirish",
+    features: [
+      { key: "board", title: "Vazifalar doskasi", desc: "Vazifani ustunlar bo'ylab sudrab o'tkazing — kim nima qilayotgani darrov ko'rinadi." },
+      { key: "orders", title: "Boshqarmalar bilan ishlash", desc: "Buyurtmalarni qabul qiling va ularni loyihaga aylantiring." },
+      { key: "review", title: "Ishni tekshirish", desc: "Bajarilgan vazifa menejerga tekshiruvga tushadi, u qabul qiladi yoki qaytaradi." },
+      { key: "history", title: "To'liq tarix", desc: "Kim qachon nima qilgani tarixda saqlanib qoladi." },
+    ],
+    footer: "Barcha huquqlar himoyalangan.",
   },
 } as const;

@@ -11,7 +11,8 @@ import {
   type LucideIcon,
   Users,
   Lightbulb,
-  CheckSquare
+  CheckSquare,
+  MessageCircle,
 } from "lucide-react";
 
 import { T } from "@/shared/text";
@@ -38,7 +39,7 @@ const people: NavItem = { to: "/xodimlar", label: T.nav.people, icon: Users };
 const notifications: NavItem = { to: "/bildirishnomalar", label: T.nav.notifications, icon: Bell, counter: "notifications" };
 const history: NavItem = { to: "/tarix", label: T.nav.history, icon: History };
 const suggestions: NavItem = { to: "/takliflar", label: T.nav.suggestions, icon: Lightbulb };
-const messages: NavItem = { to: "/xabarlar", label: "Xabarlar", icon: Users };
+const messages: NavItem = { to: "/xabarlar", label: T.nav.messages, icon: MessageCircle };
 const workDone: NavItem = { to: "/qilingan-ishlar", label: T.nav.workDone, icon: CheckSquare };
 
 /**

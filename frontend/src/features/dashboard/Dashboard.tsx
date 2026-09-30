@@ -1,5 +1,5 @@
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { AlertTriangle, Clock, Hourglass, FileText, FolderKanban, Plus, Users, ChevronRight, ChevronDown } from "lucide-react";
+import { AlertTriangle, Clock, Hourglass, FileText, FolderKanban, Plus, Users, ChevronRight } from "lucide-react";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 
@@ -20,9 +20,9 @@ interface Selection {
 }
 
 const PERIOD_BUCKETS: { key: "active" | "overdue" | "done"; label: string }[] = [
-  { key: "active", label: "Nazoratda" },
-  { key: "overdue", label: "Muddati o'tgan" },
-  { key: "done", label: "Bajarilganlar" },
+  { key: "active", label: T.dashboard.active },
+  { key: "overdue", label: T.dashboard.overdue },
+  { key: "done", label: T.dashboard.done },
 ];
 
 export default function Dashboard() {
@@ -36,13 +36,6 @@ export default function Dashboard() {
   const pick = (s: Selection) =>
     setSelected((cur) => (cur && cur.bucket === s.bucket && cur.period === s.period ? null : s));
   const isOn = (bucket: Bucket, period?: PeriodKey) => selected?.bucket === bucket && selected?.period === period;
-
-  const getDropdownLabel = (key: string) => {
-    if (key === "year") return new Date().getFullYear().toString();
-    if (key === "month") return new Date().toLocaleString("uz-UZ", { month: "long" });
-    if (key === "week") return "Bu hafta";
-    return "";
-  };
 
   return (
     <>
@@ -80,14 +73,9 @@ export default function Dashboard() {
       <div className="grid-3" style={{ marginBottom: 24 }}>
         {d ? d.periods.map((p) => (
           <div key={p.key} className="card period" style={{ padding: "20px" }}>
-            <div className="row" style={{ justifyContent: "space-between", marginBottom: 16 }}>
-              <div>
-                <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600 }}>{p.label}</h3>
-                <span className="small muted">{fmtDate(p.since)} — bugun</span>
-              </div>
-              <div className="badge" style={{ background: "var(--bg)", border: "1px solid var(--border)", color: "var(--text)" }}>
-                {getDropdownLabel(p.key)} <ChevronDown size={14} style={{ marginLeft: 4 }} />
-              </div>
+            <div style={{ marginBottom: 16 }}>
+              <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600 }}>{p.label}</h3>
+              <span className="small muted">{T.dashboard.since(fmtDate(p.since))}</span>
             </div>
             <div className="period-nums" style={{ display: "flex", gap: 12 }}>
               {PERIOD_BUCKETS.map((b) => {
@@ -115,9 +103,9 @@ export default function Dashboard() {
       <div className="grid-3" style={{ marginBottom: 24 }}>
         {(
           [
-            { bucket: "late", label: "Muddati buzib bajarilgan", icon: Clock, tone: "danger" },
-            { bucket: "overdue", label: "Muddati o'tgan", icon: AlertTriangle, tone: "danger" },
-            { bucket: "review", label: "Kutilmoqda", icon: Hourglass, tone: "primary" },
+            { bucket: "late", label: T.dashboard.late, icon: Clock, tone: "danger" },
+            { bucket: "overdue", label: T.dashboard.overdue, icon: AlertTriangle, tone: "danger" },
+            { bucket: "review", label: T.dashboard.review, icon: Hourglass, tone: "primary" },
           ] as const
         ).map((c) => (
           <button key={c.bucket} className="card total clickable" aria-pressed={isOn(c.bucket)} onClick={() => pick({ bucket: c.bucket, title: c.label })} style={{ padding: "16px 20px", display: "flex", alignItems: "center", gap: 16 }}>
@@ -158,7 +146,7 @@ function SelectedTasks({ selection, onClose, manager, mine }: { selection: Selec
           {selection.title} {query.data && <span className="count-pill soft">{query.data.count}</span>}
         </h3>
         <Button size="sm" onClick={onClose}>
-          Yopish
+          {T.common.close}
         </Button>
       </div>
       <TaskFilters value={filters} onChange={setFilters} showPerson={manager} showStatus={selection.bucket === "active" || selection.bucket === "overdue"} />

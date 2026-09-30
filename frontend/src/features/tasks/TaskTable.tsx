@@ -1,11 +1,12 @@
-import { ListChecks } from "lucide-react";
+import { ListChecks, SlidersHorizontal, X } from "lucide-react";
+import { useState } from "react";
 
 import { useModal } from "@/app/modals";
 import { fmtDateTime } from "@/shared/format";
 import { useMeta } from "@/shared/meta";
 import { T } from "@/shared/text";
 import type { Task } from "@/shared/types";
-import { Due, Empty, Field, People, PriorityBadge, SkeletonRows, TaskStatusBadge } from "@/shared/ui";
+import { Button, Due, Empty, Field, People, PriorityBadge, SkeletonRows, TaskStatusBadge } from "@/shared/ui";
 
 export interface TaskFilterState {
   q: string;
@@ -27,7 +28,8 @@ export const EMPTY_FILTERS: TaskFilterState = {
   assignee_name: "",
 };
 
-/** Vazifa filtrlari: qidiruv, muddat, sanadan/sanagacha, holat, loyiha, xodim. */
+/** Vazifa filtrlari: qidiruv, muddat, sanadan/sanagacha, holat, loyiha, xodim.
+ * Telefonda faqat qidiruv ko'rinadi, qolganlari "Filtrlar" tugmasi ortida — ro'yxat birinchi ekranda ko'rinsin. */
 export function TaskFilters({
   value,
   onChange,
@@ -42,11 +44,18 @@ export function TaskFilters({
   const meta = useMeta();
   const set = <K extends keyof TaskFilterState>(k: K) => (e: { target: { value: string } }) => onChange({ ...value, [k]: e.target.value });
   const dirty = JSON.stringify(value) !== JSON.stringify(EMPTY_FILTERS);
+  const [open, setOpen] = useState(false);
+  const extra = (Object.keys(value) as (keyof TaskFilterState)[]).filter((k) => k !== "q" && value[k]).length;
   return (
-    <div className="filters">
+    <div className={`filters ${open ? "open" : ""}`}>
       <Field label={T.filters.search}>
         {(id) => <input id={id} className="input" placeholder={T.filters.searchPh} value={value.q} onChange={set("q")} />}
       </Field>
+      <button type="button" className="btn filters-toggle" aria-expanded={open} onClick={() => setOpen((o) => !o)}>
+        <SlidersHorizontal size={16} /> {T.filters.toggle}
+        {extra > 0 && <span className="count-pill">{extra}</span>}
+      </button>
+      <div className="filters-more">
       <Field label={T.filters.due}>
         {(id) => (
           <select id={id} className="select" value={value.due} onChange={set("due")}>
@@ -97,10 +106,11 @@ export function TaskFilters({
           {(id) => <input id={id} className="input" placeholder={T.filters.personPh} value={value.assignee_name} onChange={set("assignee_name")} />}
         </Field>
       )}
-      <div className="field" style={{ justifyContent: "flex-end", display: "flex", paddingTop: 22 }}>
-        <button className="btn" style={{ background: "var(--violet)", color: "white", borderColor: "var(--violet)" }} onClick={() => onChange(EMPTY_FILTERS)} disabled={!dirty}>
-          <ListChecks size={16} /> {T.common.clear}
-        </button>
+      {dirty && (
+        <Button variant="ghost" icon={<X />} onClick={() => onChange(EMPTY_FILTERS)}>
+          {T.filters.clear}
+        </Button>
+      )}
       </div>
     </div>
   );
@@ -118,10 +128,10 @@ export function TaskTable({ tasks, loading, emptyHint }: { tasks: Task[] | undef
           <tr>
             <th style={{ width: 40 }}>№</th>
             <th>{T.tasks.col.title}</th>
-            <th>{T.tasks.col.status}</th>
-            <th>{T.tasks.col.priority}</th>
-            <th>{T.tasks.col.assignees}</th>
-            <th>{T.tasks.col.due}</th>
+            <th className="hide-sm">{T.tasks.col.status}</th>
+            <th className="hide-sm">{T.tasks.col.priority}</th>
+            <th className="hide-sm">{T.tasks.col.assignees}</th>
+            <th className="hide-sm">{T.tasks.col.due}</th>
           </tr>
         </thead>
         <tbody>
@@ -139,17 +149,21 @@ export function TaskTable({ tasks, loading, emptyHint }: { tasks: Task[] | undef
                   {t.project.name}
                   {t.description && ` · ${t.description}`}
                 </div>
+                <div className="row-wrap show-sm" style={{ marginTop: 8 }}>
+                  <TaskStatusBadge status={t.status} />
+                  <Due value={t.due_at} done={t.status === "done"} format={fmtDateTime} />
+                </div>
               </td>
-              <td>
+              <td className="hide-sm">
                 <TaskStatusBadge status={t.status} />
               </td>
-              <td>
+              <td className="hide-sm">
                 <PriorityBadge priority={t.priority} />
               </td>
-              <td style={{ maxWidth: 220 }}>
+              <td className="hide-sm" style={{ maxWidth: 220 }}>
                 <People users={t.assignees} />
               </td>
-              <td>
+              <td className="hide-sm">
                 <Due value={t.due_at} done={t.status === "done"} format={fmtDateTime} />
               </td>
             </tr>

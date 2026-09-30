@@ -106,6 +106,11 @@ if "test" in sys.argv:  # testlar haqiqiy media papkaga yozmasin
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
+# Telegram bildirishnomalari: token muhit o'zgaruvchisidan. Bo'sh bo'lsa, Telegram'ga hech narsa yuborilmaydi.
+TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "")
+if "test" in sys.argv:
+    TELEGRAM_BOT_TOKEN = ""  # testlar tashqi tarmoqqa chiqmasin
+
 # Yuklanadigan fayllar (apps.core.files)
 UPLOAD_ALLOWED_EXTENSIONS = ["docx", "pdf", "png", "jpg", "jpeg"]
 UPLOAD_MAX_MB = 20

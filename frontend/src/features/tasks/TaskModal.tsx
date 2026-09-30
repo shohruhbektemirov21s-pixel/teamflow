@@ -1,11 +1,8 @@
-import { useMe } from '@/app/auth';
 import { useMutation, useQuery } from "@tanstack/react-query";
 import {
-  
-  
+  CalendarClock,
   CheckCircle2,
   Clock3,
-  
   FolderKanban,
   Pencil,
   Play,
@@ -24,10 +21,10 @@ import { useRefresh } from "@/app/queries";
 import { DocTitle, DocViewer } from "@/features/docs/DocViewer";
 import { Comments } from "@/features/comments/Comments";
 import { api, ApiError, formData } from "@/shared/api";
-import { fmtDateTime, timeAgo } from "@/shared/format";
+import { fmtDate, fmtDateTime, timeAgo } from "@/shared/format";
 import { useMeta } from "@/shared/meta";
 import { T } from "@/shared/text";
-import type { FileInfo, ProjectDetail, TaskDetail } from "@/shared/types";
+import type { FileInfo, ProjectDetail, TaskDetail, WorkLog } from "@/shared/types";
 import {
   Avatar,
   Badge,
@@ -57,7 +54,6 @@ export default function TaskModal({ id, submitMode }: { id: number; submitMode?:
   const toast = useToast();
   const refresh = useRefresh();
   const meta = useMeta();
-  const me = useMe();
   const query = useQuery({ queryKey: ["task", id], queryFn: () => api.get<TaskDetail>(`/tasks/${id}/`) });
   const task = query.data;
 
@@ -433,29 +429,29 @@ export default function TaskModal({ id, submitMode }: { id: number; submitMode?:
             )}
 
             <details className="details-section" open={Number(task.worklog_hours) > 0}>
-              <summary>Ish jurnali ({task.worklog_hours} soat)</summary>
+              <summary>{T.tasks.worklog(Number(task.worklog_hours))}</summary>
               <div className="details-content stack">
                 {task.actions.log_work && (
                   <form className="card card-pad row-wrap" onSubmit={(event) => { event.preventDefault(); if (workNote.trim()) worklog.mutate(); }}>
-                    <input className="input" type="number" min="0.01" max="24" step="0.25" style={{ width: 112 }} value={workHours} aria-label="Sarflangan soat" onChange={(event) => setWorkHours(event.target.value)} />
-                    <input className="input grow" placeholder="Bugun nima qildingiz?" value={workNote} onChange={(event) => setWorkNote(event.target.value)} />
+                    <input className="input" type="number" min="0.01" max="24" step="0.25" style={{ width: 112 }} value={workHours} aria-label={T.tasks.worklogHours} onChange={(event) => setWorkHours(event.target.value)} />
+                    <input className="input grow" placeholder={T.tasks.worklogPh} value={workNote} onChange={(event) => setWorkNote(event.target.value)} />
                     <Button type="submit" variant="primary" loading={worklog.isPending} disabled={!workNote.trim()}>
-                      Qayd etish
+                      {T.tasks.worklogSave}
                     </Button>
                   </form>
                 )}
                 {task.worklogs && task.worklogs.length > 0 ? (
                   <div className="stack-sm">
-                    {task.worklogs.map((wl: any) => (
+                    {task.worklogs.map((wl: WorkLog) => (
                       <div key={wl.id} className="row">
-                        <Avatar user={wl.user} size="sm" />
+                        <Avatar user={wl.author} size="sm" />
                         <span className="grow">
-                          <b>{wl.user.full_name}</b> <span className="muted">— {wl.hours} soat</span>
+                          <b>{wl.author.full_name}</b> <span className="muted">— {T.tasks.worklogItem(Number(wl.hours))}</span>
                           <p className="small muted" style={{ margin: 0 }}>{wl.note}</p>
                         </span>
-                        <span className="small muted">{fmtDateTime(wl.created_at)}</span>
-                        {task.actions.log_work && wl.user.id === me?.id && (
-                          <button type="button" className="icon-btn" title="O'chirish" onClick={() => deleteWorklog.mutate(wl.id)}>
+                        <span className="small muted">{fmtDate(wl.work_date)}</span>
+                        {wl.can_delete && (
+                          <button type="button" className="icon-btn" title={T.common.delete} aria-label={T.common.delete} onClick={() => deleteWorklog.mutate(wl.id)}>
                             <Trash2 size={14} />
                           </button>
                         )}
@@ -463,7 +459,7 @@ export default function TaskModal({ id, submitMode }: { id: number; submitMode?:
                     ))}
                   </div>
                 ) : (
-                  <p className="small muted">Ish jurnali bo'sh.</p>
+                  <p className="small muted">{T.tasks.worklogEmpty}</p>
                 )}
               </div>
             </details>
@@ -478,14 +474,16 @@ export default function TaskModal({ id, submitMode }: { id: number; submitMode?:
 
           <aside className="stack" style={{ gap: 16 }}>
             <details className="details-section" open>
-              <summary>Ma'lumotlar</summary>
+              <summary>{T.tasks.info}</summary>
               <div className="details-content stack-sm">
-                <Meta icon={<FolderKanban />} label={"Loyiha"}>{task.project.name}</Meta>
-                <Meta icon={<Due value={task.due_at} format={fmtDateTime} />} label={"Muddat"}>{fmtDateTime(task.due_at)}</Meta>
-                <Meta icon={<Users />} label={"Ijrochilar"}>
+                <Meta icon={<FolderKanban />} label={T.tasks.project}>{task.project.name}</Meta>
+                <Meta icon={<CalendarClock />} label={T.tasks.col.due}>
+                  <Due value={task.due_at} done={task.status === "done"} format={fmtDateTime} />
+                </Meta>
+                <Meta icon={<Users />} label={T.tasks.assignees}>
                   <div className="chips">{task.assignees.map((u) => <Avatar key={u.id} user={u} size="sm" />)}</div>
                 </Meta>
-                <Meta icon={<User />} label="Yaratdi">{task.created_by.full_name}</Meta>
+                <Meta icon={<User />} label={T.tasks.createdByShort}>{task.created_by.full_name}</Meta>
               </div>
             </details>
 
@@ -495,7 +493,7 @@ export default function TaskModal({ id, submitMode }: { id: number; submitMode?:
                 {task.files.length > 0 ? (
                   <FileList files={task.files} onOpen={setViewing} />
                 ) : (
-                  <span className="small muted">Fayllar yo'q</span>
+                  <span className="small muted">{T.tasks.noFiles}</span>
                 )}
                 {task.actions.add_files && (
                   <form onSubmit={(e) => { e.preventDefault(); if (files.length) act.mutate("files"); }}>

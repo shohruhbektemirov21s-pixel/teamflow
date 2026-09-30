@@ -3,6 +3,7 @@ __pycache__/
 *.pyc
 backend/db.sqlite3
 backend/media/
+backend/server.log
 frontend/node_modules/
 frontend/dist/
 .env

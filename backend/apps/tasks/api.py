@@ -17,6 +17,7 @@ from .serializers import (
     FilesSerializer,
     ReviewSerializer,
     SubmitSerializer,
+    SubTaskCreateSerializer,
     SubTaskToggleSerializer,
     TaskCreateSerializer,
     TaskDetailSerializer,
@@ -124,9 +125,9 @@ class TaskViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.Gen
     @action(detail=True, methods=["post"], url_path="subtasks")
     def create_subtask(self, request, pk=None):
         task = self.get_object()
-        title = request.data.get("title", "")
-        assignee_id = request.data.get("assignee_id")
-        services.add_subtask(task, request.user, title=title, assignee_id=assignee_id)
+        s = SubTaskCreateSerializer(data=request.data)
+        s.is_valid(raise_exception=True)
+        services.add_subtask(task, request.user, **s.validated_data)
         return Response(self._detail(task), status=status.HTTP_201_CREATED)
 
     @action(detail=True, methods=["delete"], url_path=r"subtasks/(?P<subtask_id>\d+)")

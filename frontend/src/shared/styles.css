@@ -236,7 +236,7 @@ button { font: inherit; color: inherit; }
 .avatar.lg { width: 44px; height: 44px; font-size: 15px; }
 .avatar-stack { display: flex; }
 .avatar-stack .avatar { box-shadow: 0 0 0 2px var(--surface); }
-.avatar-stack .avatar + .avatar { margin-left: -8px; }
+.avatar-stack .avatar + .avatar { margin-left: -5px; }
 
 /* ───────── Karta ───────── */
 .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); }
@@ -305,6 +305,9 @@ kbd { font-family: var(--mono); font-size: 11px; padding: 2px 6px; border-radius
 .table tbody tr:hover td { background: var(--surface-hover); }
 .task-title { font-weight: 600; color: var(--text); }
 .filters { display: flex; flex-wrap: wrap; gap: 12px; padding: 14px 16px; border-bottom: 1px solid var(--border); align-items: flex-end; }
+.filters-more { display: contents; }
+.filters-toggle { display: none; }
+.show-sm { display: none; }
 
 /* ───────── Bosh panel ───────── */
 .hero { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
@@ -491,7 +494,16 @@ kbd { font-family: var(--mono); font-size: 11px; padding: 2px 6px; border-radius
   .sidebar-backdrop.open { display: block; position: fixed; inset: 0; background: var(--overlay); z-index: 25; }
   .topbar { padding: 0 12px; }
   .search-trigger { width: auto; max-width: none; flex: 1; }
-  .search-trigger .hide-sm { display: none; }
+  .hide-sm { display: none; }
+  .show-sm { display: flex; }
+  /* Sarlavha to'liq qatorda, tugmalar pastida — sarlavha so'zma-so'z sinmasin */
+  .page-head > .grow, .hero > .grow { flex-basis: 100%; }
+  /* Telefonda filtrlardan faqat qidiruv ko'rinadi, qolgani "Filtrlar" tugmasi bilan ochiladi */
+  .filters { align-items: flex-end; }
+  .filters > .field:first-child { flex: 1; min-width: 0; }
+  .filters-toggle { display: inline-flex; }
+  .filters:not(.open) .filters-more { display: none; }
+  .filters.open .filters-more { display: flex; flex-direction: column; align-items: stretch; gap: 12px; width: 100%; }
   .page { padding: 16px; }
   .board { grid-template-columns: repeat(4, minmax(260px, 85vw)); }
   .auth { grid-template-columns: 1fr; }

@@ -175,6 +175,11 @@ class ReviewSerializer(serializers.Serializer):
     note = serializers.CharField(required=False, allow_blank=True, default="")
 
 
+class SubTaskCreateSerializer(serializers.Serializer):
+    title = serializers.CharField(max_length=255)
+    assignee_id = serializers.IntegerField(required=False, allow_null=True, min_value=1)
+
+
 class SubTaskToggleSerializer(serializers.Serializer):
     is_done = serializers.BooleanField()
 
