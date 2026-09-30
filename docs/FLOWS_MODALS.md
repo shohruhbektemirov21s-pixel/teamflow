@@ -1,7 +1,7 @@
 # TeamFlow — Flow va Modal reestri
 
 > Yangi flow yoki modal qo'shishdan oldin shu ro'yxatni tekshir. O'xshashi bo'lsa, uni kengaytir.
-> Cheklov: bitta bo'limda **3–4 ta flow**, istisnoda **5 ta**. Modallar amalda **6 ta**.
+> Cheklov: bitta bo'limda **3–4 ta flow**, istisnoda **5 ta**. Modallar amalda **9 ta**.
 > Holat: kod to'liq yozilgan va sinovdan o'tgan (2026-09-28). Barcha flow va modallar **Faol**.
 
 ## Flow'lar
@@ -16,12 +16,12 @@
 | 6 | Vazifa yaratish va biriktirish | tasks | Loyiha ichida vazifa → bir yoki bir nechta dasturchi → sub-vazifalar | Faol |
 | 7 | Vazifani bajarish | tasks | Nazoratda → Jarayonda → Tekshiruvga yuborish (izoh, fayl) | Faol |
 | 8 | Tekshiruv | tasks | PM natijani ko'radi → Qabul (Bajarildi) yoki Qaytarish (Jarayonda, izoh bilan) | Faol |
+| 9 | Profil tahrirlash | profile | Ma'lumotlarni tahrirlash va parol almashtirish | Faol |
+| 10 | Takliflar berish va ovoz | suggestions | Taklif yaratish, ovoz berish, boshliq qarori | Faol |
+| 11 | Qilingan ishlar feed | history | Oxirgi bajarilgan vazifalar va tekshiruvlar reyestri (Boss, PM) | Faol |
+| 12 | Telegram'ni ulash | notifications | Ro'yxatdan o'tishda @username → botga /start → chat bog'lanadi → bildirishnomalar Telegram'ga ham keladi | Faol |
 
-| 9 | Profil tahrirlash | Hamma | Ma'lumotlarni tahrirlash va parol almashtirish | Faol |
-| 10 | Takliflar berish va ovoz | Hamma | Taklif yaratish, ovoz berish, boshliq qarori | Faol |
-| 11 | Qilingan ishlar feed | Boss, PM | Oxirgi bajarilgan vazifalar va tekshiruvlar reyestri | Faol |
-
-Bo'limlar bo'yicha son: auth 1 · orders 3 · projects 1 · tasks 3 · people 1 · history 1 · suggestions 1. Cheklovdan oshmagan.
+Bo'limlar bo'yicha son: auth 1 · orders 3 · projects 1 · tasks 3 · profile 1 · history 1 · suggestions 1 · notifications 1. Cheklovdan oshmagan.
 Eslatma: `orders` bo'limidagi 3 flow ham UI da bitta "buyurtma holati" oqimi sifatida (holatga qarab tugma almashadi) amalga oshiriladi, alohida sahifalar ko'paytirilmaydi.
 
 ## Modallar (amalda: 9 ta)

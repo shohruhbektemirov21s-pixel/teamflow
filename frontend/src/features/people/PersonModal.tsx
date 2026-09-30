@@ -9,7 +9,7 @@ import { fmtDate } from "@/shared/format";
 import { useMeta } from "@/shared/meta";
 import { T } from "@/shared/text";
 import type { Person, Task } from "@/shared/types";
-import { Avatar, Badge, Button, Modal, Skeleton } from "@/shared/ui";
+import { Avatar, Badge, Button, Modal, Skeleton, Tabs } from "@/shared/ui";
 
 export default function PersonModal({ id }: { id: number }) {
   const me = useMe();
@@ -26,7 +26,7 @@ export default function PersonModal({ id }: { id: number }) {
 
   const tasksQuery = useQuery({
     queryKey: ["tasks", "person", id],
-    queryFn: () => api.get<Task[]>(`/tasks/?${qs({ assignee: id, all: 1 })}`),
+    queryFn: () => api.get<Task[]>(`/tasks/${qs({ assignee: id, all: 1 })}`),
     enabled: personQuery.data?.role === "developer",
   });
 
@@ -69,17 +69,17 @@ export default function PersonModal({ id }: { id: number }) {
             <div
               className="card card-pad"
               style={{
-                background: person.active_tasks === 0 ? "rgba(16, 185, 129, 0.08)" : "var(--surface-muted)",
-                border: person.active_tasks === 0 ? "1px solid rgba(16, 185, 129, 0.3)" : undefined,
+                background: person.active_tasks === 0 ? "var(--success-soft)" : "var(--surface-2)",
+                border: person.active_tasks === 0 ? "1px solid var(--success)" : undefined,
               }}
             >
               <div className="row" style={{ justifyContent: "space-between", alignItems: "center", gap: 10 }}>
                 <div>
                   <div style={{ fontWeight: 650, fontSize: 13.5 }}>
-                    {person.active_tasks === 0 ? "Hozirda bo'sh (vazifasi yo'q)" : `Band: ${person.active_tasks} ta faol vazifa`}
+                    {person.active_tasks === 0 ? T.people.freeNow : T.people.busyNow(person.active_tasks)}
                   </div>
                   <div className="small muted">
-                    {person.active_tasks === 0 ? "Xodimga yangi vazifa biriktiring" : "Qo'shimcha vazifa yuklash"}
+                    {person.active_tasks === 0 ? T.people.freeHint : T.people.busyHint}
                   </div>
                 </div>
                 <Button
@@ -88,31 +88,21 @@ export default function PersonModal({ id }: { id: number }) {
                   icon={<Plus size={14} />}
                   onClick={() => open({ new: "task", assignee: person.id })}
                 >
-                  Vazifa berish
+                  {T.people.giveTask}
                 </Button>
               </div>
             </div>
           )}
 
           {person.role === "developer" && (
-            <div className="row" style={{ borderBottom: "1px solid var(--border)", marginBottom: 8, marginTop: 8 }}>
-              <button
-                className={`tab-btn ${tab === "tasks" ? "active" : ""}`}
-                onClick={() => setTab("tasks")}
-                style={{ background: "none", border: "none", borderBottom: tab === "tasks" ? "2px solid var(--primary)" : "2px solid transparent", padding: "8px 16px", cursor: "pointer", fontWeight: tab === "tasks" ? 600 : 400, color: tab === "tasks" ? "var(--text)" : "var(--muted)" }}
-              >
-                <ListTodo size={16} style={{ display: "inline", verticalAlign: "middle", marginRight: 6 }} />
-                Vazifalar
-              </button>
-              <button
-                className={`tab-btn ${tab === "report" ? "active" : ""}`}
-                onClick={() => setTab("report")}
-                style={{ background: "none", border: "none", borderBottom: tab === "report" ? "2px solid var(--primary)" : "2px solid transparent", padding: "8px 16px", cursor: "pointer", fontWeight: tab === "report" ? 600 : 400, color: tab === "report" ? "var(--text)" : "var(--muted)" }}
-              >
-                <BarChart size={16} style={{ display: "inline", verticalAlign: "middle", marginRight: 6 }} />
-                Dasturchi Hisoboti
-              </button>
-            </div>
+            <Tabs
+              value={tab}
+              onChange={setTab}
+              tabs={[
+                { key: "tasks", label: <><ListTodo size={16} /> {T.people.tasks}</> },
+                { key: "report", label: <><BarChart size={16} /> {T.people.report}</> },
+              ]}
+            />
           )}
 
           {person.role === "developer" && tab === "tasks" && (
@@ -146,39 +136,38 @@ export default function PersonModal({ id }: { id: number }) {
                 <div className="card card-pad stack-sm" style={{ textAlign: "center" }}>
                   <div className="row" style={{ justifyContent: "center", color: "var(--primary)" }}><TrendingUp size={24} /></div>
                   <div style={{ fontSize: 24, fontWeight: 700 }}>{successRate}%</div>
-                  <div className="small muted">Bajarilish foizi</div>
+                  <div className="small muted">{T.people.donePercent}</div>
                 </div>
                 <div className="card card-pad stack-sm" style={{ textAlign: "center" }}>
                   <div className="row" style={{ justifyContent: "center", color: "var(--success)" }}><CheckCircle2 size={24} /></div>
                   <div style={{ fontSize: 24, fontWeight: 700 }}>{disciplineRate}%</div>
-                  <div className="small muted">O'z vaqtida bajarish intizomi</div>
+                  <div className="small muted">{T.people.onTimeRate}</div>
                 </div>
               </div>
 
               <div className="grid-2">
                 <div className="card card-pad row" style={{ justifyContent: "space-between" }}>
-                  <span className="muted">Jami vazifalar:</span>
+                  <span className="muted">{T.people.total}</span>
                   <b>{totalTasks}</b>
                 </div>
                 <div className="card card-pad row" style={{ justifyContent: "space-between" }}>
-                  <span className="muted">Bajarilgan (Jami):</span>
+                  <span className="muted">{T.people.doneTotal}</span>
                   <b style={{ color: "var(--success)" }}>{doneTasks.length}</b>
                 </div>
                 <div className="card card-pad row" style={{ justifyContent: "space-between" }}>
-                  <span className="muted">Kechikib bajarilgan:</span>
-                  <b style={{ color: lateDone > 0 ? "var(--attention)" : "inherit" }}>{lateDone}</b>
+                  <span className="muted">{T.people.doneLate}</span>
+                  <b style={{ color: lateDone > 0 ? "var(--warning)" : "inherit" }}>{lateDone}</b>
                 </div>
                 <div className="card card-pad row" style={{ justifyContent: "space-between" }}>
-                  <span className="muted">Hozirda kechikkan:</span>
+                  <span className="muted">{T.people.lateNow}</span>
                   <b style={{ color: currentlyOverdue > 0 ? "var(--danger)" : "inherit" }}>{currentlyOverdue}</b>
                 </div>
               </div>
               
-              <div className="card card-pad" style={{ background: "var(--surface-muted)" }}>
+              <div className="card card-pad" style={{ background: "var(--surface-2)" }}>
                 <p className="small muted" style={{ margin: 0, lineHeight: 1.5 }}>
                   <Activity size={14} style={{ display: "inline", verticalAlign: "middle", marginRight: 6 }} />
-                  Dasturchi hisoboti barcha vaqt oralig'idagi umumiy topshiriqlar asosida shakllantirildi. 
-                  Intizom ko'rsatkichi bajarilgan ishlar ichida qanchasi o'z vaqtida (muddatidan oldin) yopilganini anglatadi.
+                  {T.people.reportNote}
                 </p>
               </div>
             </div>
@@ -186,8 +175,7 @@ export default function PersonModal({ id }: { id: number }) {
 
           {person.role !== "developer" && (
             <div className="card card-pad stack-sm" style={{ textAlign: "center", marginTop: 20 }}>
-              <div style={{ fontSize: 16, fontWeight: 600 }}>Tizim foydalanuvchisi</div>
-              <div className="muted small">Faqat dasturchilar uchun batafsil hisobot mavjud.</div>
+              <div className="muted small">{T.people.devOnly}</div>
             </div>
           )}
         </div>

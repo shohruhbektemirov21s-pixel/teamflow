@@ -101,6 +101,16 @@ class TaskFlowTests(TestCase):
         # dev2 sub-vazifa orqali ko'radi, lekin vazifani boshlay olmaydi
         self.assertEqual(client_for(self.dev2).post(f"/api/tasks/{tid}/start/").status_code, 400)
 
+    def test_subtask_create_validates_input(self):
+        tid = self.create(assignee_ids=[self.dev1.pk], subtasks=[]).data["id"]
+        client = client_for(self.pm)
+        for payload in ({}, {"title": ""}, {"title": ["ro'yxat"]}, {"title": "A", "assignee_id": "abc"}):
+            with self.subTest(payload=payload):
+                self.assertEqual(client.post(f"/api/tasks/{tid}/subtasks/", payload, format="json").status_code, 400)
+        r = client.post(f"/api/tasks/{tid}/subtasks/", {"title": "Yangi qadam", "assignee_id": self.dev1.pk}, format="json")
+        self.assertEqual(r.status_code, 201)
+        self.assertEqual(r.data["subtasks"][-1]["title"], "Yangi qadam")
+
     def test_subtask_toggle(self):
         d = self.create(assignee_ids=[self.dev1.pk], subtasks=[{"title": "A", "assignee_id": self.dev1.pk}]).data
         sid = d["subtasks"][0]["id"]
@@ -173,6 +183,13 @@ class DashboardTests(TestCase):
         self.assertEqual(dev_row["active_tasks"], 3)
         self.assertEqual(dev_row["overdue_tasks"], 1)
         self.assertEqual(client_for(self.dev).get("/api/people/").status_code, 403)
+
+    def test_person_profile_matches_people_row(self):
+        pm = client_for(self.pm)
+        row = next(p for p in pm.get("/api/people/").data if p["id"] == self.dev.pk)
+        self.assertEqual(pm.get(f"/api/people/{self.dev.pk}/").data, row)
+        self.assertEqual(client_for(self.dev).get(f"/api/people/{self.dev.pk}/").status_code, 403)
+        self.assertEqual(pm.get("/api/people/999999/").status_code, 404)
 
     def test_developer_dashboard_only_own(self):
         other = make_user(Role.DEVELOPER)

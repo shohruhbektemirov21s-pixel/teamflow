@@ -1,21 +1,33 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useState, useRef } from "react";
-import { useMe } from "@/app/auth";
-import { api } from "@/shared/api";
-import { Avatar, Button, SkeletonRows } from "@/shared/ui";
-import type { ChatConversation, ChatMessage, UserBrief } from "@/shared/types";
-import { Search } from "lucide-react";
+import { ArrowLeft, MessageCircle, Search, Send } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 
+import { useMe } from "@/app/auth";
+import { api, qs } from "@/shared/api";
+import { fmtDateTime } from "@/shared/format";
+import { useDebounced } from "@/shared/hooks";
+import { useMeta } from "@/shared/meta";
+import { T } from "@/shared/text";
+import type { ChatConversation, ChatMessage, UserBrief } from "@/shared/types";
+import { Avatar, Button, Empty, ErrorBox, SkeletonRows } from "@/shared/ui";
+
+/** Xabarlar: chapda suhbatlar (yoki qidiruv natijasi), o'ngda tanlangan suhbat.
+ * Telefonda bir vaqtda bittasi ko'rinadi: ro'yxat yoki suhbat ("← Orqaga" bilan). */
 export default function MessagesPage() {
   const me = useMe();
+  const meta = useMeta();
   const qc = useQueryClient();
-  const [partnerId, setPartnerId] = useState<number | null>(null);
+  const [partner, setPartner] = useState<UserBrief | null>(null);
+  const partnerId = partner?.id ?? null;
   const [search, setSearch] = useState("");
+  const [text, setText] = useState("");
   const chatEndRef = useRef<HTMLDivElement>(null);
+  const query = useDebounced(search.trim());
 
   const peopleQuery = useQuery({
-    queryKey: ["chat", "people", search],
-    queryFn: () => api.get<UserBrief[]>(`/chat/people/?q=${search}`),
+    queryKey: ["chat", "people", query],
+    queryFn: () => api.get<UserBrief[]>(`/chat/people/${qs({ q: query })}`),
+    enabled: Boolean(query),
   });
 
   const convQuery = useQuery({
@@ -26,7 +38,7 @@ export default function MessagesPage() {
 
   const msgsQuery = useQuery({
     queryKey: ["chat", "messages", partnerId],
-    queryFn: () => api.get<ChatMessage[]>(`/chat/messages/?partner=${partnerId}`),
+    queryFn: () => api.get<ChatMessage[]>(`/chat/messages/${qs({ partner: partnerId })}`),
     enabled: Boolean(partnerId),
     refetchInterval: 3000,
   });
@@ -35,7 +47,6 @@ export default function MessagesPage() {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [msgsQuery.data]);
 
-  const [text, setText] = useState("");
   const sendMut = useMutation({
     mutationFn: () => api.post<ChatMessage>("/chat/send/", { partner: partnerId, text }),
     onSuccess: () => {
@@ -45,123 +56,112 @@ export default function MessagesPage() {
     },
   });
 
-  const allPeople = peopleQuery.data || [];
   const conversations = convQuery.data || [];
+  const searching = Boolean(query);
+  const items = searching
+    ? (peopleQuery.data || []).map((person) => ({ person, last: "", unread: 0 }))
+    : conversations.map((c) => ({ person: c.partner, last: c.last_message, unread: c.unread_count }));
 
-  const sidebarItems = search 
-    ? allPeople.map((person) => ({ ...person, last_message: "", unread_count: 0 }))
-    : conversations.map((conversation) => ({
-        ...conversation.partner,
-        last_message: conversation.last_message,
-        unread_count: conversation.unread_count,
-      }));
-
-  const activePartner = partnerId 
-    ? (allPeople.find((person) => person.id === partnerId) || conversations.find((conversation) => conversation.partner.id === partnerId)?.partner)
-    : null;
+  const subtitle = (u: UserBrief) => u.department_name || meta.label("roles", u.role);
+  const listLoading = searching ? peopleQuery.isLoading : convQuery.isLoading;
 
   return (
-    <div className="card row" style={{ height: "calc(100vh - 120px)", padding: 0, overflow: "hidden", alignItems: "stretch" }}>
-      <div style={{ width: 320, borderRight: "1px solid var(--border)", display: "flex", flexDirection: "column" }}>
-        <div style={{ padding: 16, borderBottom: "1px solid var(--border)" }}>
-          <div className="search-box">
-            <Search size={16} />
-            <input 
-              type="text" 
-              placeholder="Ism bo'yicha qidirish..." 
-              value={search} 
-              onChange={e => setSearch(e.target.value)} 
-              className="input" 
-              style={{ border: "none", background: "transparent", padding: 0, height: "100%", width: "100%", outline: "none" }} 
-            />
-          </div>
+    <div className="card chat" data-open={partner ? "1" : "0"}>
+      <div className="chat-list">
+        <div className="chat-search">
+          <Search />
+          <input
+            className="input"
+            placeholder={T.chat.searchPh}
+            aria-label={T.chat.searchPh}
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
         </div>
-        <div style={{ overflowY: "auto", flex: 1 }}>
-          {sidebarItems.map((p) => {
-            const isActive = p.id === partnerId;
-            return (
-              <button 
-                key={p.id} 
-                onClick={() => { setPartnerId(p.id); setSearch(""); }}
-                style={{ 
-                  display: "flex", alignItems: "center", width: "100%", padding: "12px 16px",
-                  border: "none", background: isActive ? "var(--accent-soft)" : "transparent",
-                  textAlign: "left", cursor: "pointer", borderBottom: "1px solid var(--border-soft)", gap: 12
+        <div className="chat-items">
+          {listLoading && <SkeletonRows rows={4} />}
+          {!listLoading &&
+            items.map(({ person, last, unread }) => (
+              <button
+                key={person.id}
+                type="button"
+                className="chat-item"
+                aria-current={person.id === partnerId}
+                onClick={() => {
+                  setPartner(person);
+                  setSearch("");
                 }}
               >
-                <Avatar user={p} size="sm" />
-                <div style={{ flex: 1, overflow: "hidden" }}>
-                  <div style={{ fontWeight: 600, fontSize: 14 }}>{p.full_name}</div>
-                  <div style={{ fontSize: 13, color: "var(--muted)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                    {p.last_message || p.role}
-                  </div>
-                </div>
-                {p.unread_count > 0 && <span className="badge badge-primary">{p.unread_count}</span>}
+                <Avatar user={person} size="sm" />
+                <span className="grow" style={{ minWidth: 0 }}>
+                  <span className="ellipsis" style={{ display: "block", fontWeight: 600 }}>
+                    {person.full_name}
+                  </span>
+                  <span className="small muted ellipsis" style={{ display: "block" }}>
+                    {last || subtitle(person)}
+                  </span>
+                </span>
+                {unread > 0 && <span className="count-pill">{unread}</span>}
               </button>
-            );
-          })}
-          {sidebarItems.length === 0 && <div style={{ padding: 20, textAlign: "center", color: "var(--muted)" }}>Topilmadi</div>}
+            ))}
+          {!listLoading && items.length === 0 && (
+            <Empty
+              icon={<MessageCircle />}
+              title={searching ? T.chat.notFound : T.chat.noConversations}
+              hint={searching ? undefined : T.chat.noConversationsHint}
+            />
+          )}
         </div>
       </div>
 
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", background: "var(--bg-inset)" }}>
-        {activePartner ? (
+      <div className="chat-main">
+        {partner ? (
           <>
-            <div style={{ padding: "12px 20px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", gap: 12, background: "var(--bg)" }}>
-              <Avatar user={activePartner} size="sm" />
+            <div className="chat-head">
+              <button type="button" className="icon-btn mobile-only" onClick={() => setPartner(null)} aria-label={T.common.back}>
+                <ArrowLeft />
+              </button>
+              <Avatar user={partner} size="sm" />
               <div>
-                <div style={{ fontWeight: 600 }}>{activePartner.full_name}</div>
-                <div style={{ fontSize: 12, color: "var(--muted)" }}>{activePartner.role}</div>
+                <div style={{ fontWeight: 600 }}>{partner.full_name}</div>
+                <div className="small muted">{subtitle(partner)}</div>
               </div>
             </div>
-            
-            <div style={{ flex: 1, overflowY: "auto", padding: 20, display: "flex", flexDirection: "column", gap: 12 }}>
-              {msgsQuery.isLoading ? <SkeletonRows rows={3} /> : (
-                msgsQuery.data?.map(m => {
-                  const isMe = m.author_id === me.id;
-                  return (
-                    <div key={m.id} style={{ display: "flex", justifyContent: isMe ? "flex-end" : "flex-start" }}>
-                      <div style={{ 
-                        background: isMe ? "var(--accent)" : "var(--bg)", 
-                        color: isMe ? "#fff" : "inherit",
-                        padding: "8px 14px", 
-                        borderRadius: 16,
-                        borderBottomRightRadius: isMe ? 4 : 16,
-                        borderBottomLeftRadius: isMe ? 16 : 4,
-                        maxWidth: "70%",
-                        boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
-                        border: isMe ? "none" : "1px solid var(--border)"
-                      }}>
-                        {m.text}
-                      </div>
-                    </div>
-                  );
-                })
-              )}
+
+            <div className="chat-messages">
+              {msgsQuery.error && <ErrorBox error={msgsQuery.error} onRetry={() => msgsQuery.refetch()} />}
+              {msgsQuery.isLoading && <SkeletonRows rows={3} />}
+              {msgsQuery.data?.length === 0 && <p className="muted small" style={{ textAlign: "center" }}>{T.chat.firstMessage}</p>}
+              {msgsQuery.data?.map((m) => (
+                <div key={m.id} className={`bubble ${m.author_id === me.id ? "mine" : ""}`} title={fmtDateTime(m.created_at)}>
+                  {m.text}
+                </div>
+              ))}
               <div ref={chatEndRef} />
             </div>
 
-            <form 
-              onSubmit={e => { e.preventDefault(); if (text.trim()) sendMut.mutate(); }}
-              style={{ padding: 16, borderTop: "1px solid var(--border)", background: "var(--bg)", display: "flex", gap: 12 }}
+            <form
+              className="chat-form"
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (text.trim()) sendMut.mutate();
+              }}
             >
-              <input 
-                type="text" 
-                className="input grow" 
-                placeholder="Xabar yozing..." 
-                value={text} 
-                onChange={e => setText(e.target.value)} 
+              <input
+                className="input grow"
+                placeholder={T.chat.messagePh}
+                aria-label={T.chat.messagePh}
+                value={text}
+                onChange={(e) => setText(e.target.value)}
                 autoFocus
               />
-              <Button variant="primary" type="submit" disabled={!text.trim() || sendMut.isPending}>
-                Yuborish
+              <Button variant="primary" type="submit" icon={<Send />} loading={sendMut.isPending} disabled={!text.trim()}>
+                {T.chat.send}
               </Button>
             </form>
           </>
         ) : (
-          <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", color: "var(--muted)" }}>
-            Suhbatni boshlash uchun chap tomondan xodimni tanlang
-          </div>
+          <Empty icon={<MessageCircle />} title={T.chat.pickTitle} hint={T.chat.pickHint} />
         )}
       </div>
     </div>

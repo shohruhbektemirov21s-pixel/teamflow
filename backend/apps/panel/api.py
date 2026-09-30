@@ -87,34 +87,27 @@ def dashboard(request):
     return Response(data)
 
 
-@api_view(["GET"])
-def people(request):
-    """Xodimlar va band-bo'shligi. PM — dasturchilar; Boshliq — hamma xodimlar. Vazifasi yo'qlar tepada."""
-    require_manager(request.user)
-    now = timezone.now()
-    qs = User.objects.filter(is_active=True).exclude(role="").select_related("specialty")
-    if request.user.is_boss:
-        if request.query_params.get("role"):
-            qs = qs.filter(role=request.query_params["role"])
-    else:
-        qs = qs.filter(role=Role.DEVELOPER)
-    t = "assigned_tasks"
-    qs = qs.annotate(
-        active_tasks=Count(t, filter=Q(assigned_tasks__status__in=ACTIVE), distinct=True),
-        overdue_tasks=Count(t, filter=Q(assigned_tasks__status__in=ACTIVE, assigned_tasks__due_at__lt=now),
-                            distinct=True),
-        review_tasks=Count(t, filter=Q(assigned_tasks__status=Task.Status.IN_REVIEW), distinct=True),
-        done_tasks=Count(t, filter=Q(assigned_tasks__status=Task.Status.DONE), distinct=True),
-    ).order_by("active_tasks", "first_name", "last_name")
-    users = list(qs)
+def _people_rows(qs):
+    """Xodim qatorlari (ro'yxat va bitta xodim oynasi uchun bir xil shakl): bandlik sonlari va hozirgi ishi.
 
-    # "Hozir nima qilyapti" — jarayondagi vazifalar, bitta so'rov bilan
+    Sonlar bitta annotatsiyali so'rovda, "hozir nima qilyapti" — yana bitta so'rovda (N+1 yo'q).
+    """
+    now = timezone.now()
+    t = "assigned_tasks"
+    users = list(
+        qs.select_related("specialty").annotate(
+            active_tasks=Count(t, filter=Q(assigned_tasks__status__in=ACTIVE), distinct=True),
+            overdue_tasks=Count(t, filter=Q(assigned_tasks__status__in=ACTIVE, assigned_tasks__due_at__lt=now),
+                                distinct=True),
+            review_tasks=Count(t, filter=Q(assigned_tasks__status=Task.Status.IN_REVIEW), distinct=True),
+            done_tasks=Count(t, filter=Q(assigned_tasks__status=Task.Status.DONE), distinct=True),
+        )
+    )
     doing = {}
     for task in Task.objects.filter(status=Task.Status.IN_PROGRESS, assignees__in=users).distinct().prefetch_related("assignees"):
         for u in task.assignees.all():
             doing.setdefault(u.pk, []).append({"id": task.pk, "title": task.title})
-
-    return Response([
+    return [
         {
             "id": u.pk, "full_name": u.full_name, "role": u.role, "role_label": u.get_role_display(),
             "specialty": u.specialty.name if u.specialty else "", "department_name": u.department_name,
@@ -123,7 +116,22 @@ def people(request):
             "doing": doing.get(u.pk, [])[:3],
         }
         for u in users
-    ])
+    ]
+
+
+@api_view(["GET"])
+def people(request):
+    """Xodimlar va band-bo'shligi. PM — dasturchilar; Boshliq — hamma xodimlar. Vazifasi yo'qlar tepada."""
+    require_manager(request.user)
+    qs = User.objects.filter(is_active=True).exclude(role="")
+    if request.user.is_boss:
+        if request.query_params.get("role"):
+            qs = qs.filter(role=request.query_params["role"])
+    else:
+        qs = qs.filter(role=Role.DEVELOPER)
+    rows = _people_rows(qs)
+    rows.sort(key=lambda r: (r["active_tasks"], r["full_name"]))
+    return Response(rows)
 
 
 # ─── Qidiruv (Ctrl K) ────────────────────────────────────────────────────────
@@ -276,23 +284,9 @@ def workdone(request):
 
 @api_view(["GET"])
 def person_profile(request, pk):
-    """Boshqa xodimning profili — faqat menejerlar ko'radi."""
+    """Bitta xodim (xodim oynasi) — ro'yxatdagi bilan bir xil shakl. Faqat menejerlar ko'radi."""
     require_manager(request.user)
-    user = get_object_or_404(User.objects.filter(is_active=True).select_related("specialty"), pk=pk)
-    from apps.tasks.models import Task
-    task_qs = Task.objects.filter(assignments__developer=user)
-    stats = {
-        "active": task_qs.filter(status__in=["control", "in_progress"]).count(),
-        "in_review": task_qs.filter(status="in_review").count(),
-        "done": task_qs.filter(status="done").count(),
-    }
-    return Response({
-        "id": user.pk, "username": user.username,
-        "first_name": user.first_name, "last_name": user.last_name,
-        "full_name": user.full_name,
-        "role": user.role, "role_label": user.get_role_display(),
-        "specialty": user.specialty.name if user.specialty else "",
-        "department_name": user.department_name,
-        "date_joined": user.date_joined,
-        "stats": stats,
-    })
+    rows = _people_rows(User.objects.filter(pk=pk, is_active=True).exclude(role=""))
+    if not rows:
+        raise Http404
+    return Response(rows[0])

@@ -172,8 +172,8 @@ export function RegisterPage() {
             {(id, bad) => <input id={id} className="input" aria-invalid={bad} value={form.department_name} onChange={set("department_name")} autoFocus />}
           </Field>
         )}
-        <Field label="Telegram (ixtiyoriy)" hint="Bildirishnomalar uchun, ms: @username" error={fe("telegram_username")}>
-          {(id, bad) => <input id={id} className="input" aria-invalid={bad} value={form.telegram_username} onChange={set("telegram_username")} placeholder="@username" />}
+        <Field label={T.auth.telegram} hint={T.auth.telegramHint} error={fe("telegram_username")}>
+          {(id, bad) => <input id={id} className="input" aria-invalid={bad} value={form.telegram_username} onChange={set("telegram_username")} placeholder={T.auth.telegramPh} />}
         </Field>
         <Field label={T.auth.username} required error={fe("username")}>
           {(id, bad) => <input id={id} className="input" aria-invalid={bad} value={form.username} onChange={set("username")} autoComplete="username" />}

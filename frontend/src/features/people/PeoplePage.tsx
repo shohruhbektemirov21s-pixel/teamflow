@@ -68,7 +68,7 @@ export default function PeoplePage() {
               fontSize: 13,
               fontWeight: 600,
               border: onlyFree ? "1.5px solid var(--success)" : "1px solid var(--border-strong)",
-              background: onlyFree ? "rgba(16, 185, 129, 0.12)" : "var(--surface)",
+              background: onlyFree ? "var(--success-soft)" : "var(--surface)",
               color: onlyFree ? "var(--success)" : "var(--text)",
               borderRadius: "var(--radius-sm)",
               cursor: "pointer",
@@ -79,15 +79,15 @@ export default function PeoplePage() {
             onClick={() => setOnlyFree(!onlyFree)}
           >
             <span style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--success)" }} />
-            Bo'sh xodimlar
+            {T.people.onlyFree}
           </button>
 
           <Segmented
             value={view}
             onChange={setView}
             options={[
-              { value: "table", label: "Jadval" },
-              { value: "grid", label: "Kartalar" },
+              { value: "table", label: T.people.viewTable },
+              { value: "grid", label: T.people.viewGrid },
             ]}
           />
 
@@ -104,7 +104,8 @@ export default function PeoplePage() {
             <Search size={16} className="muted" />
             <input
               type="text"
-              placeholder="Xodimni qidirish…"
+              placeholder={T.people.searchPh}
+              aria-label={T.people.searchPh}
               value={q}
               onChange={(e) => setQ(e.target.value)}
               style={{ border: "none", outline: "none", background: "transparent", fontSize: 13, color: "var(--text)" }}
@@ -123,7 +124,7 @@ export default function PeoplePage() {
 
       {peopleQuery.data && !filtered.length && (
         <div className="card">
-          <Empty icon={<Users />} title="Xodimlar topilmadi" hint="Qidiruv yoki filtr mezonlarini o'zgartirib ko'ring." />
+          <Empty icon={<Users />} title={T.people.empty} hint={T.people.emptyHint} />
         </div>
       )}
 
@@ -135,12 +136,12 @@ export default function PeoplePage() {
               <thead>
                 <tr>
                   <th style={{ width: 44 }}>№</th>
-                  <th>Xodim</th>
-                  <th>Lavozim / Bo'lim</th>
-                  <th>Bandlik holati</th>
-                  <th>Vazifalar ko'rsatkichi</th>
-                  <th>Joriy ish</th>
-                  <th style={{ width: 190, textAlign: "right" }}>Amallar</th>
+                  <th>{T.people.col.person}</th>
+                  <th>{T.people.col.position}</th>
+                  <th>{T.people.col.load}</th>
+                  <th>{T.people.col.tasks}</th>
+                  <th>{T.people.col.doing}</th>
+                  <th style={{ width: 190, textAlign: "right" }}>{T.people.col.actions}</th>
                 </tr>
               </thead>
               <tbody>
@@ -182,21 +183,21 @@ export default function PeoplePage() {
                       <div className="row-wrap" style={{ gap: 6 }}>
                         {p.active_tasks > 0 && (
                           <span className="badge tone-primary" style={{ height: 22, fontSize: 11.5 }}>
-                            {p.active_tasks} faol
+                            {T.people.activeN(p.active_tasks)}
                           </span>
                         )}
                         {p.overdue_tasks > 0 && (
                           <span className="badge tone-danger" style={{ height: 22, fontSize: 11.5 }}>
-                            {p.overdue_tasks} kechikkan
+                            {T.people.overdueN(p.overdue_tasks)}
                           </span>
                         )}
                         {p.review_tasks > 0 && (
                           <span className="badge tone-violet" style={{ height: 22, fontSize: 11.5 }}>
-                            {p.review_tasks} tekshiruvda
+                            {T.people.reviewN(p.review_tasks)}
                           </span>
                         )}
                         {p.active_tasks === 0 && p.overdue_tasks === 0 && (
-                          <span className="muted small">Vazifalar yo'q</span>
+                          <span className="muted small">{T.people.noTasks}</span>
                         )}
                       </div>
                     </td>
@@ -221,7 +222,7 @@ export default function PeoplePage() {
                               open({ new: "task", assignee: p.id });
                             }}
                           >
-                            Vazifa berish
+                            {T.people.giveTask}
                           </Button>
                         )}
                         <Button
@@ -295,7 +296,7 @@ export default function PeoplePage() {
                     style={{ width: "100%" }}
                     onClick={() => open({ new: "task", assignee: p.id })}
                   >
-                    Vazifa berish
+                    {T.people.giveTask}
                   </Button>
                 </div>
               )}

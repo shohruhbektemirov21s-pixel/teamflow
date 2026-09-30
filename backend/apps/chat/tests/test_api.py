@@ -12,6 +12,11 @@ class ChatApiTests(TestCase):
         self.other = make_user(Role.DEVELOPER)
         self.client = client_for(self.me)
 
+    def test_people_search_filters_by_name(self):
+        response = self.client.get(f"/api/chat/people/?q={self.partner.first_name}")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual([p["id"] for p in response.data], [self.partner.pk])
+
     def test_messages_requires_a_valid_partner(self):
         for partner in (None, "not-a-number", "999999"):
             with self.subTest(partner=partner):

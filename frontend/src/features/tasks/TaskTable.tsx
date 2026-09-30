@@ -14,7 +14,6 @@ export interface TaskFilterState {
   date_from: string;
   date_to: string;
   status: string;
-  project_name: string;
   assignee_name: string;
 }
 
@@ -24,11 +23,10 @@ export const EMPTY_FILTERS: TaskFilterState = {
   date_from: "",
   date_to: "",
   status: "",
-  project_name: "",
   assignee_name: "",
 };
 
-/** Vazifa filtrlari: qidiruv, muddat, sanadan/sanagacha, holat, loyiha, xodim.
+/** Vazifa filtrlari: qidiruv, muddat, sanadan/sanagacha, holat, xodim.
  * Telefonda faqat qidiruv ko'rinadi, qolganlari "Filtrlar" tugmasi ortida — ro'yxat birinchi ekranda ko'rinsin. */
 export function TaskFilters({
   value,
@@ -98,9 +96,6 @@ export function TaskFilters({
           )}
         </Field>
       )}
-      <Field label={T.filters.project}>
-        {(id) => <input id={id} className="input" placeholder={T.filters.projectPh} value={value.project_name} onChange={set("project_name")} />}
-      </Field>
       {showPerson && (
         <Field label={T.filters.person}>
           {(id) => <input id={id} className="input" placeholder={T.filters.personPh} value={value.assignee_name} onChange={set("assignee_name")} />}
@@ -181,7 +176,6 @@ export function filterParams(f: TaskFilterState) {
     due_from: f.date_from,
     due_to: f.date_to,
     status: f.status,
-    project_name: f.project_name,
     assignee_name: f.assignee_name,
   };
 }

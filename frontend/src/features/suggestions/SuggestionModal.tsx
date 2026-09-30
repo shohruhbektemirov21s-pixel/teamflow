@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ThumbsDown, ThumbsUp } from "lucide-react";
+import { Check, ThumbsDown, ThumbsUp, Trash2, X } from "lucide-react";
 import { useState } from "react";
 
 import { useModal } from "@/app/modals";
@@ -7,7 +7,9 @@ import { api } from "@/shared/api";
 import { fmtDateTime } from "@/shared/format";
 import { T } from "@/shared/text";
 import type { SuggestionDetail } from "@/shared/types";
-import { Badge, Button, ErrorBox, Modal, Skeleton, useToast } from "@/shared/ui";
+import { Badge, Button, Callout, ConfirmButton, ErrorBox, Field, Modal, Skeleton, useToast } from "@/shared/ui";
+
+import { SUGGESTION_TONE } from "./SuggestionsPage";
 
 export default function SuggestionModal({ id }: { id: number }) {
   const { close } = useModal();
@@ -15,113 +17,127 @@ export default function SuggestionModal({ id }: { id: number }) {
   const toast = useToast();
   const [bossNote, setBossNote] = useState("");
 
-  const { data: s, isLoading, error } = useQuery<SuggestionDetail>({
+  const query = useQuery({
     queryKey: ["suggestion", id],
-    queryFn: () => api.get<SuggestionDetail>(`/api/suggestions/${id}/`),
+    queryFn: () => api.get<SuggestionDetail>(`/suggestions/${id}/`),
   });
+  const s = query.data;
+
+  const refresh = () => {
+    qc.invalidateQueries({ queryKey: ["suggestion", id] });
+    qc.invalidateQueries({ queryKey: ["suggestions"] });
+  };
+  const onError = (err: Error) => toast(err.message || T.common.errorGeneric, "error");
 
   const voteM = useMutation({
-    mutationFn: async (kind: "for" | "against" | "remove") => {
-      if (kind === "remove") {
-        await api.del(`/api/suggestions/${id}/remove_vote/`);
-      } else {
-        await api.post(`/api/suggestions/${id}/vote/`, { kind });
-      }
-    },
+    mutationFn: (kind: "for" | "against" | "remove") =>
+      kind === "remove" ? api.del(`/suggestions/${id}/remove_vote/`) : api.post(`/suggestions/${id}/vote/`, { kind }),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["suggestion", id] });
-      qc.invalidateQueries({ queryKey: ["suggestions"] });
-      toast(T.suggestions.votedToast, "ok");
+      refresh();
+      toast(T.suggestions.votedToast);
     },
+    onError,
   });
 
   const decideM = useMutation({
-    mutationFn: async (status: "accepted" | "rejected") => {
-      await api.post(`/api/suggestions/${id}/decide/`, { status, boss_note: bossNote });
-    },
+    mutationFn: (status: "accepted" | "rejected") => api.post(`/suggestions/${id}/decide/`, { status, boss_note: bossNote }),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["suggestion", id] });
-      qc.invalidateQueries({ queryKey: ["suggestions"] });
-      toast(T.suggestions.decidedToast, "ok");
+      refresh();
+      toast(T.suggestions.decidedToast);
     },
+    onError,
   });
 
+  const deleteM = useMutation({
+    mutationFn: () => api.del(`/suggestions/${id}/`),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["suggestions"] });
+      toast(T.suggestions.deletedToast);
+      close();
+    },
+    onError,
+  });
+
+  const footer = s && (s.actions.decide || s.actions.delete) && (
+    <>
+      {s.actions.delete && (
+        <ConfirmButton onConfirm={() => deleteM.mutate()} loading={deleteM.isPending}>
+          <Trash2 size={16} /> {T.common.delete}
+        </ConfirmButton>
+      )}
+      <div className="spacer" />
+      {s.actions.decide && (
+        <>
+          <Button variant="danger" icon={<X />} loading={decideM.isPending && decideM.variables === "rejected"} disabled={decideM.isPending} onClick={() => decideM.mutate("rejected")}>
+            {T.suggestions.reject}
+          </Button>
+          <Button variant="primary" icon={<Check />} loading={decideM.isPending && decideM.variables === "accepted"} disabled={decideM.isPending} onClick={() => decideM.mutate("accepted")}>
+            {T.suggestions.accept}
+          </Button>
+        </>
+      )}
+    </>
+  );
+
   return (
-    <Modal title={T.suggestions.title} onClose={close}>
-      {error ? (
-        <ErrorBox error={error} />
-      ) : isLoading || !s ? (
+    <Modal
+      title={s?.title ?? T.suggestions.title}
+      subtitle={s && `${s.author?.full_name ?? T.suggestions.anonymousAuthor} · ${fmtDateTime(s.created_at)}`}
+      headerExtra={s && <Badge tone={SUGGESTION_TONE[s.status]}>{T.suggestions.tabs[s.status]}</Badge>}
+      onClose={close}
+      footer={footer || undefined}
+    >
+      {query.error ? (
+        <ErrorBox error={query.error} onRetry={() => query.refetch()} />
+      ) : !s ? (
         <div className="stack">
           <Skeleton h={32} />
           <Skeleton h={100} />
         </div>
       ) : (
         <div className="stack">
-          <div className="row spread">
-            <h3>{s.title}</h3>
-            <Badge tone={s.status === "accepted" ? "success" : s.status === "rejected" ? "danger" : "slate"}>
-              {T.suggestions.tabs[s.status]}
-            </Badge>
-          </div>
-          
-          <div className="row hint xs">
-            <span>{s.is_anonymous ? T.suggestions.anonymousAuthor : s.author?.full_name || T.suggestions.anonymousAuthor}</span>
-            <span>•</span>
-            <span>{fmtDateTime(s.created_at)}</span>
-          </div>
+          <p style={{ whiteSpace: "pre-wrap", margin: 0 }}>{s.body}</p>
 
-          <div className="card surface stack-sm">
-            <p className="whitespace-pre-wrap">{s.body}</p>
-          </div>
-
-          {(s.status !== "pending" && s.boss_note) && (
-            <div className="card surface-alt stack-sm">
-              <div className="row xs hint">
-                <strong>{T.suggestions.bossDecision}</strong> • {s.decided_by?.full_name} • {fmtDateTime(s.decided_at)}
-              </div>
-              <p className="whitespace-pre-wrap">{s.boss_note}</p>
-            </div>
+          {s.status !== "pending" && (
+            <Callout tone={SUGGESTION_TONE[s.status] === "success" ? "success" : "danger"}>
+              <b>{T.suggestions.bossDecision}</b>
+              {s.decided_by && ` · ${s.decided_by.full_name}`}
+              {s.decided_at && ` · ${fmtDateTime(s.decided_at)}`}
+              {s.boss_note && <p style={{ whiteSpace: "pre-wrap", margin: "6px 0 0" }}>{s.boss_note}</p>}
+            </Callout>
           )}
 
-          {s.actions.vote && (
-            <div className="row mt-2">
+          {s.actions.vote ? (
+            <div className="row-wrap">
               <Button
-                variant={s.my_vote === "for" ? "primary" : "ghost"}
+                variant={s.my_vote === "for" ? "primary" : "default"}
+                icon={<ThumbsUp />}
+                aria-pressed={s.my_vote === "for"}
+                disabled={voteM.isPending}
                 onClick={() => voteM.mutate(s.my_vote === "for" ? "remove" : "for")}
-                disabled={voteM.isPending}
               >
-                <ThumbsUp className="icon" /> {s.votes_for}
+                {T.suggestions.voteFor} · {s.votes_for}
               </Button>
               <Button
-                variant={s.my_vote === "against" ? "danger" : "ghost"}
-                onClick={() => voteM.mutate(s.my_vote === "against" ? "remove" : "against")}
+                variant={s.my_vote === "against" ? "danger" : "default"}
+                icon={<ThumbsDown />}
+                aria-pressed={s.my_vote === "against"}
                 disabled={voteM.isPending}
+                onClick={() => voteM.mutate(s.my_vote === "against" ? "remove" : "against")}
               >
-                <ThumbsDown className="icon" /> {s.votes_against}
+                {T.suggestions.voteAgainst} · {s.votes_against}
               </Button>
             </div>
+          ) : (
+            <span className="small muted">{T.suggestions.voteCounts(s.votes_for, s.votes_against)}</span>
           )}
 
-          {s.actions.decide && s.status === "pending" && (
-            <div className="stack mt-2 border-t pt-2">
-              <div className="field">
-                <label>{T.suggestions.bossNote}</label>
-                <textarea
-                  className="input"
-                  rows={2}
-                  value={bossNote}
-                  onChange={(e) => setBossNote(e.target.value)}
-                />
-              </div>
-              <div className="row end">
-                <Button variant="danger" onClick={() => decideM.mutate("rejected")} disabled={decideM.isPending}>
-                  {T.suggestions.reject}
-                </Button>
-                <Button variant="primary" onClick={() => decideM.mutate("accepted")} disabled={decideM.isPending}>
-                  {T.suggestions.accept}
-                </Button>
-              </div>
-            </div>
+          {s.actions.decide && (
+            <Field label={T.suggestions.bossNote}>
+              {(fid) => (
+                <textarea id={fid} className="textarea" rows={3} placeholder={T.suggestions.bossNotePh} value={bossNote} onChange={(e) => setBossNote(e.target.value)} />
+              )}
+            </Field>
           )}
         </div>
       )}

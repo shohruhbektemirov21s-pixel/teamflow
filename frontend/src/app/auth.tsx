@@ -9,6 +9,8 @@ interface AuthState {
   ready: boolean;
   login: (username: string, password: string) => Promise<Me>;
   logout: () => Promise<void>;
+  /** Profil o'zgargach menyudagi ism va boshqa ma'lumotlar yangilansin. */
+  refresh: () => Promise<void>;
 }
 
 const AuthCtx = createContext<AuthState | null>(null);
@@ -64,7 +66,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [qc]);
 
-  return <AuthCtx.Provider value={{ user, ready, login, logout }}>{children}</AuthCtx.Provider>;
+  const refresh = useCallback(async () => {
+    setUser(await api.get<Me>("/auth/me/"));
+  }, []);
+
+  return <AuthCtx.Provider value={{ user, ready, login, logout, refresh }}>{children}</AuthCtx.Provider>;
 }
 
 export function useAuth(): AuthState {

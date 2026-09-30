@@ -52,8 +52,8 @@ export default function TaskBulkModal({ projectId }: { projectId?: number }) {
   return (
     <Modal
       size="lg"
-      title="Vazifalarni taqsimlash"
-      subtitle="Har bir vazifaga ijrochi tanlang"
+      title={T.tasks.bulkTitle}
+      subtitle={T.tasks.bulkSubtitle}
       onClose={close}
       dirty={rows.some((row) => row.title || row.assignee_ids.length || row.due_at)}
       footer={<><span className="spacer" /><Button variant="ghost" onClick={close}>{T.common.cancel}</Button><Button variant="primary" loading={save.isPending} disabled={!canSave} onClick={() => save.mutate()}>Yaratish ({rows.length})</Button></>}
@@ -83,7 +83,7 @@ export default function TaskBulkModal({ projectId }: { projectId?: number }) {
                 </div>
               </section>
             ))}
-            <div><Button size="sm" icon={<Plus />} onClick={() => setRows((items) => [...items, emptyRow()])}>Yana vazifa</Button></div>
+            <div><Button size="sm" icon={<Plus />} onClick={() => setRows((items) => [...items, emptyRow()])}>{T.tasks.bulkMore}</Button></div>
           </div>
         )}
       </form>

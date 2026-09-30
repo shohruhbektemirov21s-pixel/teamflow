@@ -127,7 +127,7 @@ export default function TaskModal({ id, submitMode }: { id: number; submitMode?:
       setNewSubtaskTitle("");
       setNewSubtaskAssignee("");
       setIsAddingSubtask(false);
-      toast("Sub-vazifa qo'shildi");
+      toast(T.tasks.subtaskAddedToast);
     },
     onError: (e: Error) => toast(e.message, "error"),
   });
@@ -136,7 +136,7 @@ export default function TaskModal({ id, submitMode }: { id: number; submitMode?:
     mutationFn: (sid: number) => api.del(`/tasks/${id}/subtasks/${sid}/`),
     onSuccess: () => {
       refresh();
-      toast("Sub-vazifa o'chirildi");
+      toast(T.tasks.subtaskDeletedToast);
     },
     onError: (e: Error) => toast(e.message, "error"),
   });
@@ -147,7 +147,7 @@ export default function TaskModal({ id, submitMode }: { id: number; submitMode?:
       setWorkNote("");
       setWorkHours("1");
       refresh();
-      toast("Ish jurnali saqlandi");
+      toast(T.tasks.worklogSavedToast);
     },
     onError: (e: Error) => toast(e.message, "error"),
   });
@@ -350,7 +350,7 @@ export default function TaskModal({ id, submitMode }: { id: number; submitMode?:
                         style={{
                           gap: 8,
                           padding: 10,
-                          background: "var(--surface-muted)",
+                          background: "var(--surface-2)",
                           border: "1px solid var(--border)",
                           borderRadius: "var(--radius-sm)",
                         }}
@@ -366,7 +366,7 @@ export default function TaskModal({ id, submitMode }: { id: number; submitMode?:
                         <input
                           autoFocus
                           className="input grow"
-                          placeholder="Nima qilinishi kerak?"
+                          placeholder={T.tasks.subtaskNewPh}
                           value={newSubtaskTitle}
                           onChange={(e) => setNewSubtaskTitle(e.target.value)}
                         />
@@ -375,7 +375,7 @@ export default function TaskModal({ id, submitMode }: { id: number; submitMode?:
                           value={newSubtaskAssignee}
                           onChange={(e) => setNewSubtaskAssignee(e.target.value ? Number(e.target.value) : "")}
                         >
-                          <option value="">Odam tanlash...</option>
+                          <option value="">{T.tasks.subtaskPickPerson}</option>
                           {projectTeam.data?.members.map((m) => (
                             <option key={m.id} value={m.id}>
                               {m.full_name}
@@ -501,7 +501,7 @@ export default function TaskModal({ id, submitMode }: { id: number; submitMode?:
                       <FilePicker files={files} onChange={setFiles} />
                       {files.length > 0 && (
                         <Button type="submit" variant="primary" size="sm" loading={act.isPending} icon={<Upload size={14} />}>
-                          Yuklash
+                          {T.tasks.upload}
                         </Button>
                       )}
                     </div>

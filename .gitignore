@@ -8,10 +8,6 @@ frontend/node_modules/
 frontend/dist/
 .env
 
-# Agent & internal docs excluded
-README.md
-CLAUDE.md
-GEMINI.md
 .playwright-mcp/
 *.tsbuildinfo
 

@@ -97,7 +97,7 @@ export default function BoardPage() {
         </div>
         <div className="row">
           <Button variant="default" icon={<Plus />} onClick={() => open({ bulk: "task", project: project ? Number(project) : undefined })}>
-            Ko'p vazifa qo'shish
+            {T.tasks.bulkNew}
           </Button>
           <Button variant="primary" icon={<Plus />} onClick={() => open({ new: "task", project: project ? Number(project) : undefined })}>
             {T.tasks.new}

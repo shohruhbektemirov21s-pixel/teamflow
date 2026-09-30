@@ -91,3 +91,21 @@ class DevelopersListTests(TestCase):
         r = client_for(make_user(Role.PM)).get("/api/developers/")
         self.assertEqual(r.status_code, 200)
         self.assertEqual(len(r.data), 2)  # faqat faol dasturchilar (so'rovchi dasturchi ham)
+
+
+class ProfileTests(TestCase):
+    def test_update_saves_normalized_telegram_and_unlinks_old_chat(self):
+        user = make_user(Role.DEVELOPER, telegram_username="@eski", telegram_chat_id="42")
+        r = client_for(user).patch("/api/auth/profile/", {"first_name": "Yangi", "telegram_username": " yangi_tg "},
+                                   format="json")
+        self.assertEqual(r.status_code, 200)
+        user.refresh_from_db()
+        self.assertEqual(user.first_name, "Yangi")
+        self.assertEqual(user.telegram_username, "@yangi_tg")
+        self.assertEqual(user.telegram_chat_id, "")  # yangi username — botga /start qayta yuboriladi
+
+    def test_same_telegram_keeps_linked_chat(self):
+        user = make_user(Role.DEVELOPER, telegram_username="@ali", telegram_chat_id="42")
+        client_for(user).patch("/api/auth/profile/", {"telegram_username": "ali"}, format="json")
+        user.refresh_from_db()
+        self.assertEqual(user.telegram_chat_id, "42")

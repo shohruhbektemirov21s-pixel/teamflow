@@ -1,76 +1,94 @@
 import { useQuery } from "@tanstack/react-query";
-import { Plus } from "lucide-react";
+import { Lightbulb, Plus } from "lucide-react";
 import { useState } from "react";
 
 import { useModal } from "@/app/modals";
-import { api } from "@/shared/api";
+import { api, qs } from "@/shared/api";
 import { fmtDateTime } from "@/shared/format";
 import { T } from "@/shared/text";
-import type { Suggestion } from "@/shared/types";
-import { Badge, Button, Empty, ErrorBox, Segmented, Skeleton } from "@/shared/ui";
+import type { Paged, Suggestion } from "@/shared/types";
+import { Badge, Button, Empty, ErrorBox, Segmented, SkeletonRows } from "@/shared/ui";
+
+type Status = Suggestion["status"];
+export const SUGGESTION_TONE = { pending: "slate", accepted: "success", rejected: "danger" } as const;
 
 export default function SuggestionsPage() {
-  const [tab, setTab] = useState<"pending" | "accepted" | "rejected">("pending");
+  const [tab, setTab] = useState<Status>("pending");
   const { open } = useModal();
 
-  const { data, isLoading, error } = useQuery<Suggestion[]>({
+  const query = useQuery({
     queryKey: ["suggestions", tab],
-    queryFn: () => api.get<Suggestion[]>(`/api/suggestions/?status=${tab}`),
+    queryFn: () => api.get<Paged<Suggestion>>(`/suggestions/${qs({ status: tab })}`),
   });
+  const items = query.data?.results ?? [];
 
   return (
-    <div className="page">
-      <div className="row spread">
-        <h2>{T.suggestions.title}</h2>
-        <Button variant="primary" onClick={() => open({ new: "suggestion" })}>
-          <Plus className="icon" /> {T.suggestions.new}
+    <>
+      <div className="page-head">
+        <div className="grow">
+          <h1>{T.suggestions.title}</h1>
+          {query.data && <p>{T.common.count(query.data.count)}</p>}
+        </div>
+        <Button variant="primary" icon={<Plus />} onClick={() => open({ new: "suggestion" })}>
+          {T.suggestions.new}
         </Button>
       </div>
 
-      <Segmented
-        options={[
-          { value: "pending", label: T.suggestions.tabs.pending },
-          { value: "accepted", label: T.suggestions.tabs.accepted },
-          { value: "rejected", label: T.suggestions.tabs.rejected },
-        ]}
+      <Segmented<Status>
+        label={T.suggestions.status}
         value={tab}
-        onChange={(v) => setTab(v as any)}
+        onChange={setTab}
+        options={[
+          { value: "pending", label: T.suggestions.tabs.pending! },
+          { value: "accepted", label: T.suggestions.tabs.accepted! },
+          { value: "rejected", label: T.suggestions.tabs.rejected! },
+        ]}
       />
 
-      {error ? (
-        <ErrorBox error={error} />
-      ) : isLoading ? (
-        <div className="stack">
-          {[1, 2, 3].map((i) => (
-            <Skeleton key={i} h={100} />
-          ))}
+      {query.error ? (
+        <ErrorBox error={query.error} onRetry={() => query.refetch()} />
+      ) : query.isLoading ? (
+        <div className="card">
+          <SkeletonRows rows={3} />
         </div>
-      ) : data?.length ? (
+      ) : items.length ? (
         <div className="stack">
-          {data.map((s) => (
-            <div key={s.id} className="card interactive stack-sm" onClick={() => open({ suggestion: s.id })}>
-              <div className="row spread">
-                <h4>{s.title}</h4>
-                <Badge
-                  tone={s.status === "accepted" ? "success" : s.status === "rejected" ? "danger" : "slate"}
-                >
-                  {T.suggestions.tabs[s.status]}
-                </Badge>
-              </div>
-              <p className="hint line-clamp">{s.body}</p>
-              <div className="row hint xs">
-                <span>{s.is_anonymous ? T.suggestions.anonymousAuthor : s.author?.full_name || T.suggestions.anonymousAuthor}</span>
-                <span>•</span>
-                <span>{fmtDateTime(s.created_at)}</span>
-                <span>•</span>
-                <span>{T.suggestions.votes}: {s.votes_for} {T.suggestions.voteFor.toLowerCase()}, {s.votes_against} {T.suggestions.voteAgainst.toLowerCase()}</span>
-              </div>
-            </div>
+          {items.map((s) => (
+            <button
+              key={s.id}
+              type="button"
+              className="card card-pad clickable stack-sm"
+              style={{ textAlign: "left", font: "inherit", color: "inherit" }}
+              onClick={() => open({ suggestion: s.id })}
+            >
+              <span className="row">
+                <b className="grow">{s.title}</b>
+                <Badge tone={SUGGESTION_TONE[s.status]}>{T.suggestions.tabs[s.status]}</Badge>
+              </span>
+              <span className="muted ellipsis" style={{ display: "block" }}>
+                {s.body}
+              </span>
+              <span className="small muted">
+                {s.author?.full_name ?? T.suggestions.anonymousAuthor} · {fmtDateTime(s.created_at)} ·{" "}
+                {T.suggestions.voteCounts(s.votes_for, s.votes_against)}
+              </span>
+            </button>
           ))}
         </div>
       ) : (
-        <Empty icon={<Plus />} title={T.suggestions.empty} hint={T.suggestions.emptyHint} />
+        <div className="card">
+          <Empty
+            icon={<Lightbulb />}
+            title={T.suggestions.empty}
+            hint={T.suggestions.emptyHint}
+            action={
+              <Button variant="primary" icon={<Plus />} onClick={() => open({ new: "suggestion" })}>
+                {T.suggestions.new}
+              </Button>
+            }
+          />
+        </div>
       )}
-    </div>
+    </>
   );
 }

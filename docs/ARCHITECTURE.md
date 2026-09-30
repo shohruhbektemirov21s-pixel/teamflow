@@ -45,7 +45,7 @@ backend/
     orders/          Order, OrderVersion, buyurtma holat mashinasi, servislar
     projects/        Project, ProjectMember, ProjectFile
     tasks/           Task, TaskAssignment, SubTask, Submission, WorkLog, holat mashinasi
-    notifications/   Notification
+    notifications/   Notification, notify(); telegram.py (Bot API: yuborish, /start bilan chat bog'lash), runbot buyrug'i
     chat/            ChatMessage, validatsiya va suhbat servislar
     panel/           modelsiz yig'uvchi qatlam: dashboard, people, search, comments, history, files, meta
 ```
@@ -74,6 +74,7 @@ core  ←  accounts  ←  orders  ←  projects  ←  tasks
 - Pastdagi app yuqoridagini **import qilmaydi**. `orders` → `projects` bog'lanishi (loyiha yaratish) `projects.services` ichida bajariladi, `orders` faqat `Project.order` OneToOne orqali ko'rinadi.
 - **Nima uchun:** eski TeamFlow auditida "qatlam buzilishi" topilgan edi; shu yo'nalishni boshidanoq qat'iy qilamiz.
 - Bildirishnoma va tarix (`ActivityLog`) servislar ichidan bitta yordamchi funksiya bilan yoziladi (`notifications.services.notify`, `core.services.log`).
+- Telegram'ga yuborish `transaction.on_commit` da, bitta fon oqimida, 5 soniya timeout bilan. **Nima uchun:** amal bekor bo'lsa xabar ketmasin, so'rov Telegram'ni kutib qolmasin. Token `TELEGRAM_BOT_TOKEN` muhit o'zgaruvchisida.
 
 ## 4. Ma'lumotlar modeli
 
@@ -81,7 +82,7 @@ core  ←  accounts  ←  orders  ←  projects  ←  tasks
 | Model | Maydonlar | Izoh |
 |---|---|---|
 | `Specialty` | name (unique), is_active | Mutaxassisliklar ro'yxati **Django adminda** boshqariladi (ochiq savol yopildi). |
-| `User` | username (login), first_name, last_name, password, role, specialty FK?, department_name, is_active | `role`: boss / pm / developer / department. Ro'yxatdan o'tganlar `is_active=False` bilan yaratiladi, admin faollashtiradi. Boshliq admin orqali. |
+| `User` | username (login), first_name, last_name, password, role, specialty FK?, department_name, telegram_username, telegram_chat_id, is_active | `role`: boss / pm / developer / department. Ro'yxatdan o'tganlar `is_active=False` bilan yaratiladi, admin faollashtiradi. Boshliq admin orqali. |
 
 ### orders
 | Model | Maydonlar |
@@ -245,7 +246,7 @@ frontend/src/
 | permissions | Rol × resurs jadvali |
 | services | approve/reject/versiya qoidasi, loyihani buyurtmadan yaratish, submit/review |
 | api | Rol bo'yicha 403/404, ro'yxatda begona ma'lumot yo'qligi, N+1 |
-| frontend | Modal, doska sudrash qoidalari, ruxsatga qarab tugmalar |
+| frontend | Vitest + jsdom + Testing Library (`src/test/`): filtrlar, vazifa modali (ish jurnali), xodim oynasi, chat, takliflar; doska sudrash qoidalari |
 
 ## 11. Qabul qilingan qarorlar (ochiq savollarga)
 

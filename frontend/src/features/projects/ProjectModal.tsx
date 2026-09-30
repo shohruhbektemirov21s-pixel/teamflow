@@ -181,7 +181,7 @@ export default function ProjectModal({ id }: { id: number }) {
             {history.isLoading && <Skeleton h={140} />}
             {history.error && <ErrorBox error={history.error} onRetry={() => history.refetch()} />}
             <div className="timeline" style={{ marginTop: 10 }}>
-              {!history.isLoading && !history.data?.results.length && <p className="muted">Hali faoliyat yo'q.</p>}
+              {!history.isLoading && !history.data?.results.length && <p className="muted">{T.projects.noActivity}</p>}
               {history.data?.results.map((item) => (
                 <div key={item.id} className="timeline-item">
                   {item.actor ? <Avatar user={item.actor} size="sm" /> : <span className="avatar sm" />}

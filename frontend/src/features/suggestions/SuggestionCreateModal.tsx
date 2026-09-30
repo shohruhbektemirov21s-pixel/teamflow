@@ -1,10 +1,11 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { Send } from "lucide-react";
 import { useState } from "react";
 
 import { useModal } from "@/app/modals";
-import { api } from "@/shared/api";
+import { api, ApiError } from "@/shared/api";
 import { T } from "@/shared/text";
-import { Button, Modal, useToast } from "@/shared/ui";
+import { Button, ErrorBox, Field, Modal, useToast } from "@/shared/ui";
 
 export default function SuggestionCreateModal() {
   const { close } = useModal();
@@ -15,56 +16,57 @@ export default function SuggestionCreateModal() {
   const qc = useQueryClient();
 
   const m = useMutation({
-    mutationFn: async () => {
-      await api.post("/api/suggestions/", { title, body, is_anonymous: isAnonymous });
-    },
+    mutationFn: () => api.post("/suggestions/", { title, body, is_anonymous: isAnonymous }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["suggestions"] });
-      toast(T.suggestions.sentToast, "ok");
+      toast(T.suggestions.sentToast);
       close();
     },
   });
+  const fe = (name: string) => (m.error instanceof ApiError ? m.error.field(name) : undefined);
+  const ready = Boolean(title.trim() && body.trim());
 
   return (
-    <Modal title={T.suggestions.new} onClose={close}>
-      <div className="stack">
-        <div className="field">
-          <label>{T.suggestions.name}</label>
-          <input
-            autoFocus
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder={T.suggestions.namePh}
-            className="input"
-          />
-        </div>
-        <div className="field">
-          <label>{T.suggestions.body}</label>
-          <textarea
-            value={body}
-            onChange={(e) => setBody(e.target.value)}
-            placeholder={T.suggestions.bodyPh}
-            className="input"
-            rows={5}
-          />
-        </div>
-        <label className="row">
-          <input
-            type="checkbox"
-            checked={isAnonymous}
-            onChange={(e) => setIsAnonymous(e.target.checked)}
-          />
-          {T.suggestions.anonymous}
-        </label>
-        <div className="row end mt-2">
+    <Modal
+      title={T.suggestions.new}
+      onClose={close}
+      dirty={Boolean(title || body)}
+      footer={
+        <>
+          <div className="spacer" />
           <Button variant="ghost" onClick={close}>
             {T.common.cancel}
           </Button>
-          <Button variant="primary" onClick={() => m.mutate()} disabled={!title.trim() || !body.trim() || m.isPending}>
-            {m.isPending ? T.common.loading : T.common.save}
+          <Button type="submit" form="suggestion-form" variant="primary" icon={<Send />} loading={m.isPending} disabled={!ready}>
+            {T.suggestions.send}
           </Button>
-        </div>
-      </div>
+        </>
+      }
+    >
+      <form
+        id="suggestion-form"
+        className="stack"
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (ready) m.mutate();
+        }}
+      >
+        {m.error && !(m.error instanceof ApiError && Object.keys(m.error.fields).length) && <ErrorBox error={m.error} />}
+        <Field label={T.suggestions.name} required error={fe("title")}>
+          {(id, bad) => (
+            <input id={id} className="input" autoFocus aria-invalid={bad} value={title} placeholder={T.suggestions.namePh} onChange={(e) => setTitle(e.target.value)} />
+          )}
+        </Field>
+        <Field label={T.suggestions.body} required error={fe("body")}>
+          {(id, bad) => (
+            <textarea id={id} className="textarea" rows={5} aria-invalid={bad} value={body} placeholder={T.suggestions.bodyPh} onChange={(e) => setBody(e.target.value)} />
+          )}
+        </Field>
+        <label className="check">
+          <input type="checkbox" checked={isAnonymous} onChange={(e) => setIsAnonymous(e.target.checked)} />
+          {T.suggestions.anonymous}
+        </label>
+      </form>
     </Modal>
   );
 }

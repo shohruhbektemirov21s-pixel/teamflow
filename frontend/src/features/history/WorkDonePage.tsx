@@ -23,6 +23,11 @@ export default function WorkDonePage() {
   const [project, setProject] = useState("");
   const [page, setPage] = useState(1);
   const { open } = useModal();
+  const openTarget = (target: HistoryItem["target"]) => {
+    if (target?.type === "task") open({ task: target.id });
+    else if (target?.type === "order") open({ order: target.id });
+    else if (target?.type === "project") open({ project: target.id });
+  };
   const projects = useProjects();
 
   const query = useQuery({
@@ -87,10 +92,10 @@ export default function WorkDonePage() {
                 <table className="table">
                   <thead>
                     <tr>
-                      <th>Vazifa</th>
-                      <th>Loyiha</th>
-                      <th>Ijrochilar</th>
-                      <th>Bajarildi</th>
+                      <th>{T.workDone.col.task}</th>
+                      <th>{T.workDone.col.project}</th>
+                      <th>{T.workDone.col.assignees}</th>
+                      <th>{T.workDone.col.doneAt}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -124,11 +129,11 @@ export default function WorkDonePage() {
                 <table className="table">
                   <thead>
                     <tr>
-                      <th>Yubordi</th>
-                      <th>Izoh</th>
+                      <th>{T.workDone.col.submittedBy}</th>
+                      <th>{T.workDone.col.note}</th>
                       <th>{T.workDone.decision}</th>
-                      <th>Tekshirdi</th>
-                      <th>Sana</th>
+                      <th>{T.workDone.col.reviewer}</th>
+                      <th>{T.workDone.col.date}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -173,14 +178,14 @@ export default function WorkDonePage() {
                 <table className="table">
                   <thead>
                     <tr>
-                      <th>Xodim</th>
-                      <th>Harakat</th>
-                      <th>Vaqt</th>
+                      <th>{T.workDone.col.person}</th>
+                      <th>{T.workDone.col.action}</th>
+                      <th>{T.workDone.col.time}</th>
                     </tr>
                   </thead>
                   <tbody>
                     {data.recent_activity.map((h) => (
-                      <tr key={h.id} className={h.target ? "clickable" : undefined} onClick={() => h.target?.type === "task" && open({ task: h.target.id })}>
+                      <tr key={h.id} className={h.target ? "clickable" : undefined} onClick={() => openTarget(h.target)}>
                         <td>
                           {h.actor ? (
                             <div className="row">
@@ -204,9 +209,9 @@ export default function WorkDonePage() {
       )}
       {data && (hasPrevious || hasNext) && (
         <div className="row" style={{ justifyContent: "end", marginTop: 16 }}>
-          <Button size="sm" disabled={!hasPrevious} onClick={() => setPage((current) => current - 1)}>← Oldingi</Button>
-          <span className="small muted">{page}-sahifa</span>
-          <Button size="sm" disabled={!hasNext} onClick={() => setPage((current) => current + 1)}>Keyingi →</Button>
+          <Button size="sm" disabled={!hasPrevious} onClick={() => setPage((current) => current - 1)}>{T.workDone.prev}</Button>
+          <span className="small muted">{T.workDone.page(page)}</span>
+          <Button size="sm" disabled={!hasNext} onClick={() => setPage((current) => current + 1)}>{T.workDone.next}</Button>
         </div>
       )}
     </>

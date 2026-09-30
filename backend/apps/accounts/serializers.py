@@ -7,6 +7,12 @@ from .models import Role, Specialty, User
 SELF_REGISTER_ROLES = [Role.PM, Role.DEVELOPER, Role.DEPARTMENT]  # Boshliq faqat Django adminda
 
 
+def normalize_telegram(value):
+    """Telegram username bir xil shaklda saqlanadi: "@username" (bo'sh bo'lishi mumkin)."""
+    value = (value or "").strip()
+    return f"@{value.lstrip('@')}" if value else ""
+
+
 class SpecialtySerializer(serializers.ModelSerializer):
     class Meta:
         model = Specialty
@@ -38,9 +44,7 @@ class RegisterSerializer(serializers.Serializer):
             raise serializers.ValidationError({"department_name": ["Boshqarma nomini yozing."]})
         attrs["department_name"] = dept if attrs["role"] == Role.DEPARTMENT else ""
         
-        if telegram and not telegram.startswith("@"):
-            telegram = "@" + telegram
-        attrs["telegram_username"] = telegram
+        attrs["telegram_username"] = normalize_telegram(telegram)
 
         candidate = User(
             username=attrs["username"], first_name=attrs["first_name"], last_name=attrs["last_name"]
@@ -108,6 +112,10 @@ class ProfileSerializer(serializers.ModelSerializer):
 class ProfileUpdateSerializer(serializers.Serializer):
     first_name = serializers.CharField(max_length=150, required=False)
     last_name = serializers.CharField(max_length=150, required=False)
+    telegram_username = serializers.CharField(max_length=100, required=False, allow_blank=True)
+
+    def validate_telegram_username(self, value):
+        return normalize_telegram(value)
 
 
 class ChangePasswordSerializer(serializers.Serializer):

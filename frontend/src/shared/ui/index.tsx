@@ -17,7 +17,7 @@ import { avatarColor, ORDER_TONE, PRIORITY_TONE, STAGE_TONE, TASK_TONE, type Ton
 import { T } from "../text";
 import type { FileInfo, OrderStatus, Priority, ProjectStage, TaskStatus, UserBrief } from "../types";
 
-export { Drawer, Modal } from "./Modal";
+export { Modal } from "./Modal";
 
 // ─── Tugma ───────────────────────────────────────────────────────────────────
 type Variant = "primary" | "danger" | "success" | "ghost" | "default";

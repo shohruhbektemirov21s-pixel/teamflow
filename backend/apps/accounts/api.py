@@ -104,14 +104,23 @@ def developers(request):
 @api_view(["GET", "PATCH"])
 @permission_classes([IsAuthenticated])
 def profile(request):
-    """Joriy foydalanuvchi profili. PATCH: first_name, last_name o'zgartirish."""
+    """Joriy foydalanuvchi profili. PATCH: first_name, last_name, telegram_username.
+
+    Telegram username o'zgarsa, eski chat uziladi — bildirishnomalar begona chatga ketmasin;
+    foydalanuvchi botga /start ni qayta yuboradi.
+    """
     if request.method == "GET":
         return Response(ProfileSerializer(request.user).data)
     s = ProfileUpdateSerializer(data=request.data)
     s.is_valid(raise_exception=True)
+    user = request.user
+    fields = list(s.validated_data.keys())
+    if "telegram_username" in s.validated_data and s.validated_data["telegram_username"] != user.telegram_username:
+        user.telegram_chat_id = ""
+        fields.append("telegram_chat_id")
     for k, v in s.validated_data.items():
-        setattr(request.user, k, v)
-    request.user.save(update_fields=list(s.validated_data.keys()))
+        setattr(user, k, v)
+    user.save(update_fields=fields)
     return Response(ProfileSerializer(request.user).data)
 
 

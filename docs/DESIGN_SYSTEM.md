@@ -11,7 +11,7 @@ Ushbu hujjat TeamFlow loyihasining yagona va markazlashtirilgan **Dizayn Tizimi 
    - Komponentlarda ixtiyoriy (ad-hoc) ranglar yoki kutilmagan piksellar yozilmaydi.
 2. **Bir xil komponentlar (Consistency):**
    - Bir sahifadagi tugma, karta, maydon va belgilar boshqa sahifada aynan bir xil ko'rinish va o'lchamga ega bo'ladi.
-   - Barcha asosiy elementlar `src/shared/ui/` kutubxonasidan olinadi (`Button`, `Card`, `Badge`, `Field`, `Modal`, `Drawer`, `Avatar`, `Empty`, `Due`, `Segmented`).
+   - Barcha asosiy elementlar `src/shared/ui/` kutubxonasidan olinadi (`Button`, `Card`, `Badge`, `Field`, `Modal`, `Avatar`, `Empty`, `Due`, `Segmented`).
 3. **Auditoriya (18–40 yosh):**
    - Ortiqcha bezaklar va tushunarsiz texnik atamalardan xoli, zamonaviy, tezkor, qulay va intuitiv interfeys.
    - Har bir ekranda bitta aniq asosiy amal (Primary action).
@@ -123,7 +123,8 @@ Variantlar:
 - Har bir holat nishoni semantik rang toni (`tone-*`) bilan beriladi va chap tomonida 7px lik rangli nuqta (`.dot`) bo'ladi.
 - Matnlar to'g'ridan-to'g'ri backend metadatasidan olinadi (`useMeta().label(...)`).
 
-### 5.5. Modallar va Panel (`Modal`, `Drawer`)
+### 5.5. Modallar (`Modal`)
+- Yon panel (drawer) ishlatilmaydi — faqat modal (CLAUDE.md, 13-bo'lim).
 - Modal zamin: `var(--overlay)` qora yarim shaffof parda.
 - Modal tanasi: `var(--surface)`, burchaklari `16px`, soyasi `var(--shadow-lg)`.
 - Sarlavha paneli (`.modal-head`): 16px 20px padding, pastki chiziq.

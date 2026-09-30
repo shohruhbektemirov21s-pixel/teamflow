@@ -84,7 +84,7 @@ export default function TaskFormModal({ projectId, editId, assigneeId }: { proje
       if (assigneeId) {
         setAssignees((xs) => (xs.includes(assigneeId) ? xs : [...xs, assigneeId]));
       }
-      toast("Xodim loyiha jamoasiga qo'shildi");
+      toast(T.tasks.addedToTeamToast);
     },
     onError: (e: Error) => toast(e.message, "error"),
   });
@@ -224,9 +224,9 @@ export default function TaskFormModal({ projectId, editId, assigneeId }: { proje
               <div style={{ marginTop: 8 }}>
                 <Callout tone="info">
                   <div className="row" style={{ justifyContent: "space-between", width: "100%", gap: 8 }}>
-                    <span>Tanlangan xodim bu loyiha jamoasiga qo'shilmagan.</span>
+                    <span>{T.tasks.notInTeam}</span>
                     <Button size="sm" variant="primary" icon={<UserPlus />} loading={addMember.isPending} onClick={() => addMember.mutate()}>
-                      Jamoaga qo'shish
+                      {T.tasks.addToTeam}
                     </Button>
                   </div>
                 </Callout>

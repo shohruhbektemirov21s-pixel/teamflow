@@ -59,7 +59,7 @@ export function navFor(role: Role): NavGroup[] {
     case "department":
       return [
         { title: T.nav.groupMain, items: [{ to: "/buyurtmalar", label: T.nav.myOrders, icon: FileText }] },
-        { title: T.nav.groupTeam, items: [notifications, suggestions] },
+        { title: T.nav.groupTeam, items: [messages, notifications, suggestions] },
         { title: T.nav.groupControl, items: [history] },
       ];
     default: // pm, boss
@@ -83,7 +83,10 @@ export function navFor(role: Role): NavGroup[] {
   }
 }
 
+/** Menyuda yo'q, lekin sarlavhasi bor sahifalar (profil foydalanuvchi kartasi orqali ochiladi). */
+const EXTRA_TITLES: Record<string, string> = { "/profil": T.nav.profile };
+
 export function pageTitle(pathname: string, role: Role): string {
   for (const g of navFor(role)) for (const i of g.items) if (i.to === pathname) return i.label;
-  return T.app;
+  return EXTRA_TITLES[pathname] ?? T.app;
 }
