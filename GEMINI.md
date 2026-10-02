@@ -91,7 +91,7 @@ Backend (`backend/` papkasida, virtual muhit `backend/.venv`):
 .venv/Scripts/python manage.py createsuperuser            # admin (Boshliqni adminda yaratish uchun)
 .venv/Scripts/python manage.py seed_demo                  # demo ma'lumotlar
 .venv/Scripts/python manage.py runserver 127.0.0.1:8020   # http://127.0.0.1:8020/ (8020-port)
-.venv/Scripts/python manage.py test                       # testlar (157 ta test)
+.venv/Scripts/python manage.py test                       # testlar (164 ta test)
 .venv/Scripts/python manage.py runbot                     # Telegram bot (TELEGRAM_BOT_TOKEN muhit o'zgaruvchisi bilan)
 .venv/Scripts/python manage.py makemigrations --check --dry-run   # sxema mosligi
 ```
@@ -101,7 +101,7 @@ Frontend (`frontend/` papkasida):
 npm install               # bog'liqliklar
 npx vite                  # dev-server: http://127.0.0.1:5173/ (8020 ga proksi qiladi)
 npx tsc --noEmit -p .     # TypeScript tur tekshiruvi
-npx vitest run            # testlar (44 ta, jsdom + @testing-library/react)
+npx vitest run            # testlar (48 ta, jsdom + @testing-library/react)
 npx vite build            # prod build: dist/ (Django orqali beriladi)
 ```
 
@@ -174,3 +174,6 @@ Har bir app ichidagi qatlamlar (`models`, `workflow`, `services`, `permissions`,
 - 2026-09-30: Profil sarlavhasidagi rasm (o'z profilim va xodim oynasi) bosilsa, Telegram kabi to'liq ekranda ochiladi: to'q fon, tepada ism va ✕; Esc, fon yoki "Orqaga" yopadi. Xodim oynasidan ochilsa uning o'rnini egallaydi (modal ustida modal yo'q). Yangi modal: "Rasm ko'rish" — modallar 11 ta. Rasm endi 1024px gacha saqlanadi (katta ko'rinishda tiniq).
 - 2026-09-30: Loyihalar va Takliflar ro'yxatiga aniq tartib qo'shildi (`order_by("-created_at", "-id")`): `Count` annotatsiyasi bilan Meta.ordering qo'llanmasdi va sahifalashda yozuvlar takrorlanishi/tushib qolishi mumkin edi. Testlar: `ProjectListOrderTests`, `SuggestionListOrderTests`.
 - 2026-09-30: README.md loyiha kodi bilan solishtirilib qayta yozildi: mundarija, hamma sahifalar tavsifi (Loyihalar, Tekshiruv navbati, Xabarlar, Takliflar, Umumiy tarix, Qilingan ishlar, Izohlar), xavfsizlik, papka tuzilmasi, qaytarish nuqtalari (git tag). Kodga mos kelmagan joylar tuzatildi (mutaxassisliklar ro'yxati, taklif holatlari, admin akkaunti `seed_demo` da yaratilmasligi).
+- 2026-10-02: Buyurtmadan yaratilgan loyihada PM/Boshliq endi nomi va izohini ham tahrirlay oladi (avval faqat sanalar o'zgarardi). O'zgarish bog'liq buyurtmaga ham ko'chadi (sanalar kabi ikki tomonlama sinxron) — ikkalasi bitta TZ ma'lumotini ko'rsatadi. TZ fayli o'zgarmaydi. Backend: `projects/services.py:update_project`, `projects/serializers.py:edit_info`.
+- 2026-10-02: Loyihani yakunlash endi buyurtma beruvchi boshqarma tasdig'iga bog'liq: PM/Boshliq buyurtmasiz loyihani to'g'ridan-to'g'ri Yakunlaydi; buyurtmadan yaratilgan loyiha avval "Tasdiqlash kutilmoqda" holatiga o'tadi (yangi Project.Stage), buyurtmani yuborgan boshqarma Buyurtma oynasidan (OrderModal) Tasdiqlaydi (Yakunlangan) yoki sabab bilan Rad etadi (Tuzatish kerak'ga qaytadi, PM sababni ko'rib qayta so'raydi). Yangi modal yaratilmadi — mavjud ProjectModal va OrderModal kengaytirildi; projects bo'limida flow soni 1 dan 2 ga oshdi (cheklov ichida). Backend: `projects/workflow.py` (yangi), `projects/services.py: _apply_stage/confirm_completion/reject_completion`, `projects/api.py` (confirm-completion/reject-completion), `orders/serializers.py` (`project` maydoni, `decide_completion`/`view_project` actions), 3 ta yangi bildirishnoma turi.
+- 2026-10-02: Atama almashtirildi: "Sub-vazifa" → "Topshiriq" (frontend matnlari, xatolik/bildirishnoma xabarlari, Django admin `verbose_name`). Model va API maydon nomlari (`SubTask`, `subtasks`, `assignee_ids`) o'zgarmadi — faqat foydalanuvchiga ko'rinadigan matn.

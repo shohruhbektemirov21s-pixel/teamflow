@@ -13,6 +13,7 @@
 | 3 | Buyurtmani ko'rib chiqish | orders | PM ochadi → Tasdiqlash (sana, izoh) yoki Rad etish (sabab) | Faol |
 | 4 | TZ qayta yuborish (v2, v3…) | orders | Rad etilgach kamchilikni tuzatib yangi TZ yuboriladi | Faol |
 | 5 | Loyiha yaratish | projects | Tasdiqlangan buyurtmadan (yoki qo'lda) → jamoa → loyiha fayllari va har bir xodimga alohida vazifa (sana, fayl) → bitta tranzaksiyada saqlanadi | Faol |
+| 5b | Loyihani yakunlashni tasdiqlash | projects | PM/Boshliq "Yakunlangan" tanlaydi → buyurtmasiz loyiha darrov yakunlanadi; buyurtmali loyiha "Tasdiqlash kutilmoqda"ga o'tadi → buyurtmani yuborgan boshqarma (OrderModal) Tasdiqlaydi (Yakunlangan) yoki sabab bilan Rad etadi (Tuzatish kerak, PM qayta so'raydi) | Faol (2026-10-02) |
 | 6 | Vazifa yaratish va biriktirish | tasks | Loyiha ichida vazifa → bir yoki bir nechta dasturchi → sub-vazifalar (har biriga bir nechta dasturchi). Vazifa oynasidan keyin ham ijrochi qo'shiladi (PM/Boshliq; dasturchi — o'zi yaratgan vazifaga), jamoadan tashqari dasturchi loyihaga avtomatik qo'shiladi | Faol |
 | 7 | Vazifani bajarish | tasks | Nazoratda → Jarayonda → Tekshiruvga yuborish (izoh, fayl) | Faol |
 | 8 | Tekshiruv | tasks | PM natijani ko'radi → Qabul (Bajarildi) yoki Qaytarish (Jarayonda, izoh bilan) | Faol |
@@ -21,7 +22,7 @@
 | 11 | Qilingan ishlar feed | history | Oxirgi bajarilgan vazifalar va tekshiruvlar reyestri (Boss, PM) | Faol |
 | 12 | Telegram'ni ulash | notifications | Ro'yxatdan o'tishda @username → botga /start → chat bog'lanadi → bildirishnomalar Telegram'ga ham keladi | Faol |
 
-Bo'limlar bo'yicha son: auth 1 · orders 3 · projects 1 · tasks 3 · profile 1 · history 1 · suggestions 1 · notifications 1. Cheklovdan oshmagan.
+Bo'limlar bo'yicha son: auth 1 · orders 3 · projects 2 · tasks 3 · profile 1 · history 1 · suggestions 1 · notifications 1. Cheklovdan oshmagan.
 Eslatma: `orders` bo'limidagi 3 flow ham UI da bitta "buyurtma holati" oqimi sifatida (holatga qarab tugma almashadi) amalga oshiriladi, alohida sahifalar ko'paytirilmaydi.
 
 ## Modallar (amalda: 11 ta)

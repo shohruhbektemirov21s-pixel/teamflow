@@ -1,7 +1,7 @@
 export type Role = "boss" | "pm" | "developer" | "department";
 export type TaskStatus = "control" | "in_progress" | "in_review" | "done";
 export type OrderStatus = "submitted" | "approved" | "rejected" | "project_created";
-export type ProjectStage = "planned" | "started" | "needs_fix" | "done";
+export type ProjectStage = "planned" | "started" | "needs_fix" | "pending_approval" | "done";
 export type Priority = "low" | "medium" | "high" | "urgent";
 
 export interface Me {
@@ -144,8 +144,11 @@ export interface OrderDetail extends Order {
   pm_note: string;
   decided_at: string | null;
   versions: OrderVersion[];
-  project_id: number | null;
-  actions: { approve: boolean; reject: boolean; new_version: boolean; create_project: boolean; edit_dates: boolean };
+  project: { id: number; stage: ProjectStage; stage_label: string } | null;
+  actions: {
+    approve: boolean; reject: boolean; new_version: boolean; create_project: boolean; edit_dates: boolean;
+    view_project: boolean; decide_completion: boolean;
+  };
 }
 
 export interface Project {
@@ -168,6 +171,7 @@ export interface ProjectDetail extends Project {
   files: FileInfo[];
   order: { id: number; title: string; department_name: string; requested_due_date: string } | null;
   actions: { edit: boolean; edit_info: boolean; members: boolean; files: boolean; add_task: boolean };
+  stage_targets: ProjectStage[];
 }
 
 export interface Person {

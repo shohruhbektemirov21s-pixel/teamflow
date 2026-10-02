@@ -48,32 +48,38 @@ class OrderListSerializer(serializers.ModelSerializer):
 class OrderDetailSerializer(OrderListSerializer):
     approved_by = serializers.SerializerMethodField()
     versions = OrderVersionSerializer(many=True, read_only=True)
-    project_id = serializers.SerializerMethodField()
+    project = serializers.SerializerMethodField()
     actions = serializers.SerializerMethodField()
 
     class Meta(OrderListSerializer.Meta):
         fields = OrderListSerializer.Meta.fields + [
-            "approved_by", "pm_note", "decided_at", "versions", "project_id", "actions",
+            "approved_by", "pm_note", "decided_at", "versions", "project", "actions",
         ]
 
     def get_approved_by(self, obj):
         return user_brief(obj.approved_by)
 
-    def get_project_id(self, obj):
+    def get_project(self, obj):
         project = getattr(obj, "project", None)
-        return project.pk if project else None
+        if not project:
+            return None
+        return {"id": project.pk, "stage": project.stage, "stage_label": project.get_stage_display()}
 
     def get_actions(self, obj):
         """UI qaysi tugmalarni ko'rsatishini server aytadi (tekshiruv baribir serverda)."""
         user = self.context["request"].user
         targets = order_targets(obj.status, user.role)
         is_owner = obj.submitted_by_id == user.pk
+        project = getattr(obj, "project", None)
+        decide_completion = bool(is_owner and user.is_department and project and project.stage == "pending_approval")
         return {
             "approve": Order.Status.APPROVED in targets,
             "reject": Order.Status.REJECTED in targets,
             "new_version": is_owner and Order.Status.SUBMITTED in targets,
             "create_project": Order.Status.PROJECT_CREATED in targets,
             "edit_dates": user.is_manager and obj.status in (Order.Status.APPROVED, Order.Status.PROJECT_CREATED),
+            "view_project": user.is_manager and bool(project),
+            "decide_completion": decide_completion,
         }
 
 

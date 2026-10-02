@@ -309,7 +309,7 @@ export default function TaskModal({ id, submitMode }: { id: number; submitMode?:
             {task.description && <p className="prose" style={{ marginBottom: 8 }}>{task.description}</p>}
             
             <details className="details-section" open>
-              <summary>Sub-vazifalar {task.subtasks.length > 0 && `(${task.subtasks_progress.done}/${task.subtasks_progress.total})`}</summary>
+              <summary>{T.tasks.subtasks} {task.subtasks.length > 0 && `(${task.subtasks_progress.done}/${task.subtasks_progress.total})`}</summary>
               <div className="details-content stack-sm">
                 {task.subtasks.length ? (
                   <div className="stack-sm">
@@ -380,7 +380,7 @@ export default function TaskModal({ id, submitMode }: { id: number; submitMode?:
                         icon={<Plus size={14} />}
                         onClick={() => setIsAddingSubtask(true)}
                       >
-                        Sub-vazifa qo'shish
+                        {T.tasks.subtaskAdd}
                       </Button>
                     ) : (
                       <form

@@ -2,7 +2,7 @@
 
 Jamoa ishini boshqarish tizimi. Boshqarmalar buyurtma (TZ) yuboradi, loyiha menejeri uni tasdiqlab loyihaga aylantiradi, dasturchilarga vazifa beradi va bajarilgan ishni tekshiradi. Boshliq hamma narsani kuzatadi va boshqaradi.
 
-> **Holat (2026-09-30):** loyiha to'liq qurilgan va ishchi holatda. Testlar: backend 157 ta, frontend 44 ta — hammasi o'tadi.
+> **Holat (2026-10-02):** loyiha to'liq qurilgan va ishchi holatda. Testlar: backend 164 ta, frontend 48 ta — hammasi o'tadi.
 > Bu fayl — loyihaning **yagona haqiqat manbai**. Agentlar uchun qoidalar: `CLAUDE.md`, `GEMINI.md`. Flow va modal reestri: `docs/FLOWS_MODALS.md`. Arxitektura, ma'lumotlar modeli va API: `docs/ARCHITECTURE.md`.
 
 ## Mundarija
@@ -16,7 +16,7 @@ Jamoa ishini boshqarish tizimi. Boshqarmalar buyurtma (TZ) yuboradi, loyiha mene
 7. [Menyu va sahifalar](#7-menyu-va-sahifalar)
 8. [Telegram bildirishnomalari](#8-telegram-bildirishnomalari)
 9. [Modallar](#9-modallar-amalda-11-ta)
-10. [Flow'lar](#10-flowlar-amalda-12-ta)
+10. [Flow'lar](#10-flowlar-amalda-13-ta)
 11. [Qarorlar va ochiq savollar](#11-qabul-qilingan-qarorlar-va-ochiq-savollar)
 12. [Xavfsizlik](#12-xavfsizlik)
 13. [Ishga tushirish va demo loginlar](#13-ishga-tushirish-va-demo-loginlar)
@@ -110,14 +110,15 @@ Qoidalar:
 - Boshqarma so'ragan muddat va PM belgilagan sanalar **alohida** saqlanadi, PM ikkalasini ham ko'radi.
 - Muhimlik turini boshqarma tanlaydi, PM tasdiqlaganda o'zgartira oladi.
 - Buyurtmani tasdiqlagan PM avtomatik mas'ul bo'ladi.
-- Buyurtmadan loyiha yaratilgach, PM tahrirlashda **faqat sanalarni** o'zgartira oladi (nom, izoh, TZ o'zgarmaydi).
+- Buyurtmadan loyiha yaratilgach, PM/Boshliq loyiha oynasida nomi, izohi va sanalarini tahrirlashi mumkin — o'zgarish bog'liq buyurtmaga ham ko'chadi (ikkalasi bitta TZ ma'lumotini ko'rsatadi). TZ fayli o'zgarmaydi.
 - Word (.docx) fayllar tizimning o'zida **modal ichida** ochiladi.
 
 ## 5. Loyihalar
 
 - Faqat **PM va Boshliq** loyiha yaratadi. **Dasturchi yarata olmaydi.**
 - Loyiha: nom, izoh, boshlanish sanasi, tugash sanasi, fayllar, dasturchilar (bir nechta), darajasi.
-- **Loyiha darajasi (4 ta):** Rejalashtirilgan → Boshlangan → Tuzatish kerak → Yakunlangan. PM qo'lda o'zgartiradi.
+- **Loyiha darajasi (5 ta):** Rejalashtirilgan → Boshlangan → Tuzatish kerak → Tasdiqlash kutilmoqda → Yakunlangan. PM/Boshliq qo'lda o'zgartiradi.
+- **Yakunlashni tasdiqlash:** buyurtmasiz (PM o'zi yaratgan) loyiha "Yakunlangan"ga to'g'ridan-to'g'ri o'tadi. Buyurtmadan yaratilgan loyihada "Yakunlangan" tanlansa, avval **"Tasdiqlash kutilmoqda"**ga o'tadi va buyurtmani yuborgan boshqarmaga bildirishnoma boradi — faqat o'sha boshqarma (Buyurtma oynasidan) **Tasdiqlaydi** (loyiha "Yakunlangan" bo'ladi) yoki **kamchilik sababi bilan rad etadi** ("Tuzatish kerak"ga qaytadi, PM sababni ko'rib tuzatib yana so'raydi).
 - Loyihaga bir nechta dasturchi biriktiriladi, har biriga bir nechta vazifa berish mumkin.
 
 **Loyiha yaratish oynasi (3 qadam):** Asosiy → Jamoa → Vazifalar va fayllar. Buyurtmadan yaratilsa, 1-qadam oldindan to'ldirilgan.
@@ -127,17 +128,17 @@ Qoidalar:
 **Loyiha oynasi — Jamoa bo'limi:**
 - Ro'yxatda faqat shu loyiha a'zolari ko'rinadi. Yangi dasturchi qidiruv maydoni orqali topilib qo'shiladi, keyin "Jamoani saqlash" bosiladi.
 - Har bir a'zo qatorida **"Vazifa berish"** tugmasi bor: shu xodimga alohida vazifa ochiladi, loyiha va ijrochi oldindan tanlangan bo'ladi. Jamoa saqlanmaguncha bu tugma o'chiq turadi.
-- Dasturchi jamoadan chiqarilsa, shu loyihaning tugallanmagan vazifalari va sub-vazifalaridan ham olib tashlanadi (bajarilganlari tarix sifatida qoladi). Agar u faol vazifaning yagona ijrochisi bo'lsa, avval vazifani boshqa xodimga berish so'raladi.
+- Dasturchi jamoadan chiqarilsa, shu loyihaning tugallanmagan vazifalari va topshiriqlaridan ham olib tashlanadi (bajarilganlari tarix sifatida qoladi). Agar u faol vazifaning yagona ijrochisi bo'lsa, avval vazifani boshqa xodimga berish so'raladi.
 
 ## 6. Vazifalar
 
 - PM/Boshliq loyiha ichida vazifa yaratadi: nom, izoh, muddat (boshlanish/tugash), muhimlik, fayl.
 - **Ommaviy vazifalar:** PM bitta ro'yxat matni (har qatorga bittadan) orqali ko'p vazifani birdaniga yaratadi va har biriga ijrochi biriktira oladi.
 - **Bitta vazifa bir nechta dasturchiga** biriktiriladi. Vazifa oynasida "Ijrochilar → O'zgartirish": PM va Boshliq har qanday vazifaga, dasturchi faqat **o'zi yaratgan** vazifaga boshqa dasturchini qo'shadi (o'zini olib tashlay olmaydi). Bajarilgan vazifa o'zgartirilmaydi.
-- **Sub-vazifalar:** kichik qadamlar, har biriga **bir nechta dasturchi** biriktiriladi. Mavjud sub-vazifaga ham keyin qo'shish yoki olib tashlash mumkin (PM, Boshliq yoki vazifa ijrochisi). Ijrochisiz sub-vazifa "Hamma" deb ko'rinadi (vazifaning barcha ijrochilari).
+- **Topshiriqlar:** kichik qadamlar, har biriga **bir nechta dasturchi** biriktiriladi. Mavjud topshiriqqa ham keyin qo'shish yoki olib tashlash mumkin (PM, Boshliq yoki vazifa ijrochisi). Ijrochisiz topshiriq "Hamma" deb ko'rinadi (vazifaning barcha ijrochilari).
 - Vazifa oynasida dasturchi **qidiruv** bilan tanlanadi, ro'yxatda hamma faol dasturchilar chiqadi. Loyiha jamoasida bo'lmagan dasturchi tanlansa, u **loyiha jamoasiga avtomatik qo'shiladi**. Vazifa yaratish/tahrirlash formasida esa faqat loyiha jamoasi ko'rinadi.
 - **Ish jurnali:** ijrochi vazifa ichida qilgan ishi va sarflangan vaqtini qayd etadi, menejer uni tekshiruv bilan birga ko'radi.
-- Vazifa tafsilotlari **bitta katta modalda**, telefonda yig'iladigan bo'limlarga ajratilgan: ma'lumot, sub-vazifalar, tekshiruv, ish jurnali, izohlar, fayllar.
+- Vazifa tafsilotlari **bitta katta modalda**, telefonda yig'iladigan bo'limlarga ajratilgan: ma'lumot, topshiriqlar, tekshiruv, ish jurnali, izohlar, fayllar.
 - Vazifa berilganda dasturchida **Nazoratda** holatida paydo bo'ladi.
 
 ### Vazifa holatlari
@@ -196,7 +197,7 @@ Menyu 3 guruhga bo'lingan: *Asosiy ish* | *Muloqot* | *Kuzatuv*.
 
 ### Vazifalar (`/vazifalar`)
 - Vazifalar jadvali: qidiruv (kodlar bilan ham), muddat, sana oralig'i, holat, xodim filtrlari. Telefonda filtrlar "Filtrlar" tugmasi ortida, jadvalda holat va muddat sarlavha ostida ko'rinadi.
-- Dasturchiga **faqat o'ziga biriktirilgan** vazifalar chiqadi (Ctrl K qidiruvida ham). Faqat sub-vazifasi biriktirilgan boshqa vazifa ro'yxatda chiqmaydi, lekin ochib sub-vazifani bajarish mumkin. Qoida bitta joyda: `tasks/permissions.py` → `listed_tasks`.
+- Dasturchiga **faqat o'ziga biriktirilgan** vazifalar chiqadi (Ctrl K qidiruvida ham). Faqat topshirig'i biriktirilgan boshqa vazifa ro'yxatda chiqmaydi, lekin ochib topshiriqni bajarish mumkin. Qoida bitta joyda: `tasks/permissions.py` → `listed_tasks`.
 
 ### Mening ishim (`/mening-ishim`, Dasturchi)
 - "+ Yangi vazifa" tugmasi, filtrlar: loyiha, muddat (Bugun / Shu hafta / Hammasi).
@@ -224,7 +225,7 @@ Menyu 3 guruhga bo'lingan: *Asosiy ish* | *Muloqot* | *Kuzatuv*.
 ### Xodimlar (`/xodimlar`, PM, Boshliq)
 - Barcha jamoa a'zolari (dasturchilar, menejerlar): bandligi, faol va kechikkan vazifalari, hozir nima qilayotgani. Vazifasi yo'qlar birinchi turadi.
 - Bo'sh (vazifasi yo'q yoki yuklamasi kam) xodimga to'g'ridan-to'g'ri vazifa berish tugmasi.
-- Vazifa sub-vazifalarga ajratilib, ularga boshqa xodimlar biriktiriladi.
+- Vazifa topshiriqlarga ajratilib, ularga boshqa xodimlar biriktiriladi.
 - Xodim bosilsa, xodim oynasi ochiladi: profil sarlavhasi, statistika, joriy ishlari, vazifa berish.
 
 ### Tekshiruv navbati (`/tekshiruv`, PM, Boshliq)
@@ -237,7 +238,7 @@ Menyu 3 guruhga bo'lingan: *Asosiy ish* | *Muloqot* | *Kuzatuv*.
 ### Bildirishnomalar (`/bildirishnomalar`)
 - Kun bo'yicha guruhlangan (Bugun, Kecha, sana), har bir turning o'z rangli ikonkasi bor, o'qilmaganlar ajratib ko'rsatiladi.
 - Sarlavha ostida o'qilmaganlar soni, "Hammasi / O'qilmagan" filtri, "Hammasini o'qildi deb belgilash". Bosilsa tegishli oyna ochiladi.
-- Turlari: yangi buyurtma, buyurtma tasdiqlandi, buyurtma rad etildi, yangi TZ versiyasi, vazifa berildi, tekshiruvga yuborildi, vazifa qabul qilindi, vazifa qaytarildi, yangi izoh.
+- Turlari: yangi buyurtma, buyurtma tasdiqlandi, buyurtma rad etildi, yangi TZ versiyasi, vazifa berildi, tekshiruvga yuborildi, vazifa qabul qilindi, vazifa qaytarildi, yangi izoh, loyihani yakunlashni tasdiqlash so'raldi, loyihani yakunlash tasdiqlandi, loyihani yakunlash rad etildi.
 
 ### Takliflar (`/takliflar`, hamma)
 - Tizimni yaxshilash bo'yicha g'oyalar. Taklif ochiq yoki **anonim** yuboriladi (sarlavha va matn).
@@ -293,7 +294,7 @@ Word ko'rish alohida modal emas — joriy modal ichini almashtiradi ("← Orqaga
 - `Esc` yopadi, fokus modal ichida qoladi, saqlanmagan o'zgarish bo'lsa so'raydi. Telefonda butun ekran.
 - Tugmalar rolga va holatga qarab chiqadi, keraksiz tugma ko'rsatilmaydi.
 
-## 10. Flow'lar (amalda: 12 ta)
+## 10. Flow'lar (amalda: 13 ta)
 
 Cheklov: bitta bo'limda **3–4 ta flow**, istisnoda **5 ta**. Oshsa — flow'lar birlashtiriladi yoki bitta flow ichida holatga qarab UI almashadi.
 
@@ -301,7 +302,7 @@ Cheklov: bitta bo'limda **3–4 ta flow**, istisnoda **5 ta**. Oshsa — flow'la
 |---|---|
 | auth (1) | Ro'yxatdan o'tish va tasdiqlash |
 | orders (3) | Buyurtma yuborish · Buyurtmani ko'rib chiqish · TZ qayta yuborish (v2, v3…) |
-| projects (1) | Loyiha yaratish |
+| projects (2) | Loyiha yaratish · Loyihani yakunlashni tasdiqlash |
 | tasks (3) | Vazifa yaratish va biriktirish · Vazifani bajarish · Tekshiruv |
 | profile (1) | Profil tahrirlash (rasm va parol bilan) |
 | suggestions (1) | Takliflar berish va ovoz |
@@ -315,7 +316,7 @@ Batafsil bosqichlar: `docs/FLOWS_MODALS.md`.
 **Qabul qilingan qarorlar:**
 - **Muhimlik turi:** boshqarma buyurtma yuborganda tanlaydi, PM tasdiqlaganda o'zgartira oladi.
 - **Mas'ul PM:** buyurtmani tasdiqlagan PM avtomatik mas'ul bo'ladi. Dasturchilar loyiha yaratilganda biriktiriladi.
-- **Sub-vazifalar:** kichik qadamlar, har biriga bir nechta dasturchi biriktirish mumkin.
+- **Topshiriqlar:** kichik qadamlar, har biriga bir nechta dasturchi biriktirish mumkin.
 - **Xabarlar (chat):** foydalanuvchilar orasida shaxsiy yozishma.
 - **Ommaviy vazifalar:** bir nechta vazifani matn shaklida birdaniga yaratish.
 - **Mutaxassisliklar** Django adminda boshqariladi. Demo ro'yxat: Backend dasturchi, Frontend dasturchi, Mobil dasturchi, Dizayner, Tester, Loyiha menejeri, Boshqaruv.
@@ -325,6 +326,7 @@ Batafsil bosqichlar: `docs/FLOWS_MODALS.md`.
 - **Yon panel (drawer) yo'q** — foydalanuvchini chalg'itmasligi uchun faqat modal va sahifalar.
 - **"To'xtab qolgan" vazifa holati yo'q.**
 - **Vazifalar filtrida "Loyiha" va "Oy yarmi" yo'q** — o'rniga "Sanadan / Sanagacha" oralig'i.
+- **Loyihani yakunlash:** buyurtmasiz loyiha to'g'ridan-to'g'ri yakunlanadi. Buyurtmadan yaratilgan loyiha avval "Tasdiqlash kutilmoqda"ga o'tadi — faqat buyurtmani yuborgan boshqarma uni Yakunlangan deb tasdiqlaydi yoki sabab bilan Tuzatish kerak'ga qaytaradi.
 
 **Ochiq savollar:** hozircha yo'q.
 
@@ -362,7 +364,7 @@ cd backend
 .venv\Scripts\python manage.py createsuperuser            # admin (Boshliqni adminda yaratish uchun)
 .venv\Scripts\python manage.py seed_demo                  # demo ma'lumotlar
 .venv\Scripts\python manage.py runserver 127.0.0.1:8020   # http://127.0.0.1:8020/
-.venv\Scripts\python manage.py test                       # testlar (157 ta)
+.venv\Scripts\python manage.py test                       # testlar (164 ta)
 .venv\Scripts\python manage.py makemigrations --check --dry-run   # sxema mosligi
 .venv\Scripts\python manage.py runbot                     # Telegram bot (token backend\.env da)
 ```
@@ -374,7 +376,7 @@ cd frontend
 npm install
 npx vite                  # http://127.0.0.1:5173/ (API so'rovlari 8020 ga proksi qilinadi)
 npx tsc --noEmit -p .     # TypeScript tur tekshiruvi
-npx vitest run            # testlar (44 ta: jsdom + Testing Library)
+npx vitest run            # testlar (48 ta: jsdom + Testing Library)
 ```
 
 ### 3. Production build (ishlashi uchun Node kerak emas)

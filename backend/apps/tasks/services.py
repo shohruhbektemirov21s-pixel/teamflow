@@ -252,7 +252,7 @@ def toggle_subtask(subtask, user, is_done):
     """Sub-vazifani belgilash: menejer, vazifa ijrochisi yoki sub-vazifa egasi."""
     task = subtask.task
     if not (user.is_manager or subtask.assignees.filter(pk=user.pk).exists() or is_assignee(user, task)):
-        raise ServiceError("Bu sub-vazifa sizga tegishli emas.")
+        raise ServiceError("Bu topshiriq sizga tegishli emas.")
     if task.status == S.DONE:
         raise ServiceError("Bajarilgan vazifa o'zgartirilmaydi.")
     subtask.is_done = is_done
@@ -264,18 +264,18 @@ def toggle_subtask(subtask, user, is_done):
 def add_subtask(task, user, *, title, assignee_ids=()):
     """Sub-vazifa qo'shish. Ijrochilar — istalgan dasturchilar (jamoada bo'lmasa, loyihaga qo'shiladi)."""
     if not can_manage_subtasks(user, task):
-        raise ServiceError("Vazifaga sub-vazifa qo'shish uchun ruxsatingiz yo'q.")
+        raise ServiceError("Vazifaga topshiriq qo'shish uchun ruxsatingiz yo'q.")
     if task.status == S.DONE:
-        raise ServiceError("Bajarilgan vazifaga sub-vazifa qo'shib bo'lmaydi.")
+        raise ServiceError("Bajarilgan vazifaga topshiriq qo'shib bo'lmaydi.")
     if not title.strip():
-        raise ServiceError("Sub-vazifa nomini yozing.", "title")
+        raise ServiceError("Topshiriq nomini yozing.", "title")
     assignees = _any_developers(task.project, assignee_ids, "assignee_ids")
 
     last_pos = task.subtasks.aggregate(m=Max("position"))["m"] or 0
     subtask = SubTask.objects.create(task=task, title=title.strip(), is_done=False, position=last_pos + 1)
     subtask.assignees.set(assignees)
     _notify_subtask(subtask, user, assignees)
-    log(user, "subtask_created", f"{user.full_name} sub-vazifa qo'shdi: {subtask.title}", task)
+    log(user, "subtask_created", f"{user.full_name} topshiriq qo'shdi: {subtask.title}", task)
     return subtask
 
 
@@ -283,37 +283,37 @@ def add_subtask(task, user, *, title, assignee_ids=()):
 def set_subtask_assignees(task, user, subtask_id, assignee_ids):
     """Mavjud sub-vazifaga ijrochi qo'shish yoki olib tashlash (bo'sh ro'yxat — ijrochisiz)."""
     if not can_manage_subtasks(user, task):
-        raise ServiceError("Sub-vazifa ijrochilarini o'zgartirishga ruxsatingiz yo'q.")
+        raise ServiceError("Topshiriq ijrochilarini o'zgartirishga ruxsatingiz yo'q.")
     if task.status == S.DONE:
         raise ServiceError("Bajarilgan vazifa o'zgartirilmaydi.")
     subtask = SubTask.objects.filter(pk=subtask_id, task=task).first()
     if not subtask:
-        raise ServiceError("Sub-vazifa topilmadi.")
+        raise ServiceError("Topshiriq topilmadi.")
     assignees = _any_developers(task.project, assignee_ids, "assignee_ids")
     current = set(subtask.assignees.values_list("pk", flat=True))
     subtask.assignees.set(assignees)
     _notify_subtask(subtask, user, [d for d in assignees if d.pk not in current])
-    log(user, "subtask_assignees", f"{user.full_name} sub-vazifa ijrochilarini o'zgartirdi: {subtask.title}", task)
+    log(user, "subtask_assignees", f"{user.full_name} topshiriq ijrochilarini o'zgartirdi: {subtask.title}", task)
     return subtask
 
 
 def _notify_subtask(subtask, user, people):
-    notify(people, K.TASK_ASSIGNED, f"Sizga sub-vazifa biriktirildi: {subtask.title} ({subtask.task.title})",
+    notify(people, K.TASK_ASSIGNED, f"Sizga topshiriq biriktirildi: {subtask.title} ({subtask.task.title})",
            subtask.task, exclude=user)
 
 
 def delete_subtask(task, user, subtask_id):
     """Sub-vazifani o'chirish: menejer yoki vazifa ijrochisi."""
     if not can_manage_subtasks(user, task):
-        raise ServiceError("Sub-vazifani o'chirishga ruxsatingiz yo'q.")
+        raise ServiceError("Topshiriqni o'chirishga ruxsatingiz yo'q.")
     if task.status == S.DONE:
         raise ServiceError("Bajarilgan vazifa o'zgartirilmaydi.")
     subtask = SubTask.objects.filter(pk=subtask_id, task=task).first()
     if not subtask:
-        raise ServiceError("Sub-vazifa topilmadi.")
+        raise ServiceError("Topshiriq topilmadi.")
     title = subtask.title
     subtask.delete()
-    log(user, "subtask_deleted", f"{user.full_name} sub-vazifani o'chirdi: {title}", task)
+    log(user, "subtask_deleted", f"{user.full_name} topshiriqni o'chirdi: {title}", task)
     return True
 
 

@@ -30,7 +30,7 @@ import {
   useToast,
 } from "@/shared/ui";
 
-type Panel = null | "approve" | "reject" | "version" | "dates";
+type Panel = null | "approve" | "reject" | "version" | "dates" | "reject_completion";
 type Tab = "main" | "doc" | "history" | "comments";
 
 const STEP: Record<OrderDetail["status"], number> = { submitted: 1, rejected: 2, approved: 2, project_created: 3 };
@@ -59,16 +59,26 @@ export default function OrderModal({ id }: { id: number }) {
     setPanel(p);
   };
 
+  type ActionKind = Exclude<Panel, null> | "confirm_completion";
+
   const act = useMutation({
-    mutationFn: async (kind: Exclude<Panel, null>) => {
+    mutationFn: async (kind: ActionKind) => {
       if (kind === "approve")
         return api.post(`/orders/${id}/approve/`, { start_date: form.start_date, end_date: form.end_date, note: form.note, priority: form.priority || undefined });
       if (kind === "reject") return api.post(`/orders/${id}/reject/`, { reason: form.reason });
       if (kind === "dates") return api.post(`/orders/${id}/dates/`, { start_date: form.start_date, end_date: form.end_date });
-      return api.post(`/orders/${id}/versions/`, formData({ note: form.note }, files, "file"));
+      if (kind === "version") return api.post(`/orders/${id}/versions/`, formData({ note: form.note }, files, "file"));
+      if (kind === "confirm_completion") return api.post(`/projects/${order!.project!.id}/confirm-completion/`);
+      return api.post(`/projects/${order!.project!.id}/reject-completion/`, { reason: form.reason });
     },
     onSuccess: (_d, kind) => {
-      toast({ approve: T.orders.approvedToast, reject: T.orders.rejectedToast, version: T.orders.versionToast, dates: T.orders.datesToast }[kind]);
+      toast(
+        {
+          approve: T.orders.approvedToast, reject: T.orders.rejectedToast, version: T.orders.versionToast,
+          dates: T.orders.datesToast, confirm_completion: T.orders.completionConfirmedToast,
+          reject_completion: T.orders.completionRejectedToast,
+        }[kind],
+      );
       setPanel(null);
       setFiles([]);
       setForm((f) => ({ ...f, note: "", reason: "" }));
@@ -156,6 +166,16 @@ export default function OrderModal({ id }: { id: number }) {
           {buttons(T.orders.reject, "danger", <XCircle />, !form.reason.trim())}
         </div>
       );
+    if (panel === "reject_completion")
+      return (
+        <div className="inline-panel">
+          {common}
+          <Field label={T.orders.rejectCompletionTitle} required error={fe("reason")}>
+            {(fid, bad) => <textarea id={fid} className="textarea" aria-invalid={bad} placeholder={T.orders.rejectCompletionPh} value={form.reason} onChange={set("reason")} autoFocus />}
+          </Field>
+          {buttons(T.orders.rejectCompletion, "danger", <XCircle />, !form.reason.trim())}
+        </div>
+      );
     return (
       <div className="inline-panel">
         <b>{T.orders.newVersionTitle}</b>
@@ -177,6 +197,11 @@ export default function OrderModal({ id }: { id: number }) {
           {T.orders.reject}
         </Button>
       )}
+      {a.decide_completion && (
+        <Button variant="danger" icon={<XCircle />} onClick={() => openPanel("reject_completion")}>
+          {T.orders.rejectCompletion}
+        </Button>
+      )}
       {a.edit_dates && (
         <Button variant="ghost" icon={<Pencil />} onClick={() => openPanel("dates")}>
           {T.orders.editDates}
@@ -193,12 +218,17 @@ export default function OrderModal({ id }: { id: number }) {
           {T.orders.approve}
         </Button>
       )}
-      {order.project_id && (
-        <Button variant="primary" icon={<FolderKanban />} onClick={() => open({ project: order.project_id! })}>
+      {a.decide_completion && (
+        <Button variant="success" icon={<CheckCircle2 />} loading={act.isPending} onClick={() => act.mutate("confirm_completion")}>
+          {T.orders.confirmCompletion}
+        </Button>
+      )}
+      {a.view_project && order.project && (
+        <Button variant="primary" icon={<FolderKanban />} onClick={() => open({ project: order.project!.id })}>
           {T.orders.openProject}
         </Button>
       )}
-      {!a.reject && !a.approve && !a.new_version && !order.project_id && !a.create_project && (
+      {!a.reject && !a.approve && !a.new_version && !a.decide_completion && !(a.view_project && order.project) && !a.create_project && (
         <Button onClick={close}>{T.common.close}</Button>
       )}
     </>
@@ -237,6 +267,7 @@ export default function OrderModal({ id }: { id: number }) {
             {a.new_version && <div style={{ marginTop: 4 }}>{T.orders.rejectedInfo}</div>}
           </Callout>
         )}
+        {order.project?.stage === "pending_approval" && <Callout tone="info">{T.orders.completionTitle}</Callout>}
         <Tabs<Tab>
           value={tab}
           onChange={setTab}

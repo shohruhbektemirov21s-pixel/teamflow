@@ -12,6 +12,7 @@ class Project(models.Model):
         PLANNED = "planned", "Rejalashtirilgan"
         STARTED = "started", "Boshlangan"
         NEEDS_FIX = "needs_fix", "Tuzatish kerak"
+        PENDING_APPROVAL = "pending_approval", "Tasdiqlash kutilmoqda"
         DONE = "done", "Yakunlangan"
 
     name = models.CharField("Nomi", max_length=255)

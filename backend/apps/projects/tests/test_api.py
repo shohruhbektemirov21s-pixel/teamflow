@@ -98,10 +98,12 @@ class ProjectFromOrderTests(TestCase):
         # Ikkinchi marta yaratib bo'lmaydi
         self.assertEqual(pm.post("/api/projects/", {"order": self.order_id}, format="json").status_code, 400)
 
-        # Buyurtmadan yaratilgan loyihada faqat sanalar o'zgaradi
+        # Buyurtmadan yaratilgan loyihada nom/izoh/sana ham o'zgaradi, bog'liq buyurtmaga ham ko'chadi
         pid = r.data["id"]
-        self.assertFalse(r.data["actions"]["edit_info"])
-        self.assertEqual(pm.patch(f"/api/projects/{pid}/", {"name": "Boshqa"}, format="json").status_code, 400)
+        self.assertTrue(r.data["actions"]["edit_info"])
+        r = pm.patch(f"/api/projects/{pid}/", {"name": "Boshqa"}, format="json")
+        self.assertEqual(r.status_code, 200, r.data)
+        self.assertEqual(Order.objects.get(pk=self.order_id).title, "Boshqa")
         new = dates(40)
         r = pm.patch(f"/api/projects/{pid}/", new, format="json")
         self.assertEqual(r.status_code, 200)
@@ -110,6 +112,76 @@ class ProjectFromOrderTests(TestCase):
         url = r.data["files"][0]["url"]
         self.assertEqual(client_for(self.dev).get(url).status_code, 200)
         self.assertEqual(Project.objects.count(), 1)
+
+
+class ProjectCompletionTests(TestCase):
+    """Buyurtmadan yaratilgan loyihani yakunlash — boshqarma tasdig'i kerak."""
+
+    def setUp(self):
+        self.pm = make_user(Role.PM)
+        self.dept = make_user(Role.DEPARTMENT)
+        self.other_dept = make_user(Role.DEPARTMENT)
+        r = client_for(self.dept).post(
+            "/api/orders/",
+            {"title": "Portal", "description": "Izoh", "requested_due_date": str(future(30)), "file": docx("tz.docx")},
+            format="multipart",
+        )
+        order_id = r.data["id"]
+        pm = client_for(self.pm)
+        pm.post(f"/api/orders/{order_id}/approve/", dates(14), format="json")
+        self.pid = pm.post("/api/projects/", {"order": order_id}, format="json").data["id"]
+
+    def finish(self):
+        return client_for(self.pm).patch(f"/api/projects/{self.pid}/", {"stage": "done"}, format="json")
+
+    def test_manager_without_order_finishes_directly(self):
+        pm = client_for(self.pm)
+        pid = pm.post("/api/projects/", {"name": "Ichki", **dates(), "member_ids": []}, format="json").data["id"]
+        r = pm.patch(f"/api/projects/{pid}/", {"stage": "done"}, format="json")
+        self.assertEqual(r.data["stage"], "done")
+
+    def test_manager_with_order_goes_to_pending_approval_not_done(self):
+        r = self.finish()
+        self.assertEqual(r.status_code, 200, r.data)
+        self.assertEqual(r.data["stage"], "pending_approval")
+        self.assertEqual(r.data["stage_targets"], [])  # qaror endi boshqarmaga tegishli
+        kinds = [n["kind"] for n in client_for(self.dept).get("/api/notifications/").data["results"]]
+        self.assertIn("project_completion_requested", kinds)
+
+    def test_department_confirms_completion(self):
+        self.finish()
+        r = client_for(self.dept).post(f"/api/projects/{self.pid}/confirm-completion/")
+        self.assertEqual(r.status_code, 200, r.data)
+        self.assertEqual(Project.objects.get(pk=self.pid).stage, "done")
+        kinds = [n["kind"] for n in client_for(self.pm).get("/api/notifications/").data["results"]]
+        self.assertIn("project_completion_approved", kinds)
+
+    def test_department_rejects_completion_with_reason(self):
+        self.finish()
+        dept = client_for(self.dept)
+        r = dept.post(f"/api/projects/{self.pid}/reject-completion/", {"reason": ""}, format="json")
+        self.assertEqual(r.status_code, 400)
+        r = dept.post(f"/api/projects/{self.pid}/reject-completion/", {"reason": "Hujjat yetarli emas"}, format="json")
+        self.assertEqual(r.status_code, 200, r.data)
+        self.assertEqual(Project.objects.get(pk=self.pid).stage, "needs_fix")
+        kinds = [n["kind"] for n in client_for(self.pm).get("/api/notifications/").data["results"]]
+        self.assertIn("project_completion_rejected", kinds)
+
+    def test_only_owning_department_can_decide(self):
+        self.finish()
+        r = client_for(self.other_dept).post(f"/api/projects/{self.pid}/confirm-completion/")
+        self.assertEqual(r.status_code, 403)
+
+    def test_pm_cannot_call_department_decision_endpoints(self):
+        self.finish()
+        r = client_for(self.pm).post(f"/api/projects/{self.pid}/confirm-completion/")
+        self.assertEqual(r.status_code, 403)
+
+    def test_order_detail_exposes_project_stage_and_actions(self):
+        self.finish()
+        r = client_for(self.dept).get(f"/api/orders/{Project.objects.get(pk=self.pid).order_id}/")
+        self.assertEqual(r.data["project"]["stage"], "pending_approval")
+        self.assertTrue(r.data["actions"]["decide_completion"])
 
 
 class ProjectListOrderTests(TestCase):

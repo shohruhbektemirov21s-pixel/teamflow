@@ -21,6 +21,7 @@ export const STAGE_TONE: Record<ProjectStage, Tone> = {
   planned: "slate",
   started: "info",
   needs_fix: "warning",
+  pending_approval: "violet",
   done: "success",
 };
 
@@ -42,6 +43,9 @@ export const NOTICE_TONE: Record<string, Tone> = {
   task_accepted: "success",
   task_returned: "warning",
   comment: "slate",
+  project_completion_requested: "violet",
+  project_completion_approved: "success",
+  project_completion_rejected: "danger",
 };
 
 /**

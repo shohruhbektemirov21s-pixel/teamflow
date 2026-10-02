@@ -87,8 +87,8 @@ class SubTask(models.Model):
 
     class Meta:
         ordering = ["position", "id"]
-        verbose_name = "Sub-vazifa"
-        verbose_name_plural = "Sub-vazifalar"
+        verbose_name = "Topshiriq"
+        verbose_name_plural = "Topshiriqlar"
 
     def __str__(self):
         return self.title

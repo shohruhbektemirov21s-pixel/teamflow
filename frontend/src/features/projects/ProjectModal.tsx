@@ -1,5 +1,5 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { CalendarDays, FileText, Plus, Save, Search, Upload, User, UserPlus, X } from "lucide-react";
+import { CalendarDays, FileText, Pencil, Plus, Save, Search, Upload, User, UserPlus, X } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { useModal } from "@/app/modals";
@@ -45,6 +45,7 @@ export default function ProjectModal({ id }: { id: number }) {
 
   const [tab, setTab] = useState<Tab>("main");
   const [viewing, setViewing] = useState<FileInfo | null>(null);
+  const [editingInfo, setEditingInfo] = useState(false);
   const [form, setForm] = useState({ name: "", description: "", start_date: "", end_date: "" });
   const [members, setMembers] = useState<number[]>([]);
   const [teamQ, setTeamQ] = useState("");
@@ -61,7 +62,14 @@ export default function ProjectModal({ id }: { id: number }) {
     if (!p) return;
     setForm({ name: p.name, description: p.description, start_date: p.start_date, end_date: p.end_date });
     setMembers(p.members.map((m) => m.id));
-  }, [p]);
+    setEditingInfo(false);
+  }, [p?.id]);
+
+  const cancelEdit = () => {
+    if (!p) return;
+    setForm({ name: p.name, description: p.description, start_date: p.start_date, end_date: p.end_date });
+    setEditingInfo(false);
+  };
 
   const onError = (e: Error) => {
     const err = e instanceof ApiError ? e : new ApiError(0, e.message);
@@ -75,8 +83,8 @@ export default function ProjectModal({ id }: { id: number }) {
   };
 
   const save = useMutation({
-    mutationFn: () => api.patch(`/projects/${id}/`, p?.actions.edit_info ? form : { start_date: form.start_date, end_date: form.end_date }),
-    onSuccess: done(T.common.saved),
+    mutationFn: () => api.patch(`/projects/${id}/`, form),
+    onSuccess: () => (done(T.common.saved)(), setEditingInfo(false)),
     onError,
   });
   const setStage = useMutation({ mutationFn: (stage: ProjectStage) => api.patch(`/projects/${id}/`, { stage }), onSuccess: done(T.common.saved), onError });
@@ -135,17 +143,37 @@ export default function ProjectModal({ id }: { id: number }) {
       }
       headerExtra={
         manager && (
-          <select className="select" style={{ width: 180 }} value={p.stage} aria-label={T.projects.stage} onChange={(e) => setStage.mutate(e.target.value as ProjectStage)}>
-            {meta.project_stages.map((s) => (
-              <option key={s.value} value={s.value}>
-                {s.label}
-              </option>
-            ))}
-          </select>
+          <>
+            {editingInfo ? (
+              <Button size="sm" variant="ghost" onClick={cancelEdit}>
+                {T.common.cancel}
+              </Button>
+            ) : (
+              <Button size="sm" variant="ghost" icon={<Pencil size={16} />} onClick={() => setEditingInfo(true)}>
+                {T.common.edit}
+              </Button>
+            )}
+            <select
+              className="select"
+              style={{ width: 180 }}
+              value={p.stage}
+              aria-label={T.projects.stage}
+              disabled={!p.stage_targets.length}
+              onChange={(e) => setStage.mutate(e.target.value as ProjectStage)}
+            >
+              {meta.project_stages
+                .filter((s) => s.value === p.stage || p.stage_targets.includes(s.value as ProjectStage))
+                .map((s) => (
+                  <option key={s.value} value={s.value}>
+                    {s.label}
+                  </option>
+                ))}
+            </select>
+          </>
         )
       }
       onClose={close}
-      dirty={(infoDirty || teamDirty || files.length > 0) && manager}
+      dirty={(editingInfo && infoDirty) || teamDirty || files.length > 0}
       footer={
         <>
           {p.actions.add_task && (
@@ -154,7 +182,7 @@ export default function ProjectModal({ id }: { id: number }) {
             </Button>
           )}
           <span className="spacer" />
-          {tab === "main" && manager && (
+          {tab === "main" && manager && editingInfo && (
             <Button variant="primary" icon={<Save />} disabled={!infoDirty} loading={save.isPending} onClick={() => save.mutate()}>
               {T.common.save}
             </Button>
@@ -216,13 +244,14 @@ export default function ProjectModal({ id }: { id: number }) {
           <div className="modal-split">
             <div className="stack">
               {p.order && <Callout tone="info">{T.projects.fromOrderLocked}</Callout>}
-              {manager ? (
+              {p.stage === "pending_approval" && <Callout tone="info">{T.projects.pendingApproval}</Callout>}
+              {manager && editingInfo ? (
                 <>
                   <Field label={T.projects.name} error={fe("name")}>
-                    {(fid, bad) => <input id={fid} className="input" aria-invalid={bad} value={form.name} disabled={!p.actions.edit_info} onChange={(e) => setForm({ ...form, name: e.target.value })} />}
+                    {(fid, bad) => <input id={fid} className="input" aria-invalid={bad} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />}
                   </Field>
                   <Field label={T.projects.description}>
-                    {(fid) => <textarea id={fid} className="textarea" value={form.description} disabled={!p.actions.edit_info} onChange={(e) => setForm({ ...form, description: e.target.value })} />}
+                    {(fid) => <textarea id={fid} className="textarea" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />}
                   </Field>
                   <div className="grid-2">
                     <Field label={T.projects.startDate} error={fe("start_date")}>

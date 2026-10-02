@@ -35,6 +35,9 @@ const NOTICE_ICON: Record<string, LucideIcon> = {
   task_accepted: CheckCircle2,
   task_returned: RotateCcw,
   comment: MessageSquare,
+  project_completion_requested: Hourglass,
+  project_completion_approved: CheckCircle2,
+  project_completion_rejected: RotateCcw,
 };
 
 /** Kun bo'yicha guruhlash: "Bugun", "Kecha", keyin sana. Tartib serverdagidek (yangisi tepada). */

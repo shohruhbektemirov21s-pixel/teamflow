@@ -17,6 +17,9 @@ class Notification(models.Model):
         TASK_ACCEPTED = "task_accepted", "Vazifa qabul qilindi"
         TASK_RETURNED = "task_returned", "Vazifa qaytarildi"
         COMMENT = "comment", "Yangi izoh"
+        PROJECT_COMPLETION_REQUESTED = "project_completion_requested", "Loyihani yakunlashni tasdiqlash so'raldi"
+        PROJECT_COMPLETION_APPROVED = "project_completion_approved", "Loyihani yakunlash tasdiqlandi"
+        PROJECT_COMPLETION_REJECTED = "project_completion_rejected", "Loyihani yakunlash rad etildi"
 
     recipient = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="notifications")
     kind = models.CharField(max_length=32, choices=Kind.choices)

@@ -1,16 +1,23 @@
-"""Loyiha biznes amallari. Faqat PM va Boshliq."""
+"""Loyiha biznes amallari. Faqat PM va Boshliq (yakunlashni tasdiqlash — boshqarma)."""
 from django.apps import apps
 from django.contrib.auth import get_user_model
 from django.db import transaction
+from rest_framework.exceptions import PermissionDenied
 
 from apps.accounts.models import Role
 from apps.core.api_utils import ServiceError
 from apps.core.codes import task_code
 from apps.core.services import log
+from apps.notifications.models import Notification
+from apps.notifications.services import notify
 from apps.orders.models import Order
 from apps.orders.workflow import check_order_transition
 
 from .models import Project, ProjectFile, ProjectMember
+from .workflow import check_project_transition
+
+K = Notification.Kind
+S = Project.Stage
 
 
 def _require_manager(user):
@@ -78,22 +85,90 @@ def create_project(user, *, name="", description="", start_date=None, end_date=N
 
 @transaction.atomic
 def update_project(project, user, **data):
-    """Buyurtmadan yaratilgan loyihada faqat sanalar (va daraja) o'zgaradi."""
+    """PM/Boshliq loyihani tahrirlaydi: nom, izoh, sana, daraja. Buyurtmadan yaratilgan bo'lsa,
+    nom/izoh/sana o'zgarishi bog'liq buyurtmaga ham ko'chadi (ikkalasi bitta TZ ma'lumotini ko'rsatadi).
+    Daraja — `_apply_stage` orqali (yakunlashda boshqarma tasdig'i talab qilinishi mumkin)."""
     _require_manager(user)
-    if project.order_id:
-        forbidden = {"name", "description"} & {k for k, v in data.items() if v is not None}
-        if forbidden:
-            raise ServiceError("Buyurtmadan yaratilgan loyihada faqat sanalarni o'zgartirish mumkin.")
-    for field in ("name", "description", "start_date", "end_date", "stage"):
+    stage = data.pop("stage", None)
+    info_changed = any(data.get(f) is not None for f in ("name", "description", "start_date", "end_date"))
+    for field in ("name", "description", "start_date", "end_date"):
         if data.get(field) is not None:
             setattr(project, field, data[field])
     if not project.name.strip():
         raise ServiceError("Loyiha nomini yozing.", "name")
     _check_dates(project.start_date, project.end_date)
+    if stage is not None:
+        _apply_stage(project, user, stage)
     project.save()
-    if project.order_id and (data.get("start_date") or data.get("end_date")):
-        Order.objects.filter(pk=project.order_id).update(start_date=project.start_date, end_date=project.end_date)
-    log(user, "project_updated", f"{user.full_name} loyihani o'zgartirdi: {project.name}", project)
+    if project.order_id and info_changed:
+        order_fields = {}
+        if data.get("name") is not None:
+            order_fields["title"] = project.name
+        if data.get("description") is not None:
+            order_fields["description"] = project.description
+        if data.get("start_date"):
+            order_fields["start_date"] = project.start_date
+        if data.get("end_date"):
+            order_fields["end_date"] = project.end_date
+        if order_fields:
+            Order.objects.filter(pk=project.order_id).update(**order_fields)
+    if info_changed:
+        log(user, "project_updated", f"{user.full_name} loyihani o'zgartirdi: {project.name}", project)
+    return project
+
+
+def _apply_stage(project, user, stage):
+    """Daraja o'tishi (xotirada, `project.save()` chaqiruvchida bajariladi).
+
+    Buyurtmasiz loyihada "Yakunlangan" to'g'ridan-to'g'ri qo'yiladi. Buyurtmadan yaratilgan loyihada
+    "Yakunlangan" tanlansa, avval "Tasdiqlash kutilmoqda" ga o'tadi va buyurtmani yuborgan boshqarmaga
+    bildirishnoma boradi — faqat o'sha boshqarma uni "Yakunlangan" yoki "Tuzatish kerak" qila oladi
+    (`confirm_completion` / `reject_completion`).
+    """
+    target = S.PENDING_APPROVAL if stage == S.DONE and project.order_id else stage
+    check_project_transition(project.stage, target, user.role)
+    project.stage = target
+    if target == S.PENDING_APPROVAL:
+        notify([project.order.submitted_by], K.PROJECT_COMPLETION_REQUESTED,
+               f"Loyiha yakunlanishini tasdiqlang: {project.name}", project.order, exclude=user)
+        log(user, "project_completion_requested",
+            f"{user.full_name} loyiha yakunlanishini boshqarmadan so'radi: {project.name}", project)
+    else:
+        log(user, "project_stage",
+            f"{user.full_name} loyiha darajasini o'zgartirdi: {project.get_stage_display()} ({project.name})", project)
+
+
+@transaction.atomic
+def confirm_completion(project, user):
+    """Boshqarma loyiha yakunlanishini tasdiqlaydi — faqat buyurtmani yuborgan boshqarma."""
+    if not (user.is_department and project.order_id and project.order.submitted_by_id == user.pk):
+        raise PermissionDenied("Bu amal faqat buyurtmani yuborgan boshqarma uchun.")
+    check_project_transition(project.stage, S.DONE, user.role)
+    project.stage = S.DONE
+    project.save(update_fields=["stage", "updated_at"])
+    notify([project.created_by], K.PROJECT_COMPLETION_APPROVED,
+           f"Loyiha yakunlanishi tasdiqlandi: {project.name}", project, exclude=user)
+    log(user, "project_completion_approved",
+        f"{user.full_name} ({user.department_name}) loyiha yakunlanishini tasdiqladi: {project.name}", project)
+    return project
+
+
+@transaction.atomic
+def reject_completion(project, user, *, reason):
+    """Boshqarma kamchilik topsa rad etadi (sabab majburiy) — loyiha "Tuzatish kerak" ga qaytadi,
+    menejer sababni ko'rib tuzatib, yana yakunlashni so'rashi mumkin."""
+    if not (user.is_department and project.order_id and project.order.submitted_by_id == user.pk):
+        raise PermissionDenied("Bu amal faqat buyurtmani yuborgan boshqarma uchun.")
+    if not reason.strip():
+        raise ServiceError("Sababini yozing — menejer nimani tuzatishni bilishi kerak.", "reason")
+    check_project_transition(project.stage, S.NEEDS_FIX, user.role)
+    project.stage = S.NEEDS_FIX
+    project.save(update_fields=["stage", "updated_at"])
+    notify([project.created_by], K.PROJECT_COMPLETION_REJECTED,
+           f"Loyiha yakunlanishi rad etildi: {project.name} — {reason.strip()}", project, exclude=user)
+    log(user, "project_completion_rejected",
+        f"{user.full_name} ({user.department_name}) loyiha yakunlanishini rad etdi: {reason.strip()} ({project.name})",
+        project)
     return project
 
 

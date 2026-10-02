@@ -5,11 +5,12 @@ from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
-from apps.core.api_utils import IsManager
+from apps.core.api_utils import IsDepartment, IsManager
 from apps.core.codes import parse_code
 from apps.orders.permissions import visible_orders
 
 from . import services
+from .models import Project
 from .permissions import visible_projects
 from .serializers import (
     FilesSerializer,
@@ -18,6 +19,7 @@ from .serializers import (
     ProjectDetailSerializer,
     ProjectListSerializer,
     ProjectUpdateSerializer,
+    RejectCompletionSerializer,
 )
 
 
@@ -65,6 +67,8 @@ class ProjectViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.
     def get_permissions(self):
         if self.action in self.MANAGER_ACTIONS:
             return [*super().get_permissions(), IsManager()]
+        if self.action in ("confirm_completion", "reject_completion"):
+            return [*super().get_permissions(), IsDepartment()]
         return super().get_permissions()
 
     def _detail(self, project):
@@ -109,3 +113,24 @@ class ProjectViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.
         project = self.get_object()
         services.delete_file(project, request.user, int(file_id))
         return Response(self._detail(project))
+
+    def _by_order_project(self, pk):
+        """Boshqarma `visible_projects` orqali loyihani ko'ra olmaydi (faqat buyurtma orqali bog'liq) —
+        shuning uchun bu ikki amalda loyiha to'g'ridan-to'g'ri olinadi, egalik servisda tekshiriladi."""
+        return get_object_or_404(Project.objects.select_related("order__submitted_by", "created_by"), pk=pk)
+
+    @action(detail=True, methods=["post"], url_path="confirm-completion")
+    def confirm_completion(self, request, pk=None):
+        """Boshqarma loyiha yakunlanishini tasdiqlaydi (faqat buyurtmani yuborgan boshqarma — servisda)."""
+        project = self._by_order_project(pk)
+        services.confirm_completion(project, request.user)
+        return Response({"ok": True})
+
+    @action(detail=True, methods=["post"], url_path="reject-completion")
+    def reject_completion(self, request, pk=None):
+        """Boshqarma kamchilik topsa rad etadi (sabab bilan) — loyiha "Tuzatish kerak" ga qaytadi."""
+        project = self._by_order_project(pk)
+        s = RejectCompletionSerializer(data=request.data)
+        s.is_valid(raise_exception=True)
+        services.reject_completion(project, request.user, **s.validated_data)
+        return Response({"ok": True})

@@ -16,6 +16,7 @@ const PROJECT: ProjectDetail = {
   created_by: { id: PM.id, full_name: PM.full_name, role: "pm", department_name: "" },
   files: [], order: null,
   actions: { edit: true, edit_info: true, members: true, files: true, add_task: true },
+  stage_targets: ["planned", "needs_fix", "done"],
 };
 
 function setup() {
