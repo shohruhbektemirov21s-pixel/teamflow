@@ -120,7 +120,7 @@ class ProfileSerializer(serializers.ModelSerializer):
         from apps.tasks.models import Task
         if not user.is_developer:
             return None
-        qs = Task.objects.filter(assignments__developer=user)
+        qs = Task.objects.filter(assignments__developer=user, archived_at__isnull=True)
         return {
             "active": apply_bucket(qs, "active").count(),
             "in_review": qs.filter(status=Task.Status.IN_REVIEW).count(),

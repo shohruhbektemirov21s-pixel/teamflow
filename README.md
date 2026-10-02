@@ -2,7 +2,7 @@
 
 Jamoa ishini boshqarish tizimi. Boshqarmalar buyurtma (TZ) yuboradi, loyiha menejeri uni tasdiqlab loyihaga aylantiradi, dasturchilarga vazifa beradi va bajarilgan ishni tekshiradi. Boshliq hamma narsani kuzatadi va boshqaradi.
 
-> **Holat (2026-10-02):** loyiha to'liq qurilgan va ishchi holatda. Testlar: backend 164 ta, frontend 48 ta — hammasi o'tadi.
+> **Holat (2026-10-02):** loyiha to'liq qurilgan va ishchi holatda. Backend va frontend testlari o'tadi.
 > Bu fayl — loyihaning **yagona haqiqat manbai**. Agentlar uchun qoidalar: `CLAUDE.md`, `GEMINI.md`. Flow va modal reestri: `docs/FLOWS_MODALS.md`. Arxitektura, ma'lumotlar modeli va API: `docs/ARCHITECTURE.md`.
 
 ## Mundarija
@@ -138,6 +138,7 @@ Qoidalar:
 - **Topshiriqlar:** kichik qadamlar, har biriga **bir nechta dasturchi** biriktiriladi. Mavjud topshiriqqa ham keyin qo'shish yoki olib tashlash mumkin (PM, Boshliq yoki vazifa ijrochisi). Ijrochisiz topshiriq "Hamma" deb ko'rinadi (vazifaning barcha ijrochilari).
 - Vazifa oynasida dasturchi **qidiruv** bilan tanlanadi, ro'yxatda hamma faol dasturchilar chiqadi. Loyiha jamoasida bo'lmagan dasturchi tanlansa, u **loyiha jamoasiga avtomatik qo'shiladi**. Vazifa yaratish/tahrirlash formasida esa faqat loyiha jamoasi ko'rinadi.
 - **Ish jurnali:** ijrochi vazifa ichida qilgan ishi va sarflangan vaqtini qayd etadi, menejer uni tekshiruv bilan birga ko'radi.
+- **Vazifani o'chirish:** PM/Boshliq vazifani arxivlaydi. U ish ro'yxatlari va hisoblagichlardan chiqadi, lekin topshirishlar, ish jurnali, izohlar va fayllar tarix uchun saqlanadi. Arxivdagi vazifa faqat ko'riladi.
 - Vazifa tafsilotlari **bitta katta modalda**, telefonda yig'iladigan bo'limlarga ajratilgan: ma'lumot, topshiriqlar, tekshiruv, ish jurnali, izohlar, fayllar.
 - Vazifa berilganda dasturchida **Nazoratda** holatida paydo bo'ladi.
 
@@ -362,7 +363,7 @@ cd backend
 .venv\Scripts\python manage.py createsuperuser            # admin (Boshliqni adminda yaratish uchun)
 .venv\Scripts\python manage.py seed_demo                  # demo ma'lumotlar
 .venv\Scripts\python manage.py runserver 127.0.0.1:8020   # http://127.0.0.1:8020/
-.venv\Scripts\python manage.py test                       # testlar (164 ta)
+.venv\Scripts\python manage.py test                       # backend testlari
 .venv\Scripts\python manage.py makemigrations --check --dry-run   # sxema mosligi
 .venv\Scripts\python manage.py runbot                     # Telegram bot (token backend\.env da)
 ```
@@ -374,7 +375,7 @@ cd frontend
 npm install
 npx vite                  # http://127.0.0.1:5173/ (API so'rovlari 8020 ga proksi qilinadi)
 npx tsc --noEmit -p .     # TypeScript tur tekshiruvi
-npx vitest run            # testlar (48 ta: jsdom + Testing Library)
+npx vitest run            # frontend testlari (jsdom + Testing Library)
 ```
 
 ### 3. Production build (ishlashi uchun Node kerak emas)

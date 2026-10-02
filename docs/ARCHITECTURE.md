@@ -106,7 +106,7 @@ Qoida: `order` bilan bog'langan loyihada PM faqat `start_date`/`end_date` ni o'z
 ### tasks
 | Model | Maydonlar |
 |---|---|
-| `Task` | code (tasodifiy 9 xonali, unique), project FK, title, description, priority, status (control/in_progress/in_review/done), starts_at?, due_at?, completed_at?, created_by, created_at |
+| `Task` | code (tasodifiy 9 xonali, unique), project FK (PROTECT), title, description, priority, status (control/in_progress/in_review/done), starts_at?, due_at?, completed_at?, archived_at?, created_by, created_at |
 | `TaskAssignment` | task FK, developer FK, `unique(task, developer)` — bitta vazifa bir nechta dasturchiga |
 | `SubTask` | task FK, title, assignees M2M (bir nechta dasturchi), is_done, position |
 | `TaskFile` | task FK, file, uploaded_by |
@@ -114,8 +114,9 @@ Qoida: `order` bilan bog'langan loyihada PM faqat `start_date`/`end_date` ni o'z
 | `SubmissionFile` | submission FK, file |
 | `WorkLog` | task FK, author FK, work_date, hours, note, created_at. Soat 0 dan katta va 24 dan oshmaydi. |
 
-Hisoblanadigan (saqlanmaydi): `is_overdue` = muddat o'tgan va `done` emas; `finished_late` = `completed_at > due_at`.
+Hisoblanadigan (saqlanmaydi): `is_overdue` = muddat o'tgan, `done` va arxivda emas; `finished_late` = `completed_at > due_at`.
 **Nima uchun:** holatdan kelib chiqadigan qiymatni saqlash — nomuvofiqlik manbai.
+`DELETE /api/tasks/{id}/` vazifani arxivlaydi: bog'liq topshirish, ish jurnali, izoh va fayllar saqlanadi. Oddiy ro'yxatlar arxivni yashiradi, ruxsatli tafsilot va tarix uni o'qiy oladi; arxivdagi vazifa tahrirlanmaydi.
 
 ### core / notifications
 | Model | Maydonlar |
@@ -183,7 +184,7 @@ POST       /api/projects/setup/     loyiha + jamoa + har bir xodimga vazifa (mul
                                     bitta tranzaksiya, tasks.services.create_project_with_tasks (tasks yuqori qatlam)
 
 GET/POST   /api/tasks/
-GET/PATCH  /api/tasks/{id}/
+GET/PATCH/DELETE /api/tasks/{id}/     DELETE: arxivlash, tarixni saqlash
 POST       /api/tasks/{id}/status/        {status}   (dasturchi: control→in_progress)
 POST       /api/tasks/{id}/submit/        {note, files}
 POST       /api/tasks/{id}/review/        {decision: accept|return, note}

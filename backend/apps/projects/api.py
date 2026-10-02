@@ -31,8 +31,8 @@ class ProjectViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.
             visible_projects(self.request.user)
             .prefetch_related("memberships__developer")
             .annotate(
-                task_total=Count("tasks", distinct=True),
-                task_done=Count("tasks", filter=Q(tasks__status="done"), distinct=True),
+                task_total=Count("tasks", filter=Q(tasks__archived_at__isnull=True), distinct=True),
+                task_done=Count("tasks", filter=Q(tasks__status="done", tasks__archived_at__isnull=True), distinct=True),
             )
             # Count bilan Meta.ordering qo'llanmaydi — sahifalashda takror/tushib qolish bo'lmasin
             .order_by("-created_at", "-id")

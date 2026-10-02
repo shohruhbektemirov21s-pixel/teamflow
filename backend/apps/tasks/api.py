@@ -37,6 +37,8 @@ class TaskViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.Gen
             Prefetch("assignments", queryset=TaskAssignment.objects.select_related("developer")),
             "subtasks",
         )
+        if self.action != "retrieve":
+            qs = qs.filter(archived_at__isnull=True)
         if self.action == "list":
             return filter_tasks(qs, self.request.query_params, self.request.user).order_by(
                 "due_at", "-created_at"

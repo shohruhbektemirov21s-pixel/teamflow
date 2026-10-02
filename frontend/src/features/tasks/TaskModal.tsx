@@ -232,7 +232,7 @@ export default function TaskModal({ id, submitMode }: { id: number; submitMode?:
     const left = (
       <>
         {a.delete && (
-          <ConfirmButton onConfirm={() => act.mutate("delete")} loading={act.isPending}>
+          <ConfirmButton onConfirm={() => act.mutate("delete")} loading={act.isPending} confirmText={T.tasks.archiveConfirm}>
             <Trash2 /> {T.common.delete}
           </ConfirmButton>
         )}
@@ -278,6 +278,7 @@ export default function TaskModal({ id, submitMode }: { id: number; submitMode?:
       subtitle={
         <>
           <TaskStatusBadge status={task.status} />
+          {task.archived_at && <Badge tone="slate">{T.tasks.archived}</Badge>}
           <PriorityBadge priority={task.priority} />
           {task.is_overdue && <Badge tone="danger">{T.dashboard.overdue}</Badge>}
           {task.finished_late && <Badge tone="warning">{T.dashboard.late}</Badge>}
@@ -457,7 +458,7 @@ export default function TaskModal({ id, submitMode }: { id: number; submitMode?:
             <details className="details-section" open>
               <summary>Izohlar</summary>
               <div className="details-content">
-                <Comments type="task" id={task.id} />
+                <Comments type="task" id={task.id} readOnly={Boolean(task.archived_at)} />
               </div>
             </details>
           </div>

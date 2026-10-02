@@ -76,4 +76,15 @@ describe("TaskModal", () => {
     expect(await screen.findByText("Test yozish")).toBeTruthy();
     expect(screen.getByTitle(`${JASUR.full_name}, ${MALIKA.full_name}`)).toBeTruthy();
   });
+
+  it("arxivlangan vazifa izohlari faqat o'qiladi", async () => {
+    mockGet({
+      "/tasks/1/": taskDetail({ archived_at: "2026-10-02T10:00:00Z" }),
+      "/comments/?target_type=task&target_id=1": [],
+    });
+    renderApp(<TaskModal id={1} />);
+
+    expect(await screen.findByText(T.tasks.archived)).toBeTruthy();
+    expect(screen.queryByRole("textbox", { name: T.common.comments })).toBeNull();
+  });
 });

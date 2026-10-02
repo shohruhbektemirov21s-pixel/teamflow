@@ -10,6 +10,7 @@ import { useDebounced } from "@/shared/hooks";
 import { T } from "@/shared/text";
 import type { Paged, Task } from "@/shared/types";
 import { Button, ErrorBox } from "@/shared/ui";
+import { Pagination } from "@/shared/ui/Pagination";
 
 import { EMPTY_FILTERS, filterParams, TaskFilters, type TaskFilterState, TaskTable } from "./TaskTable";
 
@@ -18,6 +19,7 @@ export default function TasksPage() {
   const { open } = useModal();
   const [params, setParams] = useSearchParams();
   const [filters, setFilters] = useState<TaskFilterState>(EMPTY_FILTERS);
+  const [page, setPage] = useState(1);
   const debounced = useDebounced(filters);
   const assignee = params.get("assignee");
   const assigneeLabel = params.get("assignee_label");
@@ -25,8 +27,8 @@ export default function TasksPage() {
   // Dasturchiga — faqat o'ziga biriktirilgan vazifalar (sub-vazifasi bor boshqa vazifalar ro'yxatda chiqmaydi)
   const mine = isManager(me) ? undefined : 1;
   const query = useQuery({
-    queryKey: ["tasks", "list", debounced, assignee, mine],
-    queryFn: () => api.get<Paged<Task>>(`/tasks/${qs({ ...filterParams(debounced), assignee, mine })}`),
+    queryKey: ["tasks", "list", debounced, assignee, mine, page],
+    queryFn: () => api.get<Paged<Task>>(`/tasks/${qs({ ...filterParams(debounced), assignee, mine, page: page === 1 ? undefined : page })}`),
     placeholderData: keepPreviousData,
   });
 
@@ -35,6 +37,7 @@ export default function TasksPage() {
     next.delete("assignee");
     next.delete("assignee_label");
     setParams(next);
+    setPage(1);
   };
 
   return (
@@ -57,7 +60,7 @@ export default function TasksPage() {
         </Button>
       </div>
       <div className="card">
-        <TaskFilters value={filters} onChange={setFilters} showPerson={isManager(me)} />
+        <TaskFilters value={filters} onChange={(value) => { setFilters(value); setPage(1); }} showPerson={isManager(me)} />
         {query.error ? (
           <div className="card-pad">
             <ErrorBox error={query.error} onRetry={() => query.refetch()} />
@@ -65,6 +68,7 @@ export default function TasksPage() {
         ) : (
           <TaskTable tasks={query.data?.results} loading={query.isLoading} />
         )}
+        <Pagination data={query.isPlaceholderData ? undefined : query.data} page={page} onPageChange={setPage} />
       </div>
     </>
   );

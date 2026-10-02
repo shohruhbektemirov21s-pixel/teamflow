@@ -91,15 +91,19 @@ def _people_rows(qs):
     t = "assigned_tasks"
     users = list(
         qs.select_related("specialty").annotate(
-            active_tasks=Count(t, filter=Q(assigned_tasks__status__in=ACTIVE), distinct=True),
-            overdue_tasks=Count(t, filter=Q(assigned_tasks__status__in=ACTIVE, assigned_tasks__due_at__lt=now),
+            active_tasks=Count(t, filter=Q(assigned_tasks__status__in=ACTIVE, assigned_tasks__archived_at__isnull=True), distinct=True),
+            overdue_tasks=Count(t, filter=Q(assigned_tasks__status__in=ACTIVE, assigned_tasks__due_at__lt=now,
+                                            assigned_tasks__archived_at__isnull=True),
                                 distinct=True),
-            review_tasks=Count(t, filter=Q(assigned_tasks__status=Task.Status.IN_REVIEW), distinct=True),
-            done_tasks=Count(t, filter=Q(assigned_tasks__status=Task.Status.DONE), distinct=True),
+            review_tasks=Count(t, filter=Q(assigned_tasks__status=Task.Status.IN_REVIEW,
+                                           assigned_tasks__archived_at__isnull=True), distinct=True),
+            done_tasks=Count(t, filter=Q(assigned_tasks__status=Task.Status.DONE,
+                                         assigned_tasks__archived_at__isnull=True), distinct=True),
         )
     )
     doing = {}
-    for task in Task.objects.filter(status=Task.Status.IN_PROGRESS, assignees__in=users).distinct().prefetch_related("assignees"):
+    for task in Task.objects.filter(status=Task.Status.IN_PROGRESS, archived_at__isnull=True,
+                                    assignees__in=users).distinct().prefetch_related("assignees"):
         for u in task.assignees.all():
             doing.setdefault(u.pk, []).append({"id": task.pk, "title": task.title})
     return [
@@ -228,6 +232,8 @@ def comments(request):
     s = CommentInput(data=request.data)
     s.is_valid(raise_exception=True)
     obj = _resolve_target(request.user, s.validated_data["target_type"], s.validated_data["target_id"])
+    if isinstance(obj, Task) and obj.archived_at is not None:
+        raise PermissionDenied("Arxivlangan vazifaga yangi izoh yozib bo'lmaydi.")
     text = s.validated_data["text"].strip()
     if not text:
         return Response({"detail": "Izoh bo'sh bo'lmasin."}, status=400)

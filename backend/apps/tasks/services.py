@@ -181,8 +181,12 @@ def set_task_assignees(task, user, assignee_ids):
 def delete_task(task, user):
     if not user.is_manager:
         raise ServiceError("Vazifani faqat loyiha menejeri yoki boshliq o'chiradi.")
-    log(user, "task_deleted", f"{user.full_name} vazifani o'chirdi: {task.title}")
-    task.delete()
+    task = Task.objects.select_for_update().get(pk=task.pk)
+    if task.archived_at is not None:
+        raise ServiceError("Vazifa allaqachon arxivlangan.")
+    task.archived_at = timezone.now()
+    task.save(update_fields=["archived_at", "updated_at"])
+    log(user, "task_deleted", f"{user.full_name} vazifani arxivladi: {task.title}", task)
 
 
 @transaction.atomic

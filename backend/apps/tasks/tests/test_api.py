@@ -1,13 +1,15 @@
 from datetime import timedelta
 
 from django.test import TestCase
+from django.db.models import ProtectedError
 from django.utils import timezone
 
 from apps.accounts.models import Role
+from apps.core.models import Comment
 from apps.notifications.models import Notification
 from apps.panel.tests.factories import client_for, dates, docx, make_user
 from apps.projects.models import Project, ProjectMember
-from apps.tasks.models import Task
+from apps.tasks.models import Submission, Task, WorkLog
 
 
 class TaskFlowTests(TestCase):
@@ -141,6 +143,50 @@ class TaskFlowTests(TestCase):
         self.assertEqual([a["id"] for a in r.data["assignees"]], [self.dev2.pk])
         self.assertEqual(client_for(self.dev1).delete(f"/api/tasks/{tid}/").status_code, 403)
         self.assertEqual(client_for(self.pm).delete(f"/api/tasks/{tid}/").status_code, 204)
+
+    def test_delete_archives_task_without_losing_work_history(self):
+        tid = self.create().data["id"]
+        task = Task.objects.get(pk=tid)
+        developer = client_for(self.dev1)
+        developer.post(f"/api/tasks/{tid}/start/")
+        developer.post(f"/api/tasks/{tid}/worklogs/", {
+            "work_date": timezone.localdate().isoformat(), "hours": "2.00", "note": "API tayyor",
+        }, format="json")
+        developer.post(f"/api/tasks/{tid}/submit/", {"note": "Tekshiruvga tayyor"})
+        comment = Comment.objects.create(author=self.dev1, text="Muhim izoh", target=task)
+
+        manager = client_for(self.pm)
+        self.assertEqual(manager.delete(f"/api/tasks/{tid}/").status_code, 204)
+
+        task.refresh_from_db()
+        self.assertIsNotNone(task.archived_at)
+        self.assertTrue(WorkLog.objects.filter(task=task, note="API tayyor").exists())
+        self.assertTrue(Submission.objects.filter(task=task, note="Tekshiruvga tayyor").exists())
+        self.assertEqual(Comment.objects.get(pk=comment.pk).target, task)
+        self.assertEqual(manager.post("/api/comments/", {"target_type": "task", "target_id": tid,
+                                                     "text": "Arxivga yangi izoh"}, format="json").status_code, 403)
+        self.assertNotIn(tid, [item["id"] for item in manager.get("/api/tasks/?all=1").data])
+        detail = manager.get(f"/api/tasks/{tid}/")
+        self.assertEqual(detail.status_code, 200)
+        self.assertEqual(detail.data["worklogs"][0]["can_delete"], False)
+        self.assertFalse(any(detail.data["actions"].values()))
+        self.assertEqual(manager.get(f"/api/projects/{self.project.pk}/").data["progress"]["total"], 0)
+        history = manager.get(f"/api/history/?task={tid}&paginated=1").data["results"]
+        self.assertTrue(any(item["verb"] == "task_deleted" and item["target"]["id"] == tid for item in history))
+        with self.assertRaises(ProtectedError):
+            self.project.delete()
+        self.assertEqual(manager.patch(f"/api/tasks/{tid}/", {"title": "X"}, format="json").status_code, 404)
+        self.assertEqual(manager.delete(f"/api/tasks/{tid}/").status_code, 404)
+
+    def test_archived_completed_task_remains_in_work_report(self):
+        tid = self.create().data["id"]
+        Task.objects.filter(pk=tid).update(status=Task.Status.DONE, completed_at=timezone.now())
+        manager = client_for(self.pm)
+
+        self.assertEqual(manager.delete(f"/api/tasks/{tid}/").status_code, 204)
+
+        completed = manager.get("/api/workdone/?days=7").data["completed_tasks"]
+        self.assertIn(tid, [item["id"] for item in completed])
 
 
 class DashboardTests(TestCase):

@@ -195,7 +195,7 @@ def set_members(project, user, member_ids):
 def _release_developers(project, developer_ids):
     # tasks app projects'dan yuqorida turadi (ARCHITECTURE 3-bo'lim), shuning uchun tasks modellari
     # import qilinmaydi — teskari bog'lanish va `apps.get_model` orqali olinadi.
-    open_tasks = project.tasks.exclude(status="done")
+    open_tasks = project.tasks.filter(archived_at__isnull=True).exclude(status="done")
     blocked = [
         task for task in open_tasks.filter(assignments__developer_id__in=developer_ids)
         .prefetch_related("assignments__developer").distinct()

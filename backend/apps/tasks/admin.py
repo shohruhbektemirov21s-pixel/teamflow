@@ -28,6 +28,10 @@ class TaskAdmin(admin.ModelAdmin):
     search_fields = ("code", "title", "project__name")
     inlines = [TaskAssignmentInline, SubTaskInline, TaskFileInline]
 
+    def has_delete_permission(self, request, obj=None):
+        # Admin orqali hard delete ish jurnali va topshirish tarixini yo'qotadi.
+        return False
+
 
 class SubmissionFileInline(admin.TabularInline):
     model = SubmissionFile

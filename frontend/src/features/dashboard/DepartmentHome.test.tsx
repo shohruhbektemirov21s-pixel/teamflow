@@ -32,6 +32,19 @@ afterEach(() => {
 });
 
 describe("DepartmentHome", () => {
+  it("bosh sahifadagi buyurtmalarning keyingi sahifasini ochadi", async () => {
+    testUser.current = DEPT;
+    mockGet({
+      "/dashboard/": { orders: { submitted: 51, rejected: 0, approved: 0 }, periods: PERIODS },
+      "/orders/": { count: 51, next: "/api/orders/?page=2", previous: null, results: [order(1, "Birinchi buyurtma", "submitted")] },
+      "/orders/?page=2": { count: 51, next: null, previous: "/api/orders/", results: [order(51, "Ellik birinchi buyurtma", "submitted")] },
+    });
+    renderApp(<DepartmentHome />);
+
+    fireEvent.click(await screen.findByRole("button", { name: /Keyingi/ }));
+    expect(await screen.findByText("Ellik birinchi buyurtma")).toBeTruthy();
+  });
+
   it("o'z buyurtmalari va holat kartalari chiqadi, qo'shimcha eslatma yo'q", async () => {
     testUser.current = DEPT;
     mockGet({

@@ -11,6 +11,7 @@ import { useMeta } from "@/shared/meta";
 import { T } from "@/shared/text";
 import type { Paged, Project, ProjectStage } from "@/shared/types";
 import { Badge, Button, CodeTag, Empty, ErrorBox, People, Skeleton, StageBadge } from "@/shared/ui";
+import { Pagination } from "@/shared/ui/Pagination";
 
 export default function ProjectsPage() {
   const me = useMe();
@@ -19,10 +20,11 @@ export default function ProjectsPage() {
   const meta = useMeta();
   const [stage, setStage] = useState<"" | ProjectStage>("");
   const [q, setQ] = useState("");
+  const [page, setPage] = useState(1);
   const search = useDebounced(q);
   const query = useQuery({
-    queryKey: ["projects", stage, search],
-    queryFn: () => api.get<Paged<Project>>(`/projects/${qs({ stage, q: search })}`),
+    queryKey: ["projects", stage, search, page],
+    queryFn: () => api.get<Paged<Project>>(`/projects/${qs({ stage, q: search, page: page === 1 ? undefined : page })}`),
     placeholderData: keepPreviousData,
   });
 
@@ -41,17 +43,17 @@ export default function ProjectsPage() {
       </div>
       <div className="row-wrap">
         <div className="chips">
-          <button className="chip" aria-pressed={stage === ""} onClick={() => setStage("")}>
+          <button className="chip" aria-pressed={stage === ""} onClick={() => { setStage(""); setPage(1); }}>
             {T.common.all}
           </button>
           {meta.options<ProjectStage>("project_stages").map((s) => (
-            <button key={s.value} className="chip" aria-pressed={stage === s.value} onClick={() => setStage(s.value)}>
+            <button key={s.value} className="chip" aria-pressed={stage === s.value} onClick={() => { setStage(s.value); setPage(1); }}>
               {s.label}
             </button>
           ))}
         </div>
         <span className="spacer" />
-        <input className="input" style={{ maxWidth: 260 }} placeholder={T.common.search} value={q} onChange={(e) => setQ(e.target.value)} aria-label={T.common.search} />
+        <input className="input" style={{ maxWidth: 260 }} placeholder={T.common.search} value={q} onChange={(e) => { setQ(e.target.value); setPage(1); }} aria-label={T.common.search} />
       </div>
       {query.error && <ErrorBox error={query.error} onRetry={() => query.refetch()} />}
       {query.isLoading && (
@@ -113,6 +115,7 @@ export default function ProjectsPage() {
           );
         })}
       </div>
+      <Pagination data={query.isPlaceholderData ? undefined : query.data} page={page} onPageChange={setPage} />
     </>
   );
 }

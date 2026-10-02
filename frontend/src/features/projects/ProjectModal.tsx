@@ -7,6 +7,7 @@ import { useDevelopers, useRefresh } from "@/app/queries";
 import { Comments } from "@/features/comments/Comments";
 import { DocTitle, DocViewer } from "@/features/docs/DocViewer";
 import { TaskTable } from "@/features/tasks/TaskTable";
+import { Pagination } from "@/shared/ui/Pagination";
 import { api, ApiError, formData, qs } from "@/shared/api";
 import { fmtDate } from "@/shared/format";
 import { useMeta } from "@/shared/meta";
@@ -45,6 +46,7 @@ export default function ProjectModal({ id }: { id: number }) {
   const developers = useDevelopers(manager);
 
   const [tab, setTab] = useState<Tab>("main");
+  const [historyPage, setHistoryPage] = useState(1);
   const [viewing, setViewing] = useState<FileInfo | null>(null);
   const [editingInfo, setEditingInfo] = useState(false);
   const [form, setForm] = useState({ name: "", description: "", start_date: "", end_date: "" });
@@ -54,8 +56,9 @@ export default function ProjectModal({ id }: { id: number }) {
   const [error, setError] = useState<ApiError | null>(null);
 
   const history = useQuery({
-    queryKey: ["history", "project", id],
-    queryFn: () => api.get<{ results: HistoryItem[] }>(`/history/${qs({ project: id, paginated: 1 })}`),
+    queryKey: ["history", "project", id, historyPage],
+    queryFn: () => api.get<{ results: HistoryItem[]; next: boolean; previous: boolean }>(
+      `/history/${qs({ project: id, paginated: 1, page: historyPage === 1 ? undefined : historyPage })}`),
     enabled: tab === "history",
   });
 
@@ -247,6 +250,7 @@ export default function ProjectModal({ id }: { id: number }) {
                 </div>
               ))}
             </div>
+            <Pagination data={history.data} page={historyPage} onPageChange={setHistoryPage} />
           </div>
         )}
 

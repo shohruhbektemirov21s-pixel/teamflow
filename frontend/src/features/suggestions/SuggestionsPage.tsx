@@ -8,17 +8,19 @@ import { fmtDateTime } from "@/shared/format";
 import { T } from "@/shared/text";
 import type { Paged, Suggestion } from "@/shared/types";
 import { Badge, Button, Empty, ErrorBox, Segmented, SkeletonRows } from "@/shared/ui";
+import { Pagination } from "@/shared/ui/Pagination";
 
 type Status = Suggestion["status"];
 export const SUGGESTION_TONE = { pending: "slate", accepted: "success", rejected: "danger" } as const;
 
 export default function SuggestionsPage() {
   const [tab, setTab] = useState<Status>("pending");
+  const [page, setPage] = useState(1);
   const { open } = useModal();
 
   const query = useQuery({
-    queryKey: ["suggestions", tab],
-    queryFn: () => api.get<Paged<Suggestion>>(`/suggestions/${qs({ status: tab })}`),
+    queryKey: ["suggestions", tab, page],
+    queryFn: () => api.get<Paged<Suggestion>>(`/suggestions/${qs({ status: tab, page: page === 1 ? undefined : page })}`),
   });
   const items = query.data?.results ?? [];
 
@@ -37,7 +39,7 @@ export default function SuggestionsPage() {
       <Segmented<Status>
         label={T.suggestions.status}
         value={tab}
-        onChange={setTab}
+        onChange={(value) => { setTab(value); setPage(1); }}
         options={[
           { value: "pending", label: T.suggestions.tabs.pending! },
           { value: "accepted", label: T.suggestions.tabs.accepted! },
@@ -89,6 +91,7 @@ export default function SuggestionsPage() {
           />
         </div>
       )}
+      <Pagination data={query.data} page={page} onPageChange={setPage} />
     </>
   );
 }

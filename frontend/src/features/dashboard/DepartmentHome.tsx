@@ -11,6 +11,7 @@ import { useMeta } from "@/shared/meta";
 import { T } from "@/shared/text";
 import type { DepartmentDashboard, Order, OrderBucket, Paged, PeriodKey } from "@/shared/types";
 import { Button, Empty, ErrorBox, Skeleton, SkeletonRows } from "@/shared/ui";
+import { Pagination } from "@/shared/ui/Pagination";
 
 import { PeriodCards } from "./PeriodCards";
 
@@ -35,16 +36,19 @@ export default function DepartmentHome() {
   const { open } = useModal();
   const meta = useMeta();
   const [selected, setSelected] = useState<Selection | null>(null);
+  const [page, setPage] = useState(1);
   const status = selected?.params.status ?? "";
-  const toggle = (next: Selection) =>
+  const toggle = (next: Selection) => {
+    setPage(1);
     setSelected((cur) => (cur && JSON.stringify(cur.params) === JSON.stringify(next.params) ? null : next));
+  };
   const summary = useQuery({
     queryKey: ["dashboard", "department"],
     queryFn: () => api.get<DepartmentDashboard>("/dashboard/"),
   });
   const orders = useQuery({
-    queryKey: ["orders", "department-home", selected?.params],
-    queryFn: () => api.get<Paged<Order>>(`/orders/${qs({ ...selected?.params })}`),
+    queryKey: ["orders", "department-home", selected?.params, page],
+    queryFn: () => api.get<Paged<Order>>(`/orders/${qs({ ...selected?.params, page: page === 1 ? undefined : page })}`),
     placeholderData: keepPreviousData,
   });
   const newOrder = () => open({ new: "order" });
@@ -80,7 +84,7 @@ export default function DepartmentHome() {
         <OrderStatusCards
           counts={summary.data.orders}
           value={status}
-          onChange={(filter) => setSelected(filter ? { params: { status: filter }, title: meta.label("order_statuses", filter.split(",")[0]!) } : null)}
+          onChange={(filter) => { setPage(1); setSelected(filter ? { params: { status: filter }, title: meta.label("order_statuses", filter.split(",")[0]!) } : null); }}
         />
       ) : (
         <div className="grid-3">
@@ -96,7 +100,7 @@ export default function DepartmentHome() {
             {selected ? selected.title : T.dashboard.deptOrders} {orders.data && <span className="count-pill soft">{orders.data.count}</span>}
           </h3>
           {selected && (
-            <Button size="sm" variant="ghost" onClick={() => setSelected(null)}>
+            <Button size="sm" variant="ghost" onClick={() => { setSelected(null); setPage(1); }}>
               {T.filters.clear}
             </Button>
           )}
@@ -121,6 +125,7 @@ export default function DepartmentHome() {
         ) : (
           <OrdersTable orders={orders.data.results} showDepartment={false} />
         )}
+        <Pagination data={orders.isPlaceholderData ? undefined : orders.data} page={page} onPageChange={setPage} />
       </section>
     </>
   );

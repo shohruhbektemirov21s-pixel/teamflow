@@ -41,9 +41,18 @@ export function useCounters(me: Me): Record<Counter, number> {
 export function useProjects(enabled = true) {
   return useQuery({
     queryKey: ["projects", "all"],
-    queryFn: () => api.get<Paged<Project>>("/projects/"),
+    queryFn: async () => {
+      const projects: Project[] = [];
+      let page = 1;
+      let result: Paged<Project>;
+      do {
+        result = await api.get<Paged<Project>>(`/projects/${page === 1 ? "" : `?page=${page}`}`);
+        projects.push(...result.results);
+        page += 1;
+      } while (result.next);
+      return projects;
+    },
     enabled,
-    select: (d) => d.results,
   });
 }
 

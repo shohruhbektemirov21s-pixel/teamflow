@@ -11,7 +11,7 @@ import type { CommentItem } from "@/shared/types";
 import { Avatar, Button, Empty, ErrorBox, Skeleton, useToast } from "@/shared/ui";
 
 /** Buyurtma, loyiha yoki vazifaga izohlar. Boshliq ham shu yerda izoh qoldiradi. */
-export function Comments({ type, id }: { type: "order" | "project" | "task"; id: number }) {
+export function Comments({ type, id, readOnly = false }: { type: "order" | "project" | "task"; id: number; readOnly?: boolean }) {
   const key = ["comments", type, id];
   const query = useQuery({ queryKey: key, queryFn: () => api.get<CommentItem[]>(`/comments/${qs({ target_type: type, target_id: id })}`) });
   const [text, setText] = useState("");
@@ -49,7 +49,7 @@ export function Comments({ type, id }: { type: "order" | "project" | "task"; id:
           </div>
         </div>
       ))}
-      <form
+      {!readOnly && <form
         className="stack-sm"
         onSubmit={(e) => {
           e.preventDefault();
@@ -74,7 +74,7 @@ export function Comments({ type, id }: { type: "order" | "project" | "task"; id:
             {T.comments.send}
           </Button>
         </div>
-      </form>
+      </form>}
     </div>
   );
 }

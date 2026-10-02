@@ -59,3 +59,23 @@ describe("ProjectModal — Jamoa", () => {
     expect((give as HTMLButtonElement).disabled).toBe(true);
   });
 });
+
+describe("ProjectModal — tarix", () => {
+  it("keyingi tarix sahifasini ko'rsatadi", async () => {
+    mockGet({
+      "/projects/1/": PROJECT,
+      "/tasks/?project=1&all=1": [],
+      "/developers/": [],
+      "/history/?project=1&paginated=1": { count: 21, next: true, previous: false, results: [] },
+      "/history/?project=1&paginated=1&page=2": { count: 21, next: false, previous: true, results: [
+        { id: 21, actor: null, verb: "task_created", message: "Eski voqea", created_at: "2026-09-01T10:00:00Z", target: null },
+      ] },
+    });
+    renderApp(<ProjectModal id={1} />);
+
+    fireEvent.click(await screen.findByRole("tab", { name: T.projects.tabHistory }));
+    fireEvent.click(await screen.findByRole("button", { name: /Keyingi/ }));
+
+    expect(await screen.findByText("Eski voqea")).toBeTruthy();
+  });
+});

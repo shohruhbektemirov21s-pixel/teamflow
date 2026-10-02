@@ -9,6 +9,7 @@ import { useDebounced } from "@/shared/hooks";
 import { T } from "@/shared/text";
 import type { DepartmentDashboard, Order, OrderStatus, Paged } from "@/shared/types";
 import { Button, Empty, ErrorBox, SkeletonRows } from "@/shared/ui";
+import { Pagination } from "@/shared/ui/Pagination";
 
 import { OrdersTable, OrderStatusCards } from "./OrdersTable";
 
@@ -21,11 +22,12 @@ export default function OrdersPage() {
   const { open } = useModal();
   const [status, setStatus] = useState<string>("");
   const [q, setQ] = useState("");
+  const [page, setPage] = useState(1);
   const search = useDebounced(q);
 
   const query = useQuery({
-    queryKey: ["orders", status, search],
-    queryFn: () => api.get<Paged<Order>>(`/orders/${qs({ status, q: search })}`),
+    queryKey: ["orders", status, search, page],
+    queryFn: () => api.get<Paged<Order>>(`/orders/${qs({ status, q: search, page: page === 1 ? undefined : page })}`),
     placeholderData: keepPreviousData,
   });
   const summary = useQuery({
@@ -48,21 +50,21 @@ export default function OrdersPage() {
         )}
       </div>
 
-      {dept && summary.data && <OrderStatusCards counts={summary.data.orders} value={status} onChange={setStatus} />}
+      {dept && summary.data && <OrderStatusCards counts={summary.data.orders} value={status} onChange={(value) => { setStatus(value); setPage(1); }} />}
 
       <div className="card">
         <div className="card-toolbar">
           {!dept && (
             <div className="chips">
               {TABS.map((s) => (
-                <button key={s || "all"} className="chip" aria-pressed={status === s} onClick={() => setStatus(s)}>
+                <button key={s || "all"} className="chip" aria-pressed={status === s} onClick={() => { setStatus(s); setPage(1); }}>
                   {s ? T.orders.tabs[s] : T.common.all}
                 </button>
               ))}
             </div>
           )}
           <span className="spacer" />
-          <input className="input" style={{ maxWidth: 280 }} placeholder={T.common.search} value={q} onChange={(e) => setQ(e.target.value)} aria-label={T.common.search} />
+          <input className="input" style={{ maxWidth: 280 }} placeholder={T.common.search} value={q} onChange={(e) => { setQ(e.target.value); setPage(1); }} aria-label={T.common.search} />
         </div>
         {query.error && (
           <div className="card-pad">
@@ -85,6 +87,7 @@ export default function OrdersPage() {
           />
         )}
         {query.data && query.data.results.length > 0 && <OrdersTable orders={query.data.results} showDepartment={!dept} />}
+        <Pagination data={query.isPlaceholderData ? undefined : query.data} page={page} onPageChange={setPage} />
       </div>
     </>
   );

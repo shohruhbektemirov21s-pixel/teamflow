@@ -71,6 +71,7 @@ export interface Task {
   starts_at: string | null;
   due_at: string | null;
   completed_at: string | null;
+  archived_at?: string | null;
   is_overdue: boolean;
   finished_late: boolean;
   assignees: UserBrief[];

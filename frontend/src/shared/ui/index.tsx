@@ -49,7 +49,7 @@ export function Button({
 }
 
 /** Ikki bosqichli o'chirish tugmasi: brauzer dialogi o'rniga (modal ustida modal yo'q). */
-export function ConfirmButton({ onConfirm, children, loading }: { onConfirm: () => void; children: ReactNode; loading?: boolean }) {
+export function ConfirmButton({ onConfirm, children, loading, confirmText }: { onConfirm: () => void; children: ReactNode; loading?: boolean; confirmText?: string }) {
   const [asking, setAsking] = useState(false);
   if (!asking)
     return (
@@ -59,7 +59,7 @@ export function ConfirmButton({ onConfirm, children, loading }: { onConfirm: () 
     );
   return (
     <span className="row">
-      <span className="small muted">{T.common.confirmDelete}</span>
+      <span className="small muted">{confirmText ?? T.common.confirmDelete}</span>
       <Button variant="danger" size="sm" loading={loading} onClick={onConfirm}>
         {T.common.yes}
       </Button>

@@ -11,6 +11,7 @@ import { useDebounced } from "@/shared/hooks";
 import { T } from "@/shared/text";
 import type { Bucket, Dashboard as DashboardData, Paged, PeriodKey, Task } from "@/shared/types";
 import { Button, ErrorBox } from "@/shared/ui";
+import { Pagination } from "@/shared/ui/Pagination";
 
 import { PeriodCards } from "./PeriodCards";
 
@@ -103,7 +104,8 @@ export default function Dashboard() {
       </div>
 
       {selected && (
-        <SelectedTasks selection={selected} onClose={() => setSelected(null)} manager={manager} mine={!manager} />
+        <SelectedTasks key={`${selected.bucket}:${selected.period ?? "all"}`} selection={selected}
+          onClose={() => setSelected(null)} manager={manager} mine={!manager} />
       )}
     </>
   );
@@ -111,11 +113,13 @@ export default function Dashboard() {
 
 function SelectedTasks({ selection, onClose, manager, mine }: { selection: Selection; onClose: () => void; manager: boolean; mine: boolean }) {
   const [filters, setFilters] = useState<TaskFilterState>(EMPTY_FILTERS);
+  const [page, setPage] = useState(1);
   const debounced = useDebounced(filters);
   const query = useQuery({
-    queryKey: ["tasks", "dashboard", selection.bucket, selection.period, debounced, mine],
+    queryKey: ["tasks", "dashboard", selection.bucket, selection.period, debounced, mine, page],
     queryFn: () =>
-      api.get<Paged<Task>>(`/tasks/${qs({ bucket: selection.bucket, period: selection.period, mine: mine ? 1 : undefined, ...filterParams(debounced) })}`),
+      api.get<Paged<Task>>(`/tasks/${qs({ bucket: selection.bucket, period: selection.period, mine: mine ? 1 : undefined,
+        ...filterParams(debounced), page: page === 1 ? undefined : page })}`),
     placeholderData: keepPreviousData,
   });
   return (
@@ -128,7 +132,7 @@ function SelectedTasks({ selection, onClose, manager, mine }: { selection: Selec
           {T.common.close}
         </Button>
       </div>
-      <TaskFilters value={filters} onChange={setFilters} showPerson={manager} showStatus={selection.bucket === "active" || selection.bucket === "overdue"} />
+      <TaskFilters value={filters} onChange={(value) => { setFilters(value); setPage(1); }} showPerson={manager} showStatus={selection.bucket === "active" || selection.bucket === "overdue"} />
       {query.error ? (
         <div className="card-pad">
           <ErrorBox error={query.error} />
@@ -136,6 +140,7 @@ function SelectedTasks({ selection, onClose, manager, mine }: { selection: Selec
       ) : (
         <TaskTable tasks={query.data?.results} loading={query.isLoading} />
       )}
+      <Pagination data={query.isPlaceholderData ? undefined : query.data} page={page} onPageChange={setPage} />
     </div>
   );
 }

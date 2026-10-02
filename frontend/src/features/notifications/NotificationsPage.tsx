@@ -23,6 +23,7 @@ import { NOTICE_TONE } from "@/shared/status";
 import { T } from "@/shared/text";
 import type { Notice, Paged } from "@/shared/types";
 import { Button, Empty, ErrorBox, Segmented, SkeletonRows } from "@/shared/ui";
+import { Pagination } from "@/shared/ui/Pagination";
 
 /** Bildirishnoma turi → ikonka (rangi `NOTICE_TONE` da). */
 const NOTICE_ICON: Record<string, LucideIcon> = {
@@ -63,9 +64,10 @@ export default function NotificationsPage() {
   const { open } = useModal();
   const refresh = useRefresh();
   const [filter, setFilter] = useState<"" | "1">("");
+  const [page, setPage] = useState(1);
   const query = useQuery({
-    queryKey: ["notifications", "list", filter],
-    queryFn: () => api.get<Paged<Notice>>(`/notifications/${qs({ unread: filter })}`),
+    queryKey: ["notifications", "list", filter, page],
+    queryFn: () => api.get<Paged<Notice>>(`/notifications/${qs({ unread: filter, page: page === 1 ? undefined : page })}`),
   });
   const unread = useUnreadCount().data ?? 0;
   const readAll = useMutation({ mutationFn: () => api.post("/notifications/read_all/"), onSuccess: () => refresh() });
@@ -87,7 +89,7 @@ export default function NotificationsPage() {
         </div>
         <Segmented
           value={filter}
-          onChange={setFilter}
+          onChange={(value) => { setFilter(value); setPage(1); }}
           label={T.notifications.title}
           options={[
             { value: "", label: T.common.all },
@@ -140,6 +142,7 @@ export default function NotificationsPage() {
           </div>
         </section>
       ))}
+      <Pagination data={query.data} page={page} onPageChange={setPage} />
     </>
   );
 }

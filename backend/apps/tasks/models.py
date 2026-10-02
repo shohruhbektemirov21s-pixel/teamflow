@@ -17,7 +17,7 @@ class Task(models.Model):
         IN_REVIEW = "in_review", "Tekshiruvda"
         DONE = "done", "Bajarildi"
 
-    project = models.ForeignKey("projects.Project", on_delete=models.CASCADE, related_name="tasks")
+    project = models.ForeignKey("projects.Project", on_delete=models.PROTECT, related_name="tasks")
     code = models.CharField("Kod", max_length=9, unique=True, editable=False)
     title = models.CharField("Nomi", max_length=255)
     description = models.TextField("Izoh", blank=True)
@@ -26,6 +26,7 @@ class Task(models.Model):
     starts_at = models.DateTimeField("Boshlanish vaqti", null=True, blank=True)
     due_at = models.DateTimeField("Tugash vaqti (muddat)", null=True, blank=True, db_index=True)
     completed_at = models.DateTimeField("Bajarilgan vaqt", null=True, blank=True)
+    archived_at = models.DateTimeField("Arxivlangan vaqt", null=True, blank=True, db_index=True)
     created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="+")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -52,7 +53,7 @@ class Task(models.Model):
     # Hisoblanadigan qiymatlar saqlanmaydi (holatdan kelib chiqadi).
     @property
     def is_overdue(self):
-        return bool(self.due_at and self.status != self.Status.DONE and self.due_at < timezone.now())
+        return bool(self.archived_at is None and self.due_at and self.status != self.Status.DONE and self.due_at < timezone.now())
 
     @property
     def finished_late(self):

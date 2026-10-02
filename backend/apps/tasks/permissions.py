@@ -17,7 +17,7 @@ def visible_tasks(user):
 def listed_tasks(user):
     """Ro'yxat va qidiruv: dasturchiga faqat o'ziga biriktirilganlar.
     Faqat sub-vazifasi bor boshqa vazifa ro'yxatda chiqmaydi, lekin ochiladi (visible_tasks)."""
-    qs = visible_tasks(user)
+    qs = visible_tasks(user).filter(archived_at__isnull=True)
     if user.is_developer:
         return qs.filter(assignments__developer=user)
     return qs

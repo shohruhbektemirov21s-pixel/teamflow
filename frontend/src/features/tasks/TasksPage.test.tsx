@@ -1,4 +1,4 @@
-import { screen } from "@testing-library/react";
+import { fireEvent, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { api } from "@/shared/api";
@@ -31,5 +31,18 @@ describe("TasksPage", () => {
 
     expect(await screen.findByText("Jamoa vazifasi")).toBeTruthy();
     expect(api.get).not.toHaveBeenCalledWith("/tasks/?mine=1");
+  });
+
+  it("keyingi sahifadagi vazifani ochib ko'rsatadi", async () => {
+    mockGet({
+      "/tasks/": { ...page("Birinchi vazifa"), count: 51, next: "/api/tasks/?page=2" },
+      "/tasks/?page=2": { ...page("Ellik birinchi vazifa"), count: 51, previous: "/api/tasks/" },
+    });
+    renderApp(<TasksPage />);
+
+    fireEvent.click(await screen.findByRole("button", { name: /Keyingi/ }));
+
+    expect(await screen.findByText("Ellik birinchi vazifa")).toBeTruthy();
+    expect(api.get).toHaveBeenCalledWith("/tasks/?page=2");
   });
 });

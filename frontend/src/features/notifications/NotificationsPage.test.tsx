@@ -46,4 +46,17 @@ describe("NotificationsPage", () => {
     expect(await screen.findByText(T.notifications.emptyUnread)).toBeTruthy();
     expect(screen.getByText(T.notifications.allRead)).toBeTruthy();
   });
+
+  it("keyingi sahifadagi bildirishnomani ko'rsatadi", async () => {
+    mockGet({
+      "/notifications/": { count: 51, next: "/api/notifications/?page=2", previous: null, results: [notice(1, {})] },
+      "/notifications/?page=2": { count: 51, next: null, previous: "/api/notifications/", results: [notice(51, {})] },
+      "/notifications/unread_count/": { count: 0 },
+    });
+    renderApp(<NotificationsPage />);
+
+    fireEvent.click(await screen.findByRole("button", { name: /Keyingi/ }));
+
+    expect(await screen.findByText("Xabar 51")).toBeTruthy();
+  });
 });

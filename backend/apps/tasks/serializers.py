@@ -26,7 +26,7 @@ class TaskListSerializer(serializers.ModelSerializer):
         model = Task
         fields = ["id", "code", "title", "description", "project", "status", "status_label", "priority", "priority_label",
                   "starts_at", "due_at", "completed_at", "is_overdue", "finished_late", "assignees",
-                  "subtasks_progress", "created_at"]
+                  "subtasks_progress", "created_at", "archived_at"]
 
     def get_project(self, obj):
         return {"id": obj.project_id, "name": obj.project.name, "code": obj.project.code}
@@ -56,7 +56,7 @@ class TaskDetailSerializer(TaskListSerializer):
         return [
             {"id": entry.pk, "author": user_brief(entry.author), "work_date": entry.work_date,
              "hours": str(entry.hours), "note": entry.note,
-             "can_delete": user.is_manager or entry.author_id == user.pk}
+             "can_delete": obj.archived_at is None and (user.is_manager or entry.author_id == user.pk)}
             for entry in obj.worklogs.all()
         ]
 
@@ -69,13 +69,13 @@ class TaskDetailSerializer(TaskListSerializer):
     def get_subtasks(self, obj):
         user = self.context["request"].user
         mine = user.is_manager or any(a.developer_id == user.pk for a in obj.assignments.all())
-        can_manage = can_manage_subtasks(user, obj) and obj.status != Task.Status.DONE
+        can_manage = can_manage_subtasks(user, obj) and obj.status != Task.Status.DONE and obj.archived_at is None
         rows = []
         for s in obj.subtasks.all():
             people = list(s.assignees.all())
             rows.append({
                 "id": s.id, "title": s.title, "is_done": s.is_done, "assignees": [user_brief(u) for u in people],
-                "can_toggle": obj.status != Task.Status.DONE and (mine or any(u.pk == user.pk for u in people)),
+                "can_toggle": obj.status != Task.Status.DONE and obj.archived_at is None and (mine or any(u.pk == user.pk for u in people)),
                 "can_delete": can_manage,
             })
         return rows
@@ -93,6 +93,9 @@ class TaskDetailSerializer(TaskListSerializer):
         ]
 
     def get_actions(self, obj):
+        if obj.archived_at is not None:
+            return dict.fromkeys(("start", "submit", "review", "edit", "delete", "add_files", "log_work",
+                                  "manage_subtasks", "manage_assignees"), False)
         user = self.context["request"].user
         targets = task_targets(obj.status, user.role)
         worker = can_work_on(user, obj)
