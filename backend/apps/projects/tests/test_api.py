@@ -183,6 +183,18 @@ class ProjectCompletionTests(TestCase):
         self.assertEqual(r.data["project"]["stage"], "pending_approval")
         self.assertTrue(r.data["actions"]["decide_completion"])
 
+    def test_pending_approval_is_not_a_direct_choice(self):
+        """`pending_approval` faqat "done" so'ralganda ichki hosil bo'ladi — PM/Boshliq uni to'g'ridan-to'g'ri
+        tanlay olmaydi (aks holda buyurtmasiz loyihada 500 xato berardi — review 2026-10-02)."""
+        pm = client_for(self.pm)
+        r = pm.patch(f"/api/projects/{self.pid}/", {"stage": "pending_approval"}, format="json")
+        self.assertEqual(r.status_code, 400)
+
+        pid2 = pm.post("/api/projects/", {"name": "Ichki", **dates(), "member_ids": []}, format="json").data["id"]
+        r2 = pm.patch(f"/api/projects/{pid2}/", {"stage": "pending_approval"}, format="json")
+        self.assertEqual(r2.status_code, 400)
+        self.assertNotIn("pending_approval", pm.get(f"/api/projects/{pid2}/").data["stage_targets"])
+
 
 class ProjectListOrderTests(TestCase):
     """Ro'yxat Count bilan annotatsiya qilinadi — tartib aniq berilmasa sahifalashda yozuvlar takrorlanishi mumkin."""

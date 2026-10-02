@@ -7,6 +7,10 @@ from apps.core.files import validate_upload
 from .models import Order, OrderVersion
 from .workflow import order_targets
 
+# `Project.Stage.PENDING_APPROVAL` qiymati — literal sifatida takrorlanadi, chunki `orders` app
+# `projects`ni import qilmaydi (bog'liqlik faqat `Project.order` OneToOne orqali, ARCHITECTURE.md 3-bo'lim).
+PENDING_APPROVAL = "pending_approval"
+
 
 class OrderVersionSerializer(serializers.ModelSerializer):
     file = serializers.SerializerMethodField()
@@ -71,7 +75,7 @@ class OrderDetailSerializer(OrderListSerializer):
         targets = order_targets(obj.status, user.role)
         is_owner = obj.submitted_by_id == user.pk
         project = getattr(obj, "project", None)
-        decide_completion = bool(is_owner and user.is_department and project and project.stage == "pending_approval")
+        decide_completion = bool(is_owner and user.is_department and project and project.stage == PENDING_APPROVAL)
         return {
             "approve": Order.Status.APPROVED in targets,
             "reject": Order.Status.REJECTED in targets,

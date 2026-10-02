@@ -220,7 +220,7 @@ Menyu 3 guruhga bo'lingan: *Asosiy ish* | *Muloqot* | *Kuzatuv*.
 
 ### Buyurtmalar (`/buyurtmalar`)
 - PM/Boshliq uchun "Buyurtmalar (TZ)", Boshqarma uchun "Buyurtmalarim" (faqat o'z buyurtmalari).
-- Filtrlar: **Hammasi** (birinchi, standart tanlangan) · Yangi · Tasdiqlangan · Rad etilgan · Loyiha bo'lgan.
+- Filtrlar: **Hammasi** (birinchi, standart tanlangan) · Yangi · Tasdiqlangan · Rad etilgan.
 
 ### Xodimlar (`/xodimlar`, PM, Boshliq)
 - Barcha jamoa a'zolari (dasturchilar, menejerlar): bandligi, faol va kechikkan vazifalari, hozir nima qilayotgani. Vazifasi yo'qlar birinchi turadi.

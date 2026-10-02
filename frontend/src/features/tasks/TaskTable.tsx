@@ -33,11 +33,13 @@ export function TaskFilters({
   onChange,
   showPerson,
   showStatus = true,
+  showDue = true,
 }: {
   value: TaskFilterState;
   onChange: (v: TaskFilterState) => void;
   showPerson: boolean;
   showStatus?: boolean;
+  showDue?: boolean;
 }) {
   const meta = useMeta();
   const set = <K extends keyof TaskFilterState>(k: K) => (e: { target: { value: string } }) => onChange({ ...value, [k]: e.target.value });
@@ -54,16 +56,18 @@ export function TaskFilters({
         {extra > 0 && <span className="count-pill">{extra}</span>}
       </button>
       <div className="filters-more">
-      <Field label={T.filters.due}>
-        {(id) => (
-          <select id={id} className="select" value={value.due} onChange={set("due")}>
-            <option value="">{T.filters.dueAll}</option>
-            <option value="today">{T.filters.dueToday}</option>
-            <option value="week">{T.filters.dueWeek}</option>
-            <option value="month">{T.filters.dueMonth}</option>
-          </select>
-        )}
-      </Field>
+      {showDue && (
+        <Field label={T.filters.due}>
+          {(id) => (
+            <select id={id} className="select" value={value.due} onChange={set("due")}>
+              <option value="">{T.filters.dueAll}</option>
+              <option value="today">{T.filters.dueToday}</option>
+              <option value="week">{T.filters.dueWeek}</option>
+              <option value="month">{T.filters.dueMonth}</option>
+            </select>
+          )}
+        </Field>
+      )}
       <div className="field" style={{ minWidth: 280 }}>
         <label className="field-label">{T.filters.dateRange}</label>
         <div className="input" style={{ display: "flex", gap: 8, alignItems: "center", padding: "0 8px" }}>

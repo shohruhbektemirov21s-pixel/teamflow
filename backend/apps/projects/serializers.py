@@ -87,7 +87,12 @@ class ProjectUpdateSerializer(serializers.Serializer):
     description = serializers.CharField(required=False, allow_blank=True)
     start_date = serializers.DateField(required=False)
     end_date = serializers.DateField(required=False)
-    stage = serializers.ChoiceField(choices=Project.Stage.choices, required=False)
+    # PENDING_APPROVAL tanlovdan chiqarilgan — u faqat "done" so'ralganda ichki hosil bo'ladigan oraliq
+    # holat (services._apply_stage), foydalanuvchi to'g'ridan-to'g'ri tanlamasligi kerak.
+    stage = serializers.ChoiceField(
+        choices=[(v, l) for v, l in Project.Stage.choices if v != Project.Stage.PENDING_APPROVAL],
+        required=False,
+    )
 
 
 class MembersSerializer(serializers.Serializer):

@@ -24,10 +24,10 @@ import { DocTitle, DocViewer } from "@/features/docs/DocViewer";
 import { Comments } from "@/features/comments/Comments";
 import { DeveloperPicker } from "@/features/people/DeveloperPicker";
 import { api, ApiError, formData } from "@/shared/api";
-import { fmtDate, fmtDateTime, timeAgo } from "@/shared/format";
+import { fmtDate, fmtDateTime } from "@/shared/format";
 import { useMeta } from "@/shared/meta";
 import { T } from "@/shared/text";
-import type { FileInfo, TaskDetail, WorkLog } from "@/shared/types";
+import type { FileInfo, Submission, TaskDetail, WorkLog } from "@/shared/types";
 import {
   Avatar,
   Badge,
@@ -191,7 +191,6 @@ export default function TaskModal({ id, submitMode }: { id: number; submitMode?:
   const statuses = meta.task_statuses;
   const step = statuses.findIndex((s) => s.value === task.status);
   const lastReturned = [...task.submissions].reverse().find((s) => s.decision === "returned");
-  const pending = [...task.submissions].reverse().find((s) => s.decision === "pending");
 
   const footer = (() => {
     const a = task.actions;
@@ -295,19 +294,11 @@ export default function TaskModal({ id, submitMode }: { id: number; submitMode?:
             <b>{T.tasks.returnTitle}</b> {lastReturned.review_note}
           </Callout>
         )}
-        {task.actions.review && pending && (
-          <Callout tone="info">
-            <b>
-              {pending.submitted_by.full_name} — {timeAgo(pending.submitted_at)}:
-            </b>{" "}
-            {pending.note}
-          </Callout>
-        )}
-        
+
         <div className="modal-split" style={{ marginTop: 8 }}>
           <div className="stack" style={{ gap: 16 }}>
             {task.description && <p className="prose" style={{ marginBottom: 8 }}>{task.description}</p>}
-            
+
             <details className="details-section" open>
               <summary>{T.tasks.subtasks} {task.subtasks.length > 0 && `(${task.subtasks_progress.done}/${task.subtasks_progress.total})`}</summary>
               <div className="details-content stack-sm">
@@ -425,38 +416,7 @@ export default function TaskModal({ id, submitMode }: { id: number; submitMode?:
               </div>
             </details>
 
-            {task.submissions.length > 0 && (
-              <details className="details-section" open>
-                <summary>Topshirilgan ish ({task.submissions.length})</summary>
-                <div className="details-content">
-                  <div className="timeline">
-                    {[...task.submissions].reverse().map((s) => (
-                      <div key={s.id} className="timeline-item">
-                        <Avatar user={s.submitted_by} size="sm" />
-                        <div className="grow">
-                          <div className="row" style={{ justifyContent: "space-between" }}>
-                            <b>{s.submitted_by.full_name}</b>
-                            <span className="small muted">{fmtDateTime(s.submitted_at)}</span>
-                          </div>
-                          <p style={{ margin: "4px 0" }}>{s.note}</p>
-                          {s.files.length > 0 && <FileList files={s.files} onOpen={setViewing} />}
-                          {s.decision && (
-                            <div className="row small mt-2" style={{ color: s.decision === "accepted" ? "var(--success)" : s.decision === "returned" ? "var(--danger)" : "var(--muted)" }}>
-                              {s.decision === "accepted" && <CheckCircle2 size={14} />}
-                              {s.decision === "returned" && <RotateCcw size={14} />}
-                              {s.decision === "pending" && <Clock3 size={14} />}
-                              {s.decision === "accepted" && T.tasks.accept}
-                              {s.decision === "returned" && <>{T.tasks.return}: {s.review_note}</>}
-                              {s.decision === "pending" && "Kutilmoqda"}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </details>
-            )}
+            <SubmissionsSection submissions={task.submissions} onOpenFile={setViewing} />
 
             <details className="details-section" open={Number(task.worklog_hours) > 0}>
               <summary>{T.tasks.worklog(Number(task.worklog_hours))}</summary>
@@ -580,6 +540,43 @@ export default function TaskModal({ id, submitMode }: { id: number; submitMode?:
   );
 }
 
+
+/** Tekshiruvga yuborilgan izoh va fayllar tarixi. PM tekshirishda shu bo'lim ko'rinadi. */
+function SubmissionsSection({ submissions, onOpenFile }: { submissions: Submission[]; onOpenFile: (f: FileInfo) => void }) {
+  if (!submissions.length) return null;
+  return (
+    <details className="details-section" open>
+      <summary>Topshirilgan ish ({submissions.length})</summary>
+      <div className="details-content">
+        <div className="timeline">
+          {[...submissions].reverse().map((s) => (
+            <div key={s.id} className="timeline-item">
+              <Avatar user={s.submitted_by} size="sm" />
+              <div className="grow">
+                <div className="row" style={{ justifyContent: "space-between" }}>
+                  <b>{s.submitted_by.full_name}</b>
+                  <span className="small muted">{fmtDateTime(s.submitted_at)}</span>
+                </div>
+                <p style={{ margin: "4px 0" }}>{s.note}</p>
+                {s.files.length > 0 && <FileList files={s.files} onOpen={onOpenFile} />}
+                {s.decision && (
+                  <div className="row small mt-2" style={{ color: s.decision === "accepted" ? "var(--success)" : s.decision === "returned" ? "var(--danger)" : "var(--muted)" }}>
+                    {s.decision === "accepted" && <CheckCircle2 size={14} />}
+                    {s.decision === "returned" && <RotateCcw size={14} />}
+                    {s.decision === "pending" && <Clock3 size={14} />}
+                    {s.decision === "accepted" && T.tasks.accept}
+                    {s.decision === "returned" && <>{T.tasks.return}: {s.review_note}</>}
+                    {s.decision === "pending" && "Kutilmoqda"}
+                  </div>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </details>
+  );
+}
 
 /** Ichki panel: ijrochilarni tanlash va saqlash (vazifa yoki sub-vazifa uchun). */
 function PeopleEditor({

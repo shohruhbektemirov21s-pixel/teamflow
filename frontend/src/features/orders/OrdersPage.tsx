@@ -13,7 +13,7 @@ import { Button, Empty, ErrorBox, SkeletonRows } from "@/shared/ui";
 import { OrdersTable, OrderStatusCards } from "./OrdersTable";
 
 // "Hammasi" birinchi va standart tanlov (foydalanuvchi talabi)
-const TABS: ("" | OrderStatus)[] = ["", "submitted", "approved", "rejected", "project_created"];
+const TABS: ("" | OrderStatus)[] = ["", "submitted", "approved", "rejected"];
 
 export default function OrdersPage() {
   const me = useMe();

@@ -41,4 +41,6 @@ def check_project_transition(current, target, role):
 
 
 def project_targets(current, role):
-    return allowed_targets(TRANSITIONS, current, role)
+    """UI uchun tanlanadigan daraja ro'yxati. `PENDING_APPROVAL` bunga kirmaydi — u foydalanuvchi
+    tanlovi emas, `services._apply_stage` "done" so'ralganda hosil qiladigan ichki oraliq holat."""
+    return [t for t in allowed_targets(TRANSITIONS, current, role) if t != S.PENDING_APPROVAL]

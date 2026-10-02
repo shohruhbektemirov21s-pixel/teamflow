@@ -125,6 +125,8 @@ def _apply_stage(project, user, stage):
     bildirishnoma boradi — faqat o'sha boshqarma uni "Yakunlangan" yoki "Tuzatish kerak" qila oladi
     (`confirm_completion` / `reject_completion`).
     """
+    if stage == S.PENDING_APPROVAL:
+        raise ServiceError("Bu daraja to'g'ridan-to'g'ri tanlanmaydi.", "stage")
     target = S.PENDING_APPROVAL if stage == S.DONE and project.order_id else stage
     check_project_transition(project.stage, target, user.role)
     project.stage = target
