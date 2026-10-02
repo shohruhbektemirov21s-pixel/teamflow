@@ -1,5 +1,5 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { CalendarDays, FileText, Pencil, Plus, Save, Search, Upload, User, UserPlus, X } from "lucide-react";
+import { CalendarDays, CheckCircle2, FileText, Pencil, Plus, Save, Search, Upload, User, UserPlus, X } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { useModal } from "@/app/modals";
@@ -31,7 +31,8 @@ import {
 
 type Tab = "main" | "tasks" | "team" | "files" | "comments" | "history";
 
-/** Modal: loyiha ko'rish/tahrirlash. Buyurtmadan yaratilgan loyihada faqat sanalar va daraja o'zgaradi. */
+/** Modal: loyiha ko'rish/tahrirlash. Buyurtmadan yaratilgan loyihani "Yakunlash" tugmasi bosilsa, u darrov
+ * Yakunlangan bo'lmaydi — avval boshqarma tasdiqlashi kerak ("Tasdiqlash kutilmoqda"). */
 export default function ProjectModal({ id }: { id: number }) {
   const { close, open } = useModal();
   const toast = useToast();
@@ -87,7 +88,11 @@ export default function ProjectModal({ id }: { id: number }) {
     onSuccess: () => (done(T.common.saved)(), setEditingInfo(false)),
     onError,
   });
-  const setStage = useMutation({ mutationFn: (stage: ProjectStage) => api.patch(`/projects/${id}/`, { stage }), onSuccess: done(T.common.saved), onError });
+  const setStage = useMutation({
+    mutationFn: (stage: ProjectStage) => api.patch(`/projects/${id}/`, { stage }),
+    onSuccess: (_d, stage) => done(stage === "done" && p?.order ? T.projects.requestCompletionToast : T.common.saved)(),
+    onError,
+  });
   const saveTeam = useMutation({ mutationFn: () => api.put(`/projects/${id}/members/`, { member_ids: members }), onSuccess: done(T.projects.teamSaved), onError });
   const upload = useMutation({
     mutationFn: () => api.post(`/projects/${id}/files/`, formData({}, files)),
@@ -144,6 +149,11 @@ export default function ProjectModal({ id }: { id: number }) {
       headerExtra={
         manager && (
           <>
+            {Boolean(p.order) && p.stage_targets.includes("done") && (
+              <Button size="sm" variant="success" icon={<CheckCircle2 size={16} />} loading={setStage.isPending} onClick={() => setStage.mutate("done")}>
+                {T.projects.requestCompletion}
+              </Button>
+            )}
             {editingInfo ? (
               <Button size="sm" variant="ghost" onClick={cancelEdit}>
                 {T.common.cancel}
@@ -162,7 +172,7 @@ export default function ProjectModal({ id }: { id: number }) {
               onChange={(e) => setStage.mutate(e.target.value as ProjectStage)}
             >
               {meta.project_stages
-                .filter((s) => s.value === p.stage || p.stage_targets.includes(s.value as ProjectStage))
+                .filter((s) => s.value === p.stage || (p.stage_targets.includes(s.value as ProjectStage) && !(p.order && s.value === "done")))
                 .map((s) => (
                   <option key={s.value} value={s.value}>
                     {s.label}

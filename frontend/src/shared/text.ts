@@ -345,6 +345,8 @@ export const T = {
     fromOrder: "Buyurtmadan",
     fromOrderLocked: "Buyurtmadan yaratilgan: bu yerdagi o'zgarish bog'liq buyurtmaga ham ko'chadi.",
     pendingApproval: "Loyiha yakunlandi deb belgilandi — endi buyurtma beruvchi boshqarma tasdiqlashini kutmoqda.",
+    requestCompletion: "Yakunlash",
+    requestCompletionToast: "Boshqarmaga yuborildi, tasdiqlashini kuting",
     steps: ["Asosiy", "Jamoa", "Vazifa va fayllar"],
     projectFiles: "Loyiha fayllari",
     memberTasks: "Xodimlarga vazifalar (ixtiyoriy)",
