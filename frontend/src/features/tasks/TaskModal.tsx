@@ -307,33 +307,34 @@ export default function TaskModal({ id, submitMode }: { id: number; submitMode?:
                   <div className="stack-sm">
                     {task.subtasks.map((s) => (
                       <div key={s.id} className="stack-sm">
-                        <div className="row" style={{ width: "100%", gap: 6 }}>
-                          <label className="pick grow" style={{ cursor: s.can_toggle ? "pointer" : "default", margin: 0 }}>
-                            <input
-                              type="checkbox"
-                              checked={s.is_done}
-                              disabled={!s.can_toggle || toggle.isPending}
-                              onChange={(e) => toggle.mutate({ sid: s.id, done: e.target.checked })}
-                            />
+                        <div className="row pick" style={{ width: "100%", gap: 6, margin: 0 }}>
+                          <input
+                            type="checkbox"
+                            checked={s.is_done}
+                            disabled={!s.can_toggle || toggle.isPending}
+                            onChange={(e) => toggle.mutate({ sid: s.id, done: e.target.checked })}
+                          />
+                          <button
+                            type="button"
+                            className="row grow"
+                            style={{ background: "none", border: 0, padding: 0, textAlign: "left", font: "inherit", color: "inherit", cursor: s.can_delete ? "pointer" : "default" }}
+                            disabled={!s.can_delete}
+                            aria-expanded={peopleEdit?.target === "subtask" && peopleEdit.sid === s.id}
+                            aria-label={`${T.tasks.subtaskPeople}: ${s.title}`}
+                            onClick={() => {
+                              if (peopleEdit?.target === "subtask" && peopleEdit.sid === s.id) {
+                                setPeopleEdit(null);
+                                return;
+                              }
+                              setPeopleEdit({ target: "subtask", sid: s.id });
+                              setPeopleDraft(s.assignees.map((u) => u.id));
+                            }}
+                          >
                             <span className="grow" style={{ textDecoration: s.is_done ? "line-through" : undefined, color: s.is_done ? "var(--muted)" : undefined }}>
                               {s.title}
                             </span>
                             {s.assignees.length ? <People users={s.assignees} /> : <span className="small muted">{T.tasks.subtaskNobody}</span>}
-                          </label>
-                          {s.can_delete && (
-                            <button
-                              type="button"
-                              className="icon-btn"
-                              title={T.tasks.subtaskPeople}
-                              aria-label={`${T.tasks.subtaskPeople}: ${s.title}`}
-                              onClick={() => {
-                                setPeopleEdit({ target: "subtask", sid: s.id });
-                                setPeopleDraft(s.assignees.map((u) => u.id));
-                              }}
-                            >
-                              <UserPlus size={14} />
-                            </button>
-                          )}
+                          </button>
                           {s.can_delete && (
                             <button
                               type="button"

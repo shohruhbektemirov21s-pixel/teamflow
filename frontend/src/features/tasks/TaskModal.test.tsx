@@ -77,6 +77,38 @@ describe("TaskModal", () => {
     expect(screen.getByTitle(`${JASUR.full_name}, ${MALIKA.full_name}`)).toBeTruthy();
   });
 
+  it("sub-vazifa qatoriga bosilsa ijrochi tahrirlash paneli ochiladi/yopiladi", async () => {
+    mockGet({
+      "/tasks/1/": taskDetail({
+        subtasks: [{ id: 5, title: "Test yozish", is_done: false, assignees: [JASUR], can_toggle: true, can_delete: true }],
+      }),
+    });
+    renderApp(<TaskModal id={1} />);
+
+    const row = await screen.findByRole("button", { name: `${T.tasks.subtaskPeople}: Test yozish` });
+    expect(screen.queryByText(`${T.tasks.subtaskPeople}: Test yozish`)).toBeNull();
+
+    fireEvent.click(row);
+    expect(await screen.findByText(`${T.tasks.subtaskPeople}: Test yozish`)).toBeTruthy();
+
+    fireEvent.click(row);
+    await waitFor(() => expect(screen.queryByText(`${T.tasks.subtaskPeople}: Test yozish`)).toBeNull());
+  });
+
+  it("ruxsat bo'lmagan sub-vazifa qatori bosilmaydi", async () => {
+    mockGet({
+      "/tasks/1/": taskDetail({
+        subtasks: [{ id: 5, title: "Test yozish", is_done: false, assignees: [JASUR], can_toggle: true, can_delete: false }],
+      }),
+    });
+    renderApp(<TaskModal id={1} />);
+
+    const row = await screen.findByRole("button", { name: `${T.tasks.subtaskPeople}: Test yozish` });
+    expect((row as HTMLButtonElement).disabled).toBe(true);
+    fireEvent.click(row);
+    expect(screen.queryByText(`${T.tasks.subtaskPeople}: Test yozish`)).toBeNull();
+  });
+
   it("arxivlangan vazifa izohlari faqat o'qiladi", async () => {
     mockGet({
       "/tasks/1/": taskDetail({ archived_at: "2026-10-02T10:00:00Z" }),
