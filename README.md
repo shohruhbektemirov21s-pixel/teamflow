@@ -116,12 +116,13 @@ Qoidalar:
 ## 5. Loyihalar
 
 - Faqat **PM va Boshliq** loyiha yaratadi. **Dasturchi yarata olmaydi.**
-- Loyiha: nom, izoh, boshlanish sanasi, tugash sanasi, fayllar, dasturchilar (bir nechta), darajasi.
+- Loyiha: **loyiha raqami** (qo'lda kiritiladi, majburiy, erkin matn/kod — masalan `PRJ-12`, takrorlanmaydi: band bo'lsa xatolik chiqadi), nom, izoh, boshlanish sanasi, tugash sanasi, fayllar, dasturchilar (bir nechta), darajasi.
 - **Loyiha darajasi (5 ta):** Rejalashtirilgan → Boshlangan → Tuzatish kerak → Tasdiqlash kutilmoqda → Yakunlangan. PM/Boshliq qo'lda o'zgartiradi.
 - **Yakunlashni tasdiqlash:** buyurtmasiz (PM o'zi yaratgan) loyiha "Yakunlangan"ga to'g'ridan-to'g'ri o'tadi. Buyurtmadan yaratilgan loyihada "Yakunlangan" tanlansa, avval **"Tasdiqlash kutilmoqda"**ga o'tadi va buyurtmani yuborgan boshqarmaga bildirishnoma boradi — faqat o'sha boshqarma (Buyurtma oynasidan) **Tasdiqlaydi** (loyiha "Yakunlangan" bo'ladi) yoki **kamchilik sababi bilan rad etadi** ("Tuzatish kerak"ga qaytadi, PM sababni ko'rib tuzatib yana so'raydi).
 - Loyihaga bir nechta dasturchi biriktiriladi, har biriga bir nechta vazifa berish mumkin.
 
 **Loyiha yaratish oynasi (3 qadam):** Asosiy → Jamoa → Vazifalar va fayllar. Buyurtmadan yaratilsa, 1-qadam oldindan to'ldirilgan.
+- 1-qadamda (**Asosiy**) **loyiha raqami** maydoni bor — foydalanuvchi qo'lda kiritadi, bo'sh qoldirib bo'lmaydi, boshqa loyihada xuddi shu raqam bo'lsa xatolik chiqib saqlanmaydi.
 - 3-qadamda **loyiha fayllari** va **har bir xodimga alohida vazifalar** beriladi. Har bir tanlangan xodim uchun alohida blok va "Vazifa qo'shish" tugmasi bor: vazifa nomi, **boshlanish** va **tugash vaqti**, **vazifa fayllari**. Tugash vaqti boshlanishdan oldin bo'lsa, yaratib bo'lmaydi.
 - Loyiha, jamoa va vazifalar bitta so'rovda (`POST /api/projects/setup/`) bitta tranzaksiyada yaratiladi. Biror vazifada xato bo'lsa, hech narsa saqlanmaydi (chala loyiha qolmaydi).
 
@@ -159,9 +160,11 @@ Qoidalar:
 
 ### Kodlar
 
-Har bir vazifa va loyiha yaratilganda tasodifiy, takrorlanmaydigan **9 xonali kod** oladi (masalan `483920157`) — ketma-ket emas, umumiy sonni ko'rsatmaydi. Vazifa va loyiha kodlari bir-biri bilan ham takrorlanmaydi. Bazada saqlanadi (`Task.code` / `Project.code`), kod ro'yxatlarda, doskada, tekshiruv navbatida va modallar sarlavhasida ko'rinadi. Qoida bitta joyda: `backend/apps/core/codes.py` (`core` qatlami `tasks`/`projects` modellarini statik import qilmaydi — `django.apps.apps.get_model` orqali olinadi, ARCHITECTURE 3-bo'lim).
-- `Ctrl K` qidiruvida 9 xonali kod yozilsa, aynan o'sha vazifa yoki loyiha darrov chiqadi (ko'rish huquqi bo'lsa).
-- Vazifalar jadvali qidiruvida vazifa kodi — shu vazifa, loyiha kodi — shu loyihaning vazifalari.
+**Vazifa** yaratilganda tasodifiy, takrorlanmaydigan **9 xonali kod** oladi (masalan `483920157`) — ketma-ket emas, umumiy sonni ko'rsatmaydi. Bazada saqlanadi (`Task.code`), ro'yxatlarda, doskada, tekshiruv navbatida va modal sarlavhasida ko'rinadi. Qoida bitta joyda: `backend/apps/core/codes.py`.
+
+**Loyiha** endi avtomatik kod olmaydi — o'rniga PM/Boshliq loyiha yaratishda (1-qadam) **loyiha raqamini qo'lda kiritadi** (majburiy, erkin matn/kod, masalan `PRJ-12`). Boshqa loyihada xuddi shu raqam bo'lsa, saqlashda xatolik chiqadi (takrorlanmaydi). `Project.code` shu qo'lda kiritilgan raqamni saqlaydi; ro'yxatlarda, loyiha oynasi sarlavhasida va qidiruvda shu raqam ko'rinadi.
+- `Ctrl K` qidiruvida vazifaning 9 xonali kodi yoki loyihaning qo'lda kiritilgan raqami yozilsa, aynan o'sha vazifa/loyiha darrov chiqadi (ko'rish huquqi bo'lsa).
+- Vazifalar jadvali qidiruvida vazifa kodi — shu vazifa, loyiha raqami — shu loyihaning vazifalari.
 
 ## 7. Menyu va sahifalar
 
