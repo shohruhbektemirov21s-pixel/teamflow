@@ -97,7 +97,7 @@ Qoidalar: yangi versiya faqat oxirgi versiya `rejected` bo'lsa. Boshqarma `Order
 ### projects
 | Model | Maydonlar |
 |---|---|
-| `Project` | code (tasodifiy 9 xonali, unique), name, description, order OneToOne?, stage (planned/started/needs_fix/done), start_date, end_date, created_by, created_at |
+| `Project` | code (qo'lda kiritiladi, erkin matn, unique, majburiy), name, description, order OneToOne?, stage (planned/started/needs_fix/done), start_date, end_date, created_by, created_at |
 | `ProjectMember` | project FK, developer FK, `unique(project, developer)` |
 | `ProjectFile` | project FK, file, uploaded_by, created_at |
 

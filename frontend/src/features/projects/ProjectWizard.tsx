@@ -34,6 +34,7 @@ export default function ProjectWizard({ orderId }: { orderId?: number }) {
   const order = useQuery({ queryKey: ["order", orderId], queryFn: () => api.get<OrderDetail>(`/orders/${orderId}/`), enabled: Boolean(orderId) });
 
   const [step, setStep] = useState(0);
+  const [code, setCode] = useState("");
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [start, setStart] = useState("");
@@ -67,6 +68,7 @@ export default function ProjectWizard({ orderId }: { orderId?: number }) {
     mutationFn: () => {
       const fd = formData(
         {
+          code: code.trim(),
           ...(orderId ? { order: orderId } : { name, description }),
           start_date: start,
           end_date: end,
@@ -87,13 +89,13 @@ export default function ProjectWizard({ orderId }: { orderId?: number }) {
     onError: (e: Error) => {
       const err = e instanceof ApiError ? e : new ApiError(0, e.message);
       setError(err);
-      if (err.field("name") || err.field("start_date") || err.field("end_date")) setStep(0);
+      if (err.field("code") || err.field("name") || err.field("start_date") || err.field("end_date")) setStep(0);
       else if (err.field("member_ids")) setStep(1);
     },
   });
 
   const fromOrder = Boolean(orderId);
-  const step0ok = name.trim() && start && end && end >= start;
+  const step0ok = code.trim() && name.trim() && start && end && end >= start;
   const tasksOk = !readyTasks.some(badDates);
   const devs = (developers.data ?? []).filter((d) => d.full_name.toLowerCase().includes(devSearch.toLowerCase()));
   const chosen = (developers.data ?? []).filter((d) => members.includes(d.id));
@@ -112,7 +114,7 @@ export default function ProjectWizard({ orderId }: { orderId?: number }) {
       title={T.projects.new}
       subtitle={<Stepper steps={T.projects.steps} current={step} />}
       onClose={close}
-      dirty={Boolean(members.length || files.length || tasks.length || (name && !fromOrder))}
+      dirty={Boolean(code || members.length || files.length || tasks.length || (name && !fromOrder))}
       footer={
         <>
           {step > 0 && (
@@ -139,8 +141,11 @@ export default function ProjectWizard({ orderId }: { orderId?: number }) {
         {step === 0 && (
           <>
             {fromOrder && <Callout tone="info">{T.projects.fromOrderLocked}</Callout>}
+            <Field label={T.projects.code} required error={fe("code")} hint={T.projects.codeHint}>
+              {(id, bad) => <input id={id} className="input" aria-invalid={bad} placeholder={T.projects.codePh} value={code} onChange={(e) => setCode(e.target.value)} autoFocus />}
+            </Field>
             <Field label={T.projects.name} required error={fe("name")}>
-              {(id, bad) => <input id={id} className="input" aria-invalid={bad} placeholder={T.projects.namePh} value={name} disabled={fromOrder} onChange={(e) => setName(e.target.value)} autoFocus />}
+              {(id, bad) => <input id={id} className="input" aria-invalid={bad} placeholder={T.projects.namePh} value={name} disabled={fromOrder} onChange={(e) => setName(e.target.value)} />}
             </Field>
             <Field label={T.projects.description}>
               {(id) => <textarea id={id} className="textarea" value={description} disabled={fromOrder} onChange={(e) => setDescription(e.target.value)} />}

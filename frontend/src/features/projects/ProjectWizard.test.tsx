@@ -20,7 +20,8 @@ describe("ProjectWizard — xodimlarga alohida vazifa", () => {
     renderApp(<ProjectWizard />);
 
     // 1-qadam: asosiy
-    fireEvent.change(await screen.findByLabelText(new RegExp(T.projects.name)), { target: { value: "Portal" } });
+    fireEvent.change(await screen.findByLabelText(new RegExp(T.projects.code)), { target: { value: "PRJ-9" } });
+    fireEvent.change(screen.getByLabelText(new RegExp(T.projects.name)), { target: { value: "Portal" } });
     const [start, end] = Array.from(document.querySelectorAll<HTMLInputElement>('input[type="date"]'));
     fireEvent.change(start!, { target: { value: "2026-10-01" } });
     fireEvent.change(end!, { target: { value: "2026-10-31" } });
@@ -46,6 +47,7 @@ describe("ProjectWizard — xodimlarga alohida vazifa", () => {
     const [url, body] = vi.mocked(api.post).mock.calls[0]!;
     expect(url).toBe("/projects/setup/");
     const fd = body as FormData;
+    expect(fd.get("code")).toBe("PRJ-9");
     const tasks = JSON.parse(String(fd.get("tasks")));
     expect(tasks).toEqual([
       {
@@ -63,7 +65,8 @@ describe("ProjectWizard — xodimlarga alohida vazifa", () => {
     mockGet({ "/developers/": DEVS });
     renderApp(<ProjectWizard />);
 
-    fireEvent.change(await screen.findByLabelText(new RegExp(T.projects.name)), { target: { value: "Portal" } });
+    fireEvent.change(await screen.findByLabelText(new RegExp(T.projects.code)), { target: { value: "PRJ-10" } });
+    fireEvent.change(screen.getByLabelText(new RegExp(T.projects.name)), { target: { value: "Portal" } });
     const [start, end] = Array.from(document.querySelectorAll<HTMLInputElement>('input[type="date"]'));
     fireEvent.change(start!, { target: { value: "2026-10-01" } });
     fireEvent.change(end!, { target: { value: "2026-10-31" } });

@@ -1,4 +1,5 @@
-"""Kodlar: har bir vazifa/loyiha tasodifiy 9 xonali kod oladi; qidiruvda kod yozilsa aynan o'sha yozuv chiqadi."""
+"""Kodlar: vazifa tasodifiy 9 xonali kod oladi, loyiha raqami qo'lda kiritiladi; qidiruvda kod
+yozilsa aynan o'sha yozuv chiqadi."""
 from django.test import TestCase
 
 from apps.accounts.models import Role
@@ -7,19 +8,19 @@ from apps.panel.tests.factories import client_for, make_project, make_task, make
 
 
 class CodeGenerationTests(TestCase):
-    def test_task_and_project_get_unique_9_digit_codes(self):
+    def test_task_gets_unique_9_digit_code_project_keeps_manual_code(self):
         pm = make_user(Role.PM)
         dev = make_user(Role.DEVELOPER)
-        project = make_project(pm, dev)
+        project = make_project(pm, dev, code="PRJ-CG-1")
         task = make_task(project, pm, dev)
-        self.assertTrue(looks_like_code(project.code))
         self.assertTrue(looks_like_code(task.code))
+        self.assertEqual(project.code, "PRJ-CG-1")
         self.assertNotEqual(project.code, task.code)
 
     def test_resolve_code_variants(self):
         pm = make_user(Role.PM)
         dev = make_user(Role.DEVELOPER)
-        project = make_project(pm, dev)
+        project = make_project(pm, dev, code="RC-1")
         task = make_task(project, pm, dev)
         self.assertEqual(resolve_code(task.code), ("task", task.pk))
         self.assertEqual(resolve_code(f" {project.code} "), ("project", project.pk))

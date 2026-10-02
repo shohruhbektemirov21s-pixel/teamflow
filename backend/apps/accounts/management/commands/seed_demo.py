@@ -55,7 +55,7 @@ class Command(BaseCommand):
         today = timezone.localdate()
         now = timezone.now()
         project = projects.create_project(
-            pm, name="TeamFlow ichki portal", description="Xodimlar uchun ichki portal",
+            pm, code="DEMO-1", name="TeamFlow ichki portal", description="Xodimlar uchun ichki portal",
             start_date=today - timedelta(days=20), end_date=today + timedelta(days=40),
             member_ids=[dev1.pk, dev2.pk], stage="started",
         )

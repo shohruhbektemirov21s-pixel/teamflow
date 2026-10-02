@@ -21,7 +21,8 @@ import type { FileInfo, OrderStatus, Priority, ProjectStage, TaskStatus, UserBri
 
 export { Modal, useDialogBehavior } from "./Modal";
 
-/** Vazifa/loyiha kodi (tasodifiy 9 xonali raqam) — hamma joyda bir xil ko'rinish; qidiruvda shu kod yoziladi. */
+/** Vazifa kodi (tasodifiy 9 xonali raqam) yoki loyiha raqami (qo'lda kiritilgan) — hamma joyda bir xil
+ * ko'rinish; qidiruvda shu kod/raqam yoziladi. */
 export function CodeTag({ code }: { code: string }) {
   return <span className="code-tag">{code}</span>;
 }

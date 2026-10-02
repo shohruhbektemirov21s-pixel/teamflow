@@ -21,7 +21,7 @@ class TaskFlowTests(TestCase):
         self.outsider = make_user(Role.DEVELOPER)
         self.dept = make_user(Role.DEPARTMENT)
         d = dates()
-        self.project = Project.objects.create(name="Portal", start_date=d["start_date"], end_date=d["end_date"],
+        self.project = Project.objects.create(code="TF-1", name="Portal", start_date=d["start_date"], end_date=d["end_date"],
                                               created_by=self.pm)
         for dev in (self.dev1, self.dev2):
             ProjectMember.objects.create(project=self.project, developer=dev)
@@ -195,7 +195,7 @@ class DashboardTests(TestCase):
         self.dev = make_user(Role.DEVELOPER)
         self.idle = make_user(Role.DEVELOPER)
         d = dates()
-        self.project = Project.objects.create(name="P", start_date=d["start_date"], end_date=d["end_date"],
+        self.project = Project.objects.create(code="DASH-1", name="P", start_date=d["start_date"], end_date=d["end_date"],
                                               created_by=self.pm)
         ProjectMember.objects.create(project=self.project, developer=self.dev)
         now = timezone.now()

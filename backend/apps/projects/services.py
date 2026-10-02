@@ -38,12 +38,13 @@ def _developers(ids):
 
 
 @transaction.atomic
-def create_project(user, *, name="", description="", start_date=None, end_date=None,
+def create_project(user, *, code, name="", description="", start_date=None, end_date=None,
                    member_ids=None, files=None, order=None, stage=Project.Stage.PLANNED):
     """Qo'lda yoki tasdiqlangan buyurtmadan loyiha yaratadi.
 
     Buyurtmadan: nom, izoh va TZ fayli buyurtmadan olinadi; sanalar — PM tasdiqlaganda kiritganlari
-    (formadan kelgan sana bo'lsa, u ustun).
+    (formadan kelgan sana bo'lsa, u ustun). Loyiha raqami (`code`) har doim qo'lda kiritiladi —
+    buyurtmadan olinmaydi, chunki buyurtmada bunday raqam yo'q.
     """
     _require_manager(user)
     if order is not None:
@@ -58,9 +59,11 @@ def create_project(user, *, name="", description="", start_date=None, end_date=N
     if not start_date or not end_date:
         raise ServiceError("Boshlanish va tugash sanasini kiriting.")
     _check_dates(start_date, end_date)
+    if Project.objects.filter(code=code).exists():
+        raise ServiceError("Bu loyiha raqami band — boshqasini kiriting.", "code")
 
     project = Project.objects.create(
-        name=name.strip(), description=description, start_date=start_date, end_date=end_date,
+        code=code, name=name.strip(), description=description, start_date=start_date, end_date=end_date,
         stage=stage, order=order, created_by=user,
     )
     ProjectMember.objects.bulk_create(ProjectMember(project=project, developer=d) for d in _developers(member_ids))

@@ -13,7 +13,7 @@ class BulkTaskTests(TestCase):
         self.pm = make_user(Role.PM)
         self.dev = make_user(Role.DEVELOPER)
         self.other = make_user(Role.DEVELOPER)
-        self.project = Project.objects.create(name="Portal", start_date=date.today(), end_date=date.today(), created_by=self.pm)
+        self.project = Project.objects.create(code="BULK-1", name="Portal", start_date=date.today(), end_date=date.today(), created_by=self.pm)
         for dev in (self.dev, self.other):
             ProjectMember.objects.create(project=self.project, developer=dev)
         self.client = client_for(self.pm)

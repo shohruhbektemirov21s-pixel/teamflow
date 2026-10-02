@@ -50,9 +50,11 @@ def future(days=5):
     return date.today() + timedelta(days=days)
 
 
-def make_project(pm, *devs, name="Portal"):
+def make_project(pm, *devs, name="Portal", code=None):
     from apps.projects.models import Project, ProjectMember
-    project = Project.objects.create(name=name, start_date=today(), end_date=today(), created_by=pm)
+    _counter[0] += 1
+    project = Project.objects.create(code=code or f"TST-{_counter[0]}", name=name, start_date=today(), end_date=today(),
+                                     created_by=pm)
     for d in devs:
         ProjectMember.objects.create(project=project, developer=d)
     return project

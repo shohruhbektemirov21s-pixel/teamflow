@@ -334,6 +334,9 @@ export const T = {
     empty: "Loyiha yo'q",
     emptyHint: "Loyiha yarating yoki tasdiqlangan buyurtmadan loyiha oching.",
     emptyDev: "Sizni hali loyihaga qo'shishmagan.",
+    code: "Loyiha raqami",
+    codePh: "Masalan: PRJ-12",
+    codeHint: "Boshqa loyihada ishlatilmagan bo'lishi kerak.",
     name: "Loyiha nomi",
     namePh: "Masalan: Ichki portal",
     description: "Izoh",
@@ -431,7 +434,7 @@ export const T = {
 
   search: {
     title: "Qidiruv",
-    placeholder: "Vazifa, loyiha, odam yoki 9 xonali kod…",
+    placeholder: "Vazifa, loyiha, odam, vazifa kodi yoki loyiha raqami…",
     min: "Kamida 2 ta harf yozing",
     empty: "Hech narsa topilmadi",
     groups: { tasks: "Vazifalar", projects: "Loyihalar", orders: "Buyurtmalar", people: "Odamlar" } as Record<string, string>,

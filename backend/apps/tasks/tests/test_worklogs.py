@@ -13,7 +13,7 @@ class WorkLogTests(TestCase):
         self.pm = make_user(Role.PM)
         self.dev = make_user(Role.DEVELOPER)
         self.other = make_user(Role.DEVELOPER)
-        project = Project.objects.create(name="Portal", start_date=date.today(), end_date=date.today(), created_by=self.pm)
+        project = Project.objects.create(code="WL-1", name="Portal", start_date=date.today(), end_date=date.today(), created_by=self.pm)
         for user in (self.dev, self.other):
             ProjectMember.objects.create(project=project, developer=user)
         self.task = Task.objects.create(project=project, title="API", created_by=self.pm)

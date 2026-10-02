@@ -1,3 +1,5 @@
+from itertools import count
+
 from django.test import TestCase
 
 from apps.accounts.models import Role
@@ -7,6 +9,8 @@ from apps.projects.models import Project
 
 
 class ProjectTests(TestCase):
+    _seq = count(1)
+
     def setUp(self):
         self.pm = make_user(Role.PM)
         self.boss = make_user(Role.BOSS)
@@ -15,7 +19,8 @@ class ProjectTests(TestCase):
         self.dept = make_user(Role.DEPARTMENT)
 
     def create(self, user=None, **kw):
-        data = {"name": "Portal", "description": "Ichki portal", **dates(), "member_ids": [self.dev1.pk, self.dev2.pk]}
+        data = {"code": f"PRJ-{next(self._seq)}", "name": "Portal", "description": "Ichki portal", **dates(),
+                "member_ids": [self.dev1.pk, self.dev2.pk]}
         data.update(kw)
         return client_for(user or self.pm).post("/api/projects/", data, format="json")
 
@@ -38,10 +43,20 @@ class ProjectTests(TestCase):
         r = self.create(start_date=str(future(5)), end_date=str(future(1)))
         self.assertEqual(r.status_code, 400)
 
+    def test_code_is_required(self):
+        r = self.create(code="")
+        self.assertEqual(r.status_code, 400)
+
+    def test_duplicate_code_is_rejected(self):
+        self.assertEqual(self.create(code="DUP-1").status_code, 201)
+        r = self.create(code="DUP-1")
+        self.assertEqual(r.status_code, 400)
+        self.assertIn("code", r.data.get("fields", {}))
+
     def test_multipart_with_files(self):
         r = client_for(self.pm).post(
             "/api/projects/",
-            {"name": "P", **dates(), "member_ids": f"[{self.dev1.pk}]", "files": [docx("a.docx"), docx("b.pdf")]},
+            {"code": "MP-1", "name": "P", **dates(), "member_ids": f"[{self.dev1.pk}]", "files": [docx("a.docx"), docx("b.pdf")]},
             format="multipart",
         )
         self.assertEqual(r.status_code, 201, r.data)
@@ -79,14 +94,14 @@ class ProjectFromOrderTests(TestCase):
         self.order_id = r.data["id"]
 
     def test_cannot_create_before_approval(self):
-        r = client_for(self.pm).post("/api/projects/", {"order": self.order_id}, format="json")
+        r = client_for(self.pm).post("/api/projects/", {"code": "ORD-1", "order": self.order_id}, format="json")
         self.assertEqual(r.status_code, 400)
 
     def test_create_from_order_copies_data_and_uses_pm_dates(self):
         pm = client_for(self.pm)
         pm_dates = dates(14)
         pm.post(f"/api/orders/{self.order_id}/approve/", pm_dates, format="json")
-        r = pm.post("/api/projects/", {"order": self.order_id, "member_ids": [self.dev.pk]}, format="json")
+        r = pm.post("/api/projects/", {"code": "ORD-2", "order": self.order_id, "member_ids": [self.dev.pk]}, format="json")
         self.assertEqual(r.status_code, 201, r.data)
         self.assertEqual(r.data["name"], "Hisobot moduli")
         self.assertEqual(r.data["description"], "Oylik hisobot")
@@ -96,7 +111,7 @@ class ProjectFromOrderTests(TestCase):
         self.assertEqual(r.data["order"]["id"], self.order_id)
         self.assertEqual(Order.objects.get(pk=self.order_id).status, Order.Status.PROJECT_CREATED)
         # Ikkinchi marta yaratib bo'lmaydi
-        self.assertEqual(pm.post("/api/projects/", {"order": self.order_id}, format="json").status_code, 400)
+        self.assertEqual(pm.post("/api/projects/", {"code": "ORD-3", "order": self.order_id}, format="json").status_code, 400)
 
         # Buyurtmadan yaratilgan loyihada nom/izoh/sana ham o'zgaradi, bog'liq buyurtmaga ham ko'chadi
         pid = r.data["id"]
@@ -129,14 +144,14 @@ class ProjectCompletionTests(TestCase):
         order_id = r.data["id"]
         pm = client_for(self.pm)
         pm.post(f"/api/orders/{order_id}/approve/", dates(14), format="json")
-        self.pid = pm.post("/api/projects/", {"order": order_id}, format="json").data["id"]
+        self.pid = pm.post("/api/projects/", {"code": "COMP-1", "order": order_id}, format="json").data["id"]
 
     def finish(self):
         return client_for(self.pm).patch(f"/api/projects/{self.pid}/", {"stage": "done"}, format="json")
 
     def test_manager_without_order_finishes_directly(self):
         pm = client_for(self.pm)
-        pid = pm.post("/api/projects/", {"name": "Ichki", **dates(), "member_ids": []}, format="json").data["id"]
+        pid = pm.post("/api/projects/", {"code": "COMP-2", "name": "Ichki", **dates(), "member_ids": []}, format="json").data["id"]
         r = pm.patch(f"/api/projects/{pid}/", {"stage": "done"}, format="json")
         self.assertEqual(r.data["stage"], "done")
 
@@ -190,7 +205,7 @@ class ProjectCompletionTests(TestCase):
         r = pm.patch(f"/api/projects/{self.pid}/", {"stage": "pending_approval"}, format="json")
         self.assertEqual(r.status_code, 400)
 
-        pid2 = pm.post("/api/projects/", {"name": "Ichki", **dates(), "member_ids": []}, format="json").data["id"]
+        pid2 = pm.post("/api/projects/", {"code": "COMP-3", "name": "Ichki", **dates(), "member_ids": []}, format="json").data["id"]
         r2 = pm.patch(f"/api/projects/{pid2}/", {"stage": "pending_approval"}, format="json")
         self.assertEqual(r2.status_code, 400)
         self.assertNotIn("pending_approval", pm.get(f"/api/projects/{pid2}/").data["stage_targets"])
@@ -208,7 +223,7 @@ class ProjectListOrderTests(TestCase):
         now = timezone.now()
         ids = []
         for i in range(55):  # PAGE_SIZE = 50 — ikki sahifa
-            p = Project.objects.create(name=f"P{i}", created_by=pm, **dates())
+            p = Project.objects.create(code=f"ORD-{i}", name=f"P{i}", created_by=pm, **dates())
             Project.objects.filter(pk=p.pk).update(created_at=now + timedelta(minutes=i))  # id tartibiga teskari
             ids.append(p.pk)
         client = client_for(pm)

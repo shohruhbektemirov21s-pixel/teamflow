@@ -1,6 +1,7 @@
 """Loyiha yaratish oynasi: loyiha + har bir xodimga alohida vazifa (sana, fayl) — bitta tranzaksiyada."""
 import json
 from datetime import timedelta
+from itertools import count
 
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase
@@ -15,6 +16,8 @@ URL = "/api/projects/setup/"
 
 
 class ProjectSetupTests(TestCase):
+    _seq = count(1)
+
     def setUp(self):
         self.pm = make_user(Role.PM)
         self.dev1 = make_user(Role.DEVELOPER)
@@ -24,8 +27,8 @@ class ProjectSetupTests(TestCase):
         self.due = self.start + timedelta(days=3)
 
     def post(self, tasks, user=None, **extra):
-        data = {"name": "Portal", **dates(), "member_ids": json.dumps([self.dev1.pk, self.dev2.pk]),
-                "tasks": json.dumps(tasks), **extra}
+        data = {"code": f"SETUP-{next(self._seq)}", "name": "Portal", **dates(),
+                "member_ids": json.dumps([self.dev1.pk, self.dev2.pk]), "tasks": json.dumps(tasks), **extra}
         return client_for(user or self.pm).post(URL, data, format="multipart")
 
     def task(self, assignee, title="Vazifa", **kw):
