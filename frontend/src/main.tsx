@@ -23,7 +23,6 @@ const ProjectsPage = lazy(() => import("./features/projects/ProjectsPage"));
 const CalendarPage = lazy(() => import("./features/calendar/CalendarPage"));
 const PeoplePage = lazy(() => import("./features/people/PeoplePage"));
 const NotificationsPage = lazy(() => import("./features/notifications/NotificationsPage"));
-const HistoryPage = lazy(() => import("./features/history/HistoryPage"));
 const ProfilePage = lazy(() => import("./features/people/ProfilePage"));
 const WorkDonePage = lazy(() => import("./features/history/WorkDonePage"));
 const SuggestionsPage = lazy(() => import("./features/suggestions/SuggestionsPage"));
@@ -81,7 +80,6 @@ function AppRoutes() {
             <Route path="bildirishnomalar" element={page(<NotificationsPage />)} />
             <Route path="takliflar" element={page(<SuggestionsPage />)} />
             <Route path="xabarlar" element={page(<MessagesPage />)} />
-            <Route path="tarix" element={page(<HistoryPage />)} />
             <Route path="profil" element={page(<ProfilePage />)} />
             {manager && <Route path="qilingan-ishlar" element={page(<WorkDonePage />)} />}
             <Route path="*" element={<Navigate to="/" replace />} />

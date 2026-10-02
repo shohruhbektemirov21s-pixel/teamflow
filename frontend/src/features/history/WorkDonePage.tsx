@@ -21,6 +21,7 @@ export default function WorkDonePage() {
   const [tab, setTab] = useState("tasks");
   const [days, setDays] = useState("7");
   const [project, setProject] = useState("");
+  const [mine, setMine] = useState(false);
   const [page, setPage] = useState(1);
   const { open } = useModal();
   const openTarget = (target: HistoryItem["target"]) => {
@@ -31,8 +32,8 @@ export default function WorkDonePage() {
   const projects = useProjects();
 
   const query = useQuery({
-    queryKey: ["workdone", days, project, page],
-    queryFn: () => api.get<WorkDoneData>(`/workdone/${qs({ days, project, page })}`),
+    queryKey: ["workdone", days, project, mine, page],
+    queryFn: () => api.get<WorkDoneData>(`/workdone/${qs({ days, project, mine: mine ? "1" : "", page })}`),
   });
   const data = query.data;
   const hasPrevious = page > 1;
@@ -45,6 +46,10 @@ export default function WorkDonePage() {
           <h1>{T.workDone.title}</h1>
         </div>
         <div className="row-wrap">
+          <label className="row" style={{ gap: 6, cursor: "pointer" }}>
+            <input type="checkbox" checked={mine} onChange={(e) => (setMine(e.target.checked), setPage(1))} />
+            {T.workDone.mine}
+          </label>
           <select className="input" value={project} onChange={(e) => (setProject(e.target.value), setPage(1))} style={{ width: 220 }}>
             <option value="">{T.filters.allProjects}</option>
             {projects.data?.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}

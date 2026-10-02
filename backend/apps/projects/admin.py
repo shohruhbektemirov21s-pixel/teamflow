@@ -17,7 +17,7 @@ class ProjectFileInline(admin.TabularInline):
 
 @admin.register(Project)
 class ProjectAdmin(admin.ModelAdmin):
-    list_display = ("name", "stage", "start_date", "end_date", "created_by")
+    list_display = ("code", "name", "stage", "start_date", "end_date", "created_by")
     list_filter = ("stage",)
-    search_fields = ("name",)
+    search_fields = ("code", "name")
     inlines = [ProjectMemberInline, ProjectFileInline]

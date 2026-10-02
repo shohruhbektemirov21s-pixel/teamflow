@@ -10,7 +10,6 @@ import { Button, CodeTag, Due, Empty, Field, People, PriorityBadge, SkeletonRows
 
 export interface TaskFilterState {
   q: string;
-  due: "" | "today" | "week" | "month";
   date_from: string;
   date_to: string;
   status: string;
@@ -19,27 +18,24 @@ export interface TaskFilterState {
 
 export const EMPTY_FILTERS: TaskFilterState = {
   q: "",
-  due: "",
   date_from: "",
   date_to: "",
   status: "",
   assignee_name: "",
 };
 
-/** Vazifa filtrlari: qidiruv, muddat, sanadan/sanagacha, holat, xodim.
+/** Vazifa filtrlari: qidiruv, sanadan/sanagacha, holat, xodim.
  * Telefonda faqat qidiruv ko'rinadi, qolganlari "Filtrlar" tugmasi ortida — ro'yxat birinchi ekranda ko'rinsin. */
 export function TaskFilters({
   value,
   onChange,
   showPerson,
   showStatus = true,
-  showDue = true,
 }: {
   value: TaskFilterState;
   onChange: (v: TaskFilterState) => void;
   showPerson: boolean;
   showStatus?: boolean;
-  showDue?: boolean;
 }) {
   const meta = useMeta();
   const set = <K extends keyof TaskFilterState>(k: K) => (e: { target: { value: string } }) => onChange({ ...value, [k]: e.target.value });
@@ -56,18 +52,6 @@ export function TaskFilters({
         {extra > 0 && <span className="count-pill">{extra}</span>}
       </button>
       <div className="filters-more">
-      {showDue && (
-        <Field label={T.filters.due}>
-          {(id) => (
-            <select id={id} className="select" value={value.due} onChange={set("due")}>
-              <option value="">{T.filters.dueAll}</option>
-              <option value="today">{T.filters.dueToday}</option>
-              <option value="week">{T.filters.dueWeek}</option>
-              <option value="month">{T.filters.dueMonth}</option>
-            </select>
-          )}
-        </Field>
-      )}
       <div className="field" style={{ minWidth: 280 }}>
         <label className="field-label">{T.filters.dateRange}</label>
         <div className="input" style={{ display: "flex", gap: 8, alignItems: "center", padding: "0 8px" }}>
@@ -178,7 +162,6 @@ export function TaskTable({ tasks, loading, emptyHint }: { tasks: Task[] | undef
 export function filterParams(f: TaskFilterState) {
   return {
     q: f.q,
-    due: f.due,
     due_from: f.date_from,
     due_to: f.date_to,
     status: f.status,

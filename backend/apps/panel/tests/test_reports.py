@@ -82,3 +82,19 @@ class ReportTests(TestCase):
         response = client_for(self.dev).get("/api/history/")
         self.assertEqual(response.data, [])
 
+    def test_mine_filter_scopes_to_current_manager(self):
+        """Boshliq/PM vazifa ijrochisi bo'la olmaydi — "mening ishim" = o'zi yaratgan/tekshirgan ishlar."""
+        other_pm = make_user(Role.PM)
+        response = self.client.get("/api/workdone/", {"mine": 1})
+        self.assertEqual({t["id"] for t in response.data["completed_tasks"]}, {self.task.pk, self.hidden.pk, self.other_task.pk})
+        self.assertEqual(len(response.data["reviews"]), 3)
+        self.assertTrue(response.data["recent_activity"])
+
+        other_response = client_for(other_pm).get("/api/workdone/", {"mine": 1})
+        self.assertEqual(other_response.data["completed_tasks"], [])
+        self.assertEqual(other_response.data["reviews"], [])
+        self.assertEqual(other_response.data["recent_activity"], [])
+
+        unfiltered = client_for(other_pm).get("/api/workdone/")
+        self.assertEqual(len(unfiltered.data["completed_tasks"]), 3)
+

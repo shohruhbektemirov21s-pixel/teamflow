@@ -50,10 +50,10 @@ export const META: MetaData = {
 export function taskDetail(overrides: Partial<TaskDetail> = {}): TaskDetail {
   return {
     id: 1,
-    code: "TSK-1",
+    code: "100000001",
     title: "Kirish sahifasini yaratish",
     description: "",
-    project: { id: 1, name: "Portal", code: "PRJ-1" },
+    project: { id: 1, name: "Portal", code: "200000001" },
     status: "in_progress",
     priority: "medium",
     starts_at: null,

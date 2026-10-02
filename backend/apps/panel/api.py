@@ -17,7 +17,7 @@ from apps.accounts.models import Role, User
 from apps.accounts.serializers import SELF_REGISTER_ROLES
 from apps.core.choices import Priority
 from apps.core.api_utils import avatar_url, require_manager, user_brief
-from apps.core.codes import parse_code, project_code, task_code
+from apps.core.codes import resolve_code
 from apps.core.models import ActivityLog, Comment
 from apps.core.services import log
 from apps.notifications.models import Notification
@@ -139,9 +139,9 @@ def search(request):
     empty = {"tasks": [], "projects": [], "orders": [], "people": []}
     if len(q) < 2:
         return Response(empty)
-    code = parse_code(q)
+    code = resolve_code(q)
     if code:
-        # Kod yozilsa (TSK-12 / PRJ-3) — faqat aynan shu yozuv, ko'rish huquqi bo'lsa
+        # Kod yozilsa (9 xonali raqam) — faqat aynan shu yozuv, ko'rish huquqi bo'lsa
         kind, pk = code
         if kind == "task":
             return Response({**empty, "tasks": _search_tasks(listed_tasks(user).filter(pk=pk))})
@@ -166,12 +166,12 @@ def search(request):
 
 
 def _search_tasks(tasks):
-    return [{"id": t.pk, "code": task_code(t.pk), "title": t.title, "status": t.status, "project": t.project.name}
+    return [{"id": t.pk, "code": t.code, "title": t.title, "status": t.status, "project": t.project.name}
             for t in tasks]
 
 
 def _search_projects(projects):
-    return [{"id": p.pk, "code": project_code(p.pk), "name": p.name, "stage": p.stage} for p in projects]
+    return [{"id": p.pk, "code": p.code, "name": p.name, "stage": p.stage} for p in projects]
 
 
 # ─── Izohlar ─────────────────────────────────────────────────────────────────

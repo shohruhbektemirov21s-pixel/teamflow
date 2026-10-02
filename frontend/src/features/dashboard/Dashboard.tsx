@@ -128,7 +128,7 @@ function SelectedTasks({ selection, onClose, manager, mine }: { selection: Selec
           {T.common.close}
         </Button>
       </div>
-      <TaskFilters value={filters} onChange={setFilters} showPerson={manager} showStatus={selection.bucket === "active" || selection.bucket === "overdue"} showDue={false} />
+      <TaskFilters value={filters} onChange={setFilters} showPerson={manager} showStatus={selection.bucket === "active" || selection.bucket === "overdue"} />
       {query.error ? (
         <div className="card-pad">
           <ErrorBox error={query.error} />

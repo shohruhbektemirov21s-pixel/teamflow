@@ -67,7 +67,6 @@ export const T = {
     notifications: "Bildirishnomalar",
     suggestions: "Takliflar",
     review: "Tekshiruv navbati",
-    history: "Umumiy tarix",
     logout: "Chiqish",
     menu: "Menyu",
     theme: "Tungi / kunduzgi rejim",
@@ -271,7 +270,7 @@ export const T = {
     empty: "Buyurtma yo'q",
     emptyDept: "Birinchi buyurtmangizni yuboring — TZ faylini biriktiring va muddatni belgilang.",
     emptyManager: "Boshqarmalar buyurtma yuborganda shu yerda ko'rinadi.",
-    tabs: { submitted: "Yangi", approved: "Tasdiqlangan", rejected: "Rad etilgan", project_created: "Loyiha bo'lgan" } as Record<string, string>,
+    tabs: { submitted: "Yangi", approved: "Tasdiqlangan", rejected: "Rad etilgan" } as Record<string, string>,
     name: "Buyurtma nomi",
     namePh: "Masalan: Hujjat aylanishi tizimi",
     description: "Qisqacha izoh",
@@ -412,12 +411,6 @@ export const T = {
     yesterday: "Kecha",
   },
 
-  history: {
-    title: "Umumiy tarix",
-    empty: "Hali hech narsa bo'lmagan",
-    searchPh: "Tarixdan qidirish",
-  },
-
   comments: {
     empty: "Hali izoh yo'q. Birinchi bo'lib yozing.",
     placeholder: "Izoh yozing…",
@@ -435,7 +428,7 @@ export const T = {
 
   search: {
     title: "Qidiruv",
-    placeholder: "Vazifa, loyiha, odam yoki kod (TSK-12, PRJ-3)…",
+    placeholder: "Vazifa, loyiha, odam yoki 9 xonali kod…",
     min: "Kamida 2 ta harf yozing",
     empty: "Hech narsa topilmadi",
     groups: { tasks: "Vazifalar", projects: "Loyihalar", orders: "Buyurtmalar", people: "Odamlar" } as Record<string, string>,
@@ -520,6 +513,7 @@ export const T = {
   workDone: {
     title: "Qilingan ishlar",
     tabs: { tasks: "Vazifalar", reviews: "Tekshiruvlar", history: "Tarix" } as Record<string, string>,
+    mine: "Faqat men",
     days: "Kun",
     noTasks: "Yaqin orada bajarilgan vazifalar yo'q.",
     noReviews: "Yaqin orada tekshiruvlar yo'q.",

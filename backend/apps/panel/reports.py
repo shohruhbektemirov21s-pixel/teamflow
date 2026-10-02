@@ -22,6 +22,7 @@ class ReportFilters(serializers.Serializer):
     days = serializers.IntegerField(min_value=1, max_value=365, required=False)
     page = serializers.IntegerField(min_value=1, max_value=100000, default=1)
     q = serializers.CharField(max_length=200, required=False, allow_blank=True, default="")
+    mine = serializers.BooleanField(required=False, default=False)
 
 
 def read_filters(params):
@@ -45,6 +46,8 @@ def activity_queryset(user, filters):
             scope |= Q(target_type=ContentType.objects.get_for_model(Order), target_id=project.order_id)
         qs = qs.filter(scope)
     elif not user.is_manager:
+        qs = qs.filter(actor=user)
+    if filters.get("mine"):
         qs = qs.filter(actor=user)
     if filters.get("days"):
         qs = qs.filter(created_at__gte=timezone.now() - timezone.timedelta(days=filters["days"]))
@@ -75,10 +78,18 @@ def work_report(user, filters):
         tasks = tasks.filter(project=project)
     if filters.get("q"):
         tasks = tasks.filter(Q(title__icontains=filters["q"]) | Q(project__name__icontains=filters["q"]))
-    completed = tasks.filter(status=Task.Status.DONE, completed_at__gte=since).prefetch_related("assignees").order_by("-completed_at", "-pk")
+    mine = filters.get("mine")
+    completed = tasks.filter(status=Task.Status.DONE, completed_at__gte=since)
+    if mine:
+        # Menejer vazifa ijrochisi bo'la olmaydi — "o'zi qilgani" uning yaratgan vazifalari.
+        completed = completed.filter(created_by=user)
+    completed = completed.prefetch_related("assignees").order_by("-completed_at", "-pk").distinct()
     reviews = Submission.objects.filter(
         task__in=tasks, reviewed_at__gte=since, decision__in=["accepted", "returned"],
-    ).select_related("task__project", "submitted_by", "reviewed_by").order_by("-reviewed_at", "-pk")
+    )
+    if mine:
+        reviews = reviews.filter(reviewed_by=user)
+    reviews = reviews.select_related("task__project", "submitted_by", "reviewed_by").order_by("-reviewed_at", "-pk")
     history = activity_queryset(user, filters).filter(created_at__gte=since)
     page = filters["page"]
     return {

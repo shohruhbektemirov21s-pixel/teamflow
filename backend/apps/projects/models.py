@@ -2,6 +2,7 @@ from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import models
 
+from apps.core.codes import generate_unique_code
 from apps.core.files import UploadTo, validate_upload
 
 
@@ -15,6 +16,7 @@ class Project(models.Model):
         PENDING_APPROVAL = "pending_approval", "Tasdiqlash kutilmoqda"
         DONE = "done", "Yakunlangan"
 
+    code = models.CharField("Kod", max_length=9, unique=True, editable=False)
     name = models.CharField("Nomi", max_length=255)
     description = models.TextField("Izoh", blank=True)
     order = models.OneToOneField(
@@ -45,6 +47,11 @@ class Project(models.Model):
         super().clean()
         if self.start_date and self.end_date and self.end_date < self.start_date:
             raise ValidationError({"end_date": "Tugash sanasi boshlanish sanasidan oldin bo'lishi mumkin emas."})
+
+    def save(self, *args, **kwargs):
+        if not self.code:
+            self.code = generate_unique_code()
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return self.name

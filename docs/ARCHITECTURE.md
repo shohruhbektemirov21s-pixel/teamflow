@@ -40,7 +40,7 @@ backend/
   requirements.txt
   config/            settings.py, urls.py, wsgi.py, asgi.py
   apps/
-    core/            umumiy: choices, fayl validatsiyasi, kodlar (codes.py: TSK-12/PRJ-3), davrlar (periods.py), Comment, ActivityLog
+    core/            umumiy: choices, fayl validatsiyasi, kod yordamchilari (codes.py: tasodifiy 9 xonali kod — `apps.get_model` orqali, Task/Project statik import qilinmaydi), davrlar (periods.py), Comment, ActivityLog
     accounts/        User, Specialty, ro'yxatdan o'tish, login, ruxsat yordamchilari
     orders/          Order, OrderVersion, buyurtma holat mashinasi, servislar
     projects/        Project, ProjectMember, ProjectFile
@@ -97,7 +97,7 @@ Qoidalar: yangi versiya faqat oxirgi versiya `rejected` bo'lsa. Boshqarma `Order
 ### projects
 | Model | Maydonlar |
 |---|---|
-| `Project` | name, description, order OneToOne?, stage (planned/started/needs_fix/done), start_date, end_date, created_by, created_at |
+| `Project` | code (tasodifiy 9 xonali, unique), name, description, order OneToOne?, stage (planned/started/needs_fix/done), start_date, end_date, created_by, created_at |
 | `ProjectMember` | project FK, developer FK, `unique(project, developer)` |
 | `ProjectFile` | project FK, file, uploaded_by, created_at |
 
@@ -106,7 +106,7 @@ Qoida: `order` bilan bog'langan loyihada PM faqat `start_date`/`end_date` ni o'z
 ### tasks
 | Model | Maydonlar |
 |---|---|
-| `Task` | project FK, title, description, priority, status (control/in_progress/in_review/done), starts_at?, due_at?, completed_at?, created_by, created_at |
+| `Task` | code (tasodifiy 9 xonali, unique), project FK, title, description, priority, status (control/in_progress/in_review/done), starts_at?, due_at?, completed_at?, created_by, created_at |
 | `TaskAssignment` | task FK, developer FK, `unique(task, developer)` — bitta vazifa bir nechta dasturchiga |
 | `SubTask` | task FK, title, assignees M2M (bir nechta dasturchi), is_done, position |
 | `TaskFile` | task FK, file, uploaded_by |

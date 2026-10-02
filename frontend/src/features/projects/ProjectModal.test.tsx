@@ -10,7 +10,7 @@ import { mockGet, renderApp } from "@/test/render";
 import ProjectModal from "./ProjectModal";
 
 const PROJECT: ProjectDetail = {
-  id: 1, code: "PRJ-1", name: "Portal", description: "", stage: "started",
+  id: 1, code: "200000001", name: "Portal", description: "", stage: "started",
   start_date: "2026-09-01", end_date: "2026-11-01", order_id: null,
   members: [JASUR], progress: { total: 0, done: 0 }, created_at: "2026-09-01T10:00:00Z",
   created_by: { id: PM.id, full_name: PM.full_name, role: "pm", department_name: "" },

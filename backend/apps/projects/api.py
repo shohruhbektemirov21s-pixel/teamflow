@@ -6,7 +6,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from apps.core.api_utils import IsDepartment, IsManager
-from apps.core.codes import parse_code
+from apps.core.codes import resolve_code
 from apps.orders.permissions import visible_orders
 
 from . import services
@@ -43,7 +43,7 @@ class ProjectViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.
         if params.get("stage"):
             qs = qs.filter(stage__in=params["stage"].split(","))
         if params.get("q"):
-            code = parse_code(params["q"])
+            code = resolve_code(params["q"])
             if code and code[0] == "project":
                 qs = qs.filter(id=code[1])
             else:

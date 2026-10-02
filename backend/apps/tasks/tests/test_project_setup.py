@@ -38,7 +38,7 @@ class ProjectSetupTests(TestCase):
 
         self.assertEqual(r.status_code, 201, r.data)
         project = Project.objects.get(pk=r.data["id"])
-        self.assertEqual(r.data["code"], f"PRJ-{project.pk}")
+        self.assertEqual(r.data["code"], project.code)
         api_task = Task.objects.get(project=project, title="Backend API")
         design = Task.objects.get(project=project, title="Dizayn")
         self.assertEqual(list(api_task.assignees.all()), [self.dev1])

@@ -9,8 +9,8 @@ import SearchPalette from "./SearchPalette";
 describe("SearchPalette", () => {
   it("kod yozilsa aynan o'sha vazifa kodi bilan chiqadi", async () => {
     mockGet({
-      "/search/?q=TSK-12": {
-        tasks: [{ id: 12, code: "TSK-12", title: "Kirish sahifasi", status: "in_progress", project: "Portal" }],
+      "/search/?q=100000012": {
+        tasks: [{ id: 12, code: "100000012", title: "Kirish sahifasi", status: "in_progress", project: "Portal" }],
         projects: [],
         orders: [],
         people: [],
@@ -18,9 +18,9 @@ describe("SearchPalette", () => {
     });
     renderApp(<SearchPalette onClose={vi.fn()} />);
 
-    fireEvent.change(await screen.findByRole("textbox", { name: T.search.title }), { target: { value: "TSK-12" } });
+    fireEvent.change(await screen.findByRole("textbox", { name: T.search.title }), { target: { value: "100000012" } });
 
     expect(await screen.findByText("Kirish sahifasi")).toBeTruthy();
-    expect(screen.getByText("TSK-12")).toBeTruthy();
+    expect(screen.getByText("100000012")).toBeTruthy();
   });
 });

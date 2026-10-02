@@ -39,6 +39,6 @@ class SetMembersTests(TestCase):
         r = self.put([self.dev1.pk])
 
         self.assertEqual(r.status_code, 400)
-        self.assertIn(f"TSK-{task.pk}", r.data["detail"])
+        self.assertIn(task.code, r.data["detail"])
         self.assertTrue(self.project.memberships.filter(developer=self.dev2).exists())
         self.assertTrue(TaskAssignment.objects.filter(task=task, developer=self.dev2).exists())

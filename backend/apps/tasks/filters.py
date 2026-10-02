@@ -10,7 +10,7 @@ from django.db.models import F, Q
 from django.utils import timezone
 from django.utils.dateparse import parse_date
 
-from apps.core.codes import parse_code
+from apps.core.codes import resolve_code
 from apps.core.periods import PERIOD_KEYS, period_cards, period_starts
 
 from .models import Task
@@ -58,10 +58,10 @@ def filter_tasks(qs, params, user):
     if params.get("mine") == "1":
         qs = qs.filter(assignments__developer=user)
     if params.get("q"):
-        code = parse_code(params["q"])
+        code = resolve_code(params["q"])
         if code:
             kind, pk = code
-            # TSK-12 — aynan shu vazifa; PRJ-3 — shu loyihaning vazifalari
+            # Vazifa kodi — aynan shu vazifa; loyiha kodi — shu loyihaning vazifalari
             qs = qs.filter(id=pk) if kind == "task" else qs.filter(project_id=pk)
         else:
             q = params["q"].strip()

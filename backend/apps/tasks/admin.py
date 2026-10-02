@@ -23,9 +23,9 @@ class TaskFileInline(admin.TabularInline):
 
 @admin.register(Task)
 class TaskAdmin(admin.ModelAdmin):
-    list_display = ("title", "project", "status", "priority", "due_at", "completed_at")
+    list_display = ("code", "title", "project", "status", "priority", "due_at", "completed_at")
     list_filter = ("status", "priority", "project")
-    search_fields = ("title", "project__name")
+    search_fields = ("code", "title", "project__name")
     inlines = [TaskAssignmentInline, SubTaskInline, TaskFileInline]
 
 

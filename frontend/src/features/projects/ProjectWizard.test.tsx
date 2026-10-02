@@ -16,7 +16,7 @@ const DEVS = [
 describe("ProjectWizard — xodimlarga alohida vazifa", () => {
   it("har bir xodimga vazifa (sana, fayl) bilan loyihani bitta so'rovda yaratadi", async () => {
     mockGet({ "/developers/": DEVS });
-    vi.mocked(api.post).mockResolvedValue({ id: 7, code: "PRJ-7" });
+    vi.mocked(api.post).mockResolvedValue({ id: 7, code: "200000007" });
     renderApp(<ProjectWizard />);
 
     // 1-qadam: asosiy

@@ -5,7 +5,6 @@ from rest_framework import serializers
 
 from apps.core.api_utils import JSONListField, file_info, user_brief
 from apps.core.choices import Priority
-from apps.core.codes import project_code, task_code
 from apps.core.files import validate_upload
 from apps.projects.serializers import ProjectCreateSerializer
 
@@ -15,7 +14,6 @@ from .workflow import task_targets
 
 
 class TaskListSerializer(serializers.ModelSerializer):
-    code = serializers.SerializerMethodField()
     project = serializers.SerializerMethodField()
     status_label = serializers.CharField(source="get_status_display")
     priority_label = serializers.CharField(source="get_priority_display")
@@ -30,11 +28,8 @@ class TaskListSerializer(serializers.ModelSerializer):
                   "starts_at", "due_at", "completed_at", "is_overdue", "finished_late", "assignees",
                   "subtasks_progress", "created_at"]
 
-    def get_code(self, obj):
-        return task_code(obj.pk)
-
     def get_project(self, obj):
-        return {"id": obj.project_id, "name": obj.project.name, "code": project_code(obj.project_id)}
+        return {"id": obj.project_id, "name": obj.project.name, "code": obj.project.code}
 
     def get_assignees(self, obj):
         return [user_brief(a.developer) for a in obj.assignments.all()]

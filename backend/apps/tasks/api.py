@@ -7,7 +7,6 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from apps.core.api_utils import IsManager, require_manager
-from apps.core.codes import project_code
 from apps.orders.permissions import visible_orders
 from apps.projects.permissions import visible_projects
 
@@ -213,4 +212,4 @@ def project_setup(request):
             raise ValidationError({"tasks": [f"{index + 1}-vazifa fayli: {' '.join(sorted(messages))}"]})
         task_files[index] = fs.validated_data["files"]
     project = services.create_project_with_tasks(request.user, order=order, task_files=task_files, **data)
-    return Response({"id": project.pk, "code": project_code(project.pk)}, status=status.HTTP_201_CREATED)
+    return Response({"id": project.pk, "code": project.code}, status=status.HTTP_201_CREATED)

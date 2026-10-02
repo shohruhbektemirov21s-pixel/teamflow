@@ -158,26 +158,26 @@ Qoidalar:
 
 ### Kodlar
 
-Vazifa va loyihalarning qisqa kodi bor: `TSK-12`, `PRJ-3`. Kod ro'yxatlarda, doskada, tekshiruv navbatida va modallar sarlavhasida ko'rinadi. Qoida bitta joyda: `backend/apps/core/codes.py`.
-- `Ctrl K` qidiruvida kod yozilsa (`TSK-12`, `tsk12`, `PRJ-3`), aynan o'sha vazifa yoki loyiha darrov chiqadi (ko'rish huquqi bo'lsa).
-- Vazifalar jadvali qidiruvida `TSK-12` — shu vazifa, `PRJ-3` — shu loyihaning vazifalari.
+Har bir vazifa va loyiha yaratilganda tasodifiy, takrorlanmaydigan **9 xonali kod** oladi (masalan `483920157`) — ketma-ket emas, umumiy sonni ko'rsatmaydi. Vazifa va loyiha kodlari bir-biri bilan ham takrorlanmaydi. Bazada saqlanadi (`Task.code` / `Project.code`), kod ro'yxatlarda, doskada, tekshiruv navbatida va modallar sarlavhasida ko'rinadi. Qoida bitta joyda: `backend/apps/core/codes.py` (`core` qatlami `tasks`/`projects` modellarini statik import qilmaydi — `django.apps.apps.get_model` orqali olinadi, ARCHITECTURE 3-bo'lim).
+- `Ctrl K` qidiruvida 9 xonali kod yozilsa, aynan o'sha vazifa yoki loyiha darrov chiqadi (ko'rish huquqi bo'lsa).
+- Vazifalar jadvali qidiruvida vazifa kodi — shu vazifa, loyiha kodi — shu loyihaning vazifalari.
 
 ## 7. Menyu va sahifalar
 
 ### Chap menyu (rolga qarab)
 
-Menyu 3 guruhga bo'lingan: *Asosiy ish* | *Muloqot* | *Kuzatuv*.
+Menyu guruhlarga bo'lingan: *Asosiy ish* | *Muloqot* | *Kuzatuv* (Kuzatuv faqat PM va Boshliqda bor).
 
 | Rol | Asosiy ish | Muloqot | Kuzatuv |
 |---|---|---|---|
-| **Dasturchi** | Bosh panel · Vazifalar · Mening ishim · Taqvim | Xabarlar · Bildirishnomalar · Takliflar | Umumiy tarix |
-| **PM va Boshliq** | Bosh panel · Loyihalar · Buyurtmalar (TZ) · Vazifalar · Taqvim | Xodimlar · Xabarlar · Bildirishnomalar · Tekshiruv navbati · Takliflar | Umumiy tarix · Qilingan ishlar |
-| **Boshqarma** | Bosh panel · Buyurtmalarim | Xabarlar · Bildirishnomalar · Takliflar | Umumiy tarix |
+| **Dasturchi** | Bosh panel · Vazifalar · Mening ishim · Taqvim | Xabarlar · Bildirishnomalar · Takliflar | — |
+| **PM va Boshliq** | Bosh panel · Loyihalar · Buyurtmalar (TZ) · Vazifalar · Taqvim | Xodimlar · Xabarlar · Bildirishnomalar · Tekshiruv navbati · Takliflar | Qilingan ishlar |
+| **Boshqarma** | Bosh panel · Buyurtmalarim | Xabarlar · Bildirishnomalar · Takliflar | — |
 
 - Menyu pastida foydalanuvchi kartasi (ism, rol; bosilsa Profil ochiladi) va "Chiqish".
 - Yuqorida: qidiruv (`Ctrl K`, kodlar bilan ham), tungi/kunduzgi rejim, bildirishnomalar.
 - Yon panel (drawer) **ishlatilmaydi**: ko'rish, yaratish, tahrirlash — faqat modalda.
-- Manzillar: `/`, `/vazifalar`, `/mening-ishim`, `/taqvim`, `/loyihalar`, `/buyurtmalar`, `/xodimlar`, `/tekshiruv`, `/xabarlar`, `/bildirishnomalar`, `/takliflar`, `/tarix`, `/qilingan-ishlar`, `/profil`. Rolga tegishli bo'lmagan sahifa ochilmaydi.
+- Manzillar: `/`, `/vazifalar`, `/mening-ishim`, `/taqvim`, `/loyihalar`, `/buyurtmalar`, `/xodimlar`, `/tekshiruv`, `/xabarlar`, `/bildirishnomalar`, `/takliflar`, `/qilingan-ishlar`, `/profil`. Rolga tegishli bo'lmagan sahifa ochilmaydi.
 
 ### Bosh panel — PM va Boshliq
 - Tepada salomlashish va asosiy amallar: Xodimlar, (yangi buyurtma bo'lsa) Buyurtmalar, Yangi loyiha, **Yangi vazifa**.
@@ -245,11 +245,9 @@ Menyu 3 guruhga bo'lingan: *Asosiy ish* | *Muloqot* | *Kuzatuv*.
 - Hamma ovoz beradi (Yoqlaydi / Qarshi). Qarorni faqat **Boshliq** chiqaradi (izoh bilan).
 - Holatlar: **Ko'rib chiqilmoqda → Qabul qilingan / Rad etilgan**. Taklif tahrirlanmaydi.
 
-### Umumiy tarix (`/tarix`, hamma)
-- Tizimdagi amallar lentasi (kim nima qildi va qachon), qidiruv bilan. PM va Boshliq hammaning amallarini, qolganlar faqat o'z amallarini ko'radi.
-
 ### Qilingan ishlar (`/qilingan-ishlar`, PM, Boshliq)
-- 3 ta tab: **Vazifalar** (bajarilgan vazifalar, ijrochilar va sanasi), **Tekshiruvlar** (kim yubordi, kim tekshirdi, qaror, izoh), **Tarix**. Loyiha va oxirgi necha kun bo'yicha filtr, sahifalash.
+- 3 ta tab: **Vazifalar** (bajarilgan vazifalar, ijrochilar va sanasi), **Tekshiruvlar** (kim yubordi, kim tekshirdi, qaror, izoh), **Tarix** (tizimdagi amallar lentasi — kim nima qildi va qachon).
+- Loyiha, oxirgi necha kun va **"Faqat men"** bo'yicha filtr, sahifalash. PM/Boshliq vazifaga ijrochi bo'la olmagani uchun "Faqat men" — o'zi yaratgan va yakunlangan vazifalar, o'zi tekshirib qabul/rad etgan ishlar va o'z amallari (Tarix tabida).
 
 ### Profil (`/profil`)
 - Barcha profillar bir xil ko'rinishda (o'z profilim va xodim oynasi): umumiy `ProfileHeader` (avatar, ism, lavozim, 4 ko'rsatkich: faol, kechikkan, tekshiruvda, bajarilgan) va umumiy vazifalar jadvali (`TaskTable`). "Faol" soni hamma joyda bir xil qoida bilan hisoblanadi.
@@ -260,7 +258,7 @@ Menyu 3 guruhga bo'lingan: *Asosiy ish* | *Muloqot* | *Kuzatuv*.
 - **Avatar kartochkasi:** har qanday joyda (jadval, vazifa oynasi, chat, menyu) avatar ustiga sichqoncha olib borilsa, kichik profil kartochkasi chiqadi: rasm, ism familiya, rol (Boshqarma bo'lsa, boshqarma nomi). Rasm bo'lmasa, bosh harflar. Kartochka modal emas.
 
 ### Izohlar
-- Buyurtma, loyiha va vazifa oynalarida izohlar bo'limi bor. Izoh yozilsa, ishtirokchilarga bildirishnoma boradi va umumiy tarixga yoziladi.
+- Buyurtma, loyiha va vazifa oynalarida izohlar bo'limi bor. Izoh yozilsa, ishtirokchilarga bildirishnoma boradi va tarixga yoziladi.
 
 ## 8. Telegram bildirishnomalari
 

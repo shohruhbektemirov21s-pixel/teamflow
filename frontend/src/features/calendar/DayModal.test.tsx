@@ -11,7 +11,7 @@ import DayModal from "./DayModal";
 
 const DAY = "2026-09-30";
 const PROJECT: Project = {
-  id: 7, code: "PRJ-7", name: "Hujjat aylanishi", description: "", stage: "started",
+  id: 7, code: "200000007", name: "Hujjat aylanishi", description: "", stage: "started",
   start_date: "2026-09-01", end_date: DAY, order_id: null, members: [JASUR], progress: { total: 4, done: 1 },
   created_at: "2026-09-01T09:00:00Z",
 };

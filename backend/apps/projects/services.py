@@ -6,7 +6,6 @@ from rest_framework.exceptions import PermissionDenied
 
 from apps.accounts.models import Role
 from apps.core.api_utils import ServiceError
-from apps.core.codes import task_code
 from apps.core.services import log
 from apps.notifications.models import Notification
 from apps.notifications.services import notify
@@ -204,7 +203,7 @@ def _release_developers(project, developer_ids):
     ]
     if blocked:
         names = ", ".join(sorted({a.developer.full_name for t in blocked for a in t.assignments.all()}))
-        codes = ", ".join(task_code(t.pk) for t in blocked)
+        codes = ", ".join(t.code for t in blocked)
         raise ServiceError(
             f"{names} — {codes} vazifasining yagona ijrochisi. Avval bu vazifani boshqa xodimga bering.",
             "member_ids",

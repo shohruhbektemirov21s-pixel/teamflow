@@ -4,6 +4,7 @@ from django.db import models
 from django.utils import timezone
 
 from apps.core.choices import Priority
+from apps.core.codes import generate_unique_code
 from apps.core.files import UploadTo, validate_upload
 
 
@@ -17,6 +18,7 @@ class Task(models.Model):
         DONE = "done", "Bajarildi"
 
     project = models.ForeignKey("projects.Project", on_delete=models.CASCADE, related_name="tasks")
+    code = models.CharField("Kod", max_length=9, unique=True, editable=False)
     title = models.CharField("Nomi", max_length=255)
     description = models.TextField("Izoh", blank=True)
     priority = models.CharField("Muhimlik", max_length=16, choices=Priority.choices, default=Priority.MEDIUM)
@@ -41,6 +43,11 @@ class Task(models.Model):
         super().clean()
         if self.starts_at and self.due_at and self.due_at < self.starts_at:
             raise ValidationError({"due_at": "Tugash vaqti boshlanish vaqtidan oldin bo'lishi mumkin emas."})
+
+    def save(self, *args, **kwargs):
+        if not self.code:
+            self.code = generate_unique_code()
+        super().save(*args, **kwargs)
 
     # Hisoblanadigan qiymatlar saqlanmaydi (holatdan kelib chiqadi).
     @property

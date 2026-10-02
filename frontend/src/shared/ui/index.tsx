@@ -21,7 +21,7 @@ import type { FileInfo, OrderStatus, Priority, ProjectStage, TaskStatus, UserBri
 
 export { Modal, useDialogBehavior } from "./Modal";
 
-/** Vazifa/loyiha kodi (`TSK-12`, `PRJ-3`) — hamma joyda bir xil ko'rinish; qidiruvda shu kod yoziladi. */
+/** Vazifa/loyiha kodi (tasodifiy 9 xonali raqam) — hamma joyda bir xil ko'rinish; qidiruvda shu kod yoziladi. */
 export function CodeTag({ code }: { code: string }) {
   return <span className="code-tag">{code}</span>;
 }

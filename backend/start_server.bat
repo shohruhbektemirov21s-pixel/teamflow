@@ -4,4 +4,4 @@ rem Windows ishga tushganda "Startup" papkasidagi TeamFlow.vbs shu faylni yashir
 rem Telegram bot (/start - akkauntni bog'lash) fonda alohida jarayon; token backend\.env da.
 cd /d "%~dp0"
 start "" /b ".venv\Scripts\python.exe" manage.py runbot >> bot.log 2>&1
-".venv\Scripts\python.exe" manage.py runserver 127.0.0.1:8020 --noreload >> server.log 2>&1
+".venv\Scripts\python.exe" manage.py runserver 0.0.0.0:8020 --noreload >> server.log 2>&1

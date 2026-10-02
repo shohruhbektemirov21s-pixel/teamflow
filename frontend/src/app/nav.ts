@@ -4,7 +4,6 @@ import {
   ClipboardCheck,
   FileText,
   FolderKanban,
-  History,
   KanbanSquare,
   LayoutDashboard,
   ListChecks,
@@ -37,7 +36,6 @@ const tasks: NavItem = { to: "/vazifalar", label: T.nav.tasks, icon: ListChecks 
 const calendar: NavItem = { to: "/taqvim", label: T.nav.calendar, icon: CalendarDays };
 const people: NavItem = { to: "/xodimlar", label: T.nav.people, icon: Users };
 const notifications: NavItem = { to: "/bildirishnomalar", label: T.nav.notifications, icon: Bell, counter: "notifications" };
-const history: NavItem = { to: "/tarix", label: T.nav.history, icon: History };
 const suggestions: NavItem = { to: "/takliflar", label: T.nav.suggestions, icon: Lightbulb };
 const messages: NavItem = { to: "/xabarlar", label: T.nav.messages, icon: MessageCircle };
 const workDone: NavItem = { to: "/qilingan-ishlar", label: T.nav.workDone, icon: CheckSquare };
@@ -54,13 +52,11 @@ export function navFor(role: Role): NavGroup[] {
           items: [dashboard, tasks, { to: "/mening-ishim", label: T.nav.myWork, icon: KanbanSquare, counter: "myWork" }, calendar],
         },
         { title: T.nav.groupTeam, items: [messages, notifications, suggestions] },
-        { title: T.nav.groupControl, items: [history] },
       ];
     case "department":
       return [
         { title: T.nav.groupMain, items: [dashboard, { to: "/buyurtmalar", label: T.nav.myOrders, icon: FileText }] },
         { title: T.nav.groupTeam, items: [messages, notifications, suggestions] },
-        { title: T.nav.groupControl, items: [history] },
       ];
     default: // pm, boss
       return [
@@ -78,7 +74,7 @@ export function navFor(role: Role): NavGroup[] {
           title: T.nav.groupTeam,
           items: [people, messages, notifications, { to: "/tekshiruv", label: T.nav.review, icon: ClipboardCheck, counter: "review" }, suggestions],
         },
-        { title: T.nav.groupControl, items: [history, workDone] },
+        { title: T.nav.groupControl, items: [workDone] },
       ];
   }
 }
