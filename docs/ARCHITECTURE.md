@@ -97,11 +97,13 @@ Qoidalar: yangi versiya faqat oxirgi versiya `rejected` bo'lsa. Boshqarma `Order
 ### projects
 | Model | Maydonlar |
 |---|---|
-| `Project` | code (qo'lda kiritiladi, erkin matn, unique, majburiy), name, description, order OneToOne?, stage (planned/started/needs_fix/done), start_date, end_date, created_by, created_at |
+| `Project` | code (qo'lda kiritiladi, erkin matn, unique, majburiy), name, description, order OneToOne?, stage (planned/started/needs_fix/done), completion_requested_at? (dasturchi tasdig'i so'ralgan payt), start_date, end_date, created_by, created_at |
 | `ProjectMember` | project FK, developer FK, `unique(project, developer)` |
+| `ProjectCompletionAck` | project FK, developer FK, confirmed (null=kutilmoqda), reason, decided_at. `unique(project, developer)` — yakunlashdan oldin so'ralgan dasturchi tasdig'i, bitta davr |
 | `ProjectFile` | project FK, file, uploaded_by, created_at |
 
 Qoida: `order` bilan bog'langan loyihada PM faqat `start_date`/`end_date` ni o'zgartira oladi.
+Yakunlash (`stage=done` so'ralganda): loyihada faol dasturchi bo'lsa, avval hammasiga `ProjectCompletionAck` qatori yaratiladi va bildirishnoma boradi — `stage` o'zgarmaydi. Birortasi rad etsa (sabab bilan) qatorlar o'chiriladi, `completion_requested_at` tozalanadi, loyiha hozirgi holatida qoladi. Hammasi tasdiqlagach, PM "Yakunlangan"ni qayta tanlaganda asl qoida ishlaydi (pastda). Jamoa o'zgartirilsa, faol davr bekor qilinadi (`services.set_members`).
 
 ### tasks
 | Model | Maydonlar |
@@ -143,7 +145,7 @@ control ──(dasturchi/PM)──▶ in_progress ──(dasturchi: submit)─�
                                                        (PM/Boshliq: qabul) ▶ done
 ```
 `done` ga faqat tekshiruv qabul qilganda o'tiladi; dasturchi to'g'ridan-to'g'ri `done` qila olmaydi.
-**Loyiha darajasi:** `planned / started / needs_fix / done` — PM qo'lda, erkin o'tish.
+**Loyiha darajasi:** `planned / started / needs_fix / done` — PM qo'lda, erkin o'tish. `done` so'ralganda avval loyihadagi faol dasturchilar tasdiqlashi kerak (`ProjectCompletionAck`, 4-bo'lim) — `stage` shu paytgacha o'zgarmaydi.
 
 Har bir mashina `workflow.py` da bitta `allowed_transitions` jadvali va bitta `check_transition(current, target, role)` funksiyasi bilan. UI va API shu jadvaldan foydalanadi, boshqa joyda takrorlanmaydi.
 
@@ -182,6 +184,7 @@ GET/PATCH  /api/projects/{id}/
 POST/DELETE /api/projects/{id}/members/, /files/
 POST       /api/projects/setup/     loyiha + jamoa + har bir xodimga vazifa (multipart: tasks JSON, task_files_<n>);
                                     bitta tranzaksiya, tasks.services.create_project_with_tasks (tasks yuqori qatlam)
+POST       /api/projects/{id}/completion-ack/   {confirmed, reason?}  (loyiha a'zosi dasturchi — yakunlashga tasdiq/rad)
 
 GET/POST   /api/tasks/
 GET/PATCH/DELETE /api/tasks/{id}/     DELETE: arxivlash, tarixni saqlash

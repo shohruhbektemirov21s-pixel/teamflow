@@ -13,6 +13,7 @@ from . import services
 from .models import Project
 from .permissions import visible_projects
 from .serializers import (
+    CompletionAckSerializer,
     FilesSerializer,
     MembersSerializer,
     ProjectCreateSerializer,
@@ -133,4 +134,13 @@ class ProjectViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.
         s = RejectCompletionSerializer(data=request.data)
         s.is_valid(raise_exception=True)
         services.reject_completion(project, request.user, **s.validated_data)
+        return Response({"ok": True})
+
+    @action(detail=True, methods=["post"], url_path="completion-ack")
+    def completion_ack(self, request, pk=None):
+        """Loyiha a'zosi dasturchi yakunlashni tasdiqlaydi yoki sabab bilan rad etadi."""
+        project = self.get_object()
+        s = CompletionAckSerializer(data=request.data)
+        s.is_valid(raise_exception=True)
+        services.ack_completion(project, request.user, **s.validated_data)
         return Response({"ok": True})

@@ -352,6 +352,9 @@ export const T = {
     pendingApproval: "Loyiha yakunlandi deb belgilandi — endi buyurtma beruvchi boshqarma tasdiqlashini kutmoqda.",
     requestCompletion: "Yakunlash",
     requestCompletionToast: "Boshqarmaga yuborildi, tasdiqlashini kuting",
+    completionAckToast: "Dasturchilarga so'rov yuborildi, javobini kutamiz",
+    completionAckPending: (names: string) => `Yakunlashdan oldin dasturchi tasdig'i kutilmoqda: ${names}`,
+    completionAckConfirmed: (names: string) => `Tasdiqladi: ${names}`,
     steps: ["Asosiy", "Jamoa", "Vazifa va fayllar"],
     projectFiles: "Loyiha fayllari",
     memberTasks: "Xodimlarga vazifalar (ixtiyoriy)",
@@ -415,6 +418,12 @@ export const T = {
     emptyUnreadHint: "Hammasini ko'rib chiqdingiz. Yangisi kelsa, shu yerda paydo bo'ladi.",
     today: "Bugun",
     yesterday: "Kecha",
+    ackConfirm: "Ha, tayyor",
+    ackReject: "Yo'q",
+    ackReasonPh: "Sababini yozing…",
+    ackReasonSend: "Yuborish",
+    ackReasonRequired: "Sababini yozing",
+    ackSent: "Javobingiz yuborildi",
   },
 
   comments: {

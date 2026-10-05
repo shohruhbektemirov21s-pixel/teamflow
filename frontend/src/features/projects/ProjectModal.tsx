@@ -92,8 +92,14 @@ export default function ProjectModal({ id }: { id: number }) {
     onError,
   });
   const setStage = useMutation({
-    mutationFn: (stage: ProjectStage) => api.patch(`/projects/${id}/`, { stage }),
-    onSuccess: (_d, stage) => done(stage === "done" && p?.order ? T.projects.requestCompletionToast : T.common.saved)(),
+    mutationFn: (stage: ProjectStage) => api.patch<ProjectDetail>(`/projects/${id}/`, { stage }),
+    onSuccess: (d, stage) => {
+      const msg =
+        stage === "done" && d.completion ? T.projects.completionAckToast
+        : stage === "done" && d.stage === "pending_approval" ? T.projects.requestCompletionToast
+        : T.common.saved;
+      done(msg)();
+    },
     onError,
   });
   const saveTeam = useMutation({ mutationFn: () => api.put(`/projects/${id}/members/`, { member_ids: members }), onSuccess: done(T.projects.teamSaved), onError });
@@ -258,6 +264,9 @@ export default function ProjectModal({ id }: { id: number }) {
           <div className="modal-split">
             <div className="stack">
               {p.order && <Callout tone="info">{T.projects.fromOrderLocked}</Callout>}
+              {p.completion && (
+                <Callout tone="info">{T.projects.completionAckPending(p.completion.pending.map((u) => u.full_name).join(", "))}</Callout>
+              )}
               {p.stage === "pending_approval" && <Callout tone="info">{T.projects.pendingApproval}</Callout>}
               {manager && editingInfo ? (
                 <>

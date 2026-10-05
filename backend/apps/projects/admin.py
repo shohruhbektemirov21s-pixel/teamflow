@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Project, ProjectFile, ProjectMember
+from .models import Project, ProjectCompletionAck, ProjectFile, ProjectMember
 
 
 class ProjectMemberInline(admin.TabularInline):
@@ -15,9 +15,17 @@ class ProjectFileInline(admin.TabularInline):
     fields = ("file", "original_name", "uploaded_by")
 
 
+class ProjectCompletionAckInline(admin.TabularInline):
+    model = ProjectCompletionAck
+    extra = 0
+    fields = ("developer", "confirmed", "reason", "decided_at")
+    readonly_fields = ("developer", "confirmed", "reason", "decided_at")
+    can_delete = False
+
+
 @admin.register(Project)
 class ProjectAdmin(admin.ModelAdmin):
     list_display = ("code", "name", "stage", "start_date", "end_date", "created_by")
     list_filter = ("stage",)
     search_fields = ("code", "name")
-    inlines = [ProjectMemberInline, ProjectFileInline]
+    inlines = [ProjectMemberInline, ProjectFileInline, ProjectCompletionAckInline]
