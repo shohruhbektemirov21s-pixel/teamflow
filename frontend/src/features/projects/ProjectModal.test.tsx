@@ -17,6 +17,7 @@ const PROJECT: ProjectDetail = {
   files: [], order: null,
   actions: { edit: true, edit_info: true, members: true, files: true, add_task: true },
   stage_targets: ["planned", "needs_fix", "done"],
+  completion: null,
 };
 
 function setup() {

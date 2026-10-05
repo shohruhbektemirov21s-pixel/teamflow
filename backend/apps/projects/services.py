@@ -1,7 +1,9 @@
-"""Loyiha biznes amallari. Faqat PM va Boshliq (yakunlashni tasdiqlash — boshqarma)."""
+"""Loyiha biznes amallari. Faqat PM va Boshliq (yakunlashni tasdiqlash — boshqarma, dasturchi tasdig'i —
+loyiha a'zosi dasturchi)."""
 from django.apps import apps
 from django.contrib.auth import get_user_model
 from django.db import transaction
+from django.utils import timezone
 from rest_framework.exceptions import PermissionDenied
 
 from apps.accounts.models import Role
@@ -12,8 +14,8 @@ from apps.notifications.services import notify
 from apps.orders.models import Order
 from apps.orders.workflow import check_order_transition
 
-from .models import Project, ProjectFile, ProjectMember
-from .workflow import check_project_transition
+from .models import Project, ProjectCompletionAck, ProjectFile, ProjectMember
+from .workflow import active_members, check_project_transition
 
 K = Notification.Kind
 S = Project.Stage
@@ -129,17 +131,33 @@ def update_project(project, user, **data):
 def _apply_stage(project, user, stage):
     """Daraja o'tishi (xotirada, `project.save()` chaqiruvchida bajariladi).
 
-    Buyurtmasiz loyihada "Yakunlangan" to'g'ridan-to'g'ri qo'yiladi. Buyurtmadan yaratilgan loyihada
-    "Yakunlangan" tanlansa, avval "Tasdiqlash kutilmoqda" ga o'tadi va buyurtmani yuborgan boshqarmaga
-    bildirishnoma boradi — faqat o'sha boshqarma uni "Yakunlangan" yoki "Tuzatish kerak" qila oladi
-    (`confirm_completion` / `reject_completion`).
+    "Yakunlangan" so'ralganda avval loyihadagi barcha faol dasturchilardan tasdiq olinadi
+    (`_request_completion_acks` / bu funksiya pastda). Hammasi tasdiqlagandan keyin: buyurtmasiz
+    loyihada "Yakunlangan" to'g'ridan-to'g'ri qo'yiladi; buyurtmadan yaratilgan loyihada avval
+    "Tasdiqlash kutilmoqda" ga o'tadi va buyurtmani yuborgan boshqarmaga bildirishnoma boradi —
+    faqat o'sha boshqarma uni "Yakunlangan" yoki "Tuzatish kerak" qila oladi
+    (`confirm_completion` / `reject_completion`). Loyihada faol dasturchi bo'lmasa, dasturchi
+    so'rovi o'tkazib yuboriladi.
     """
     if stage == S.PENDING_APPROVAL:
         raise ServiceError("Bu daraja to'g'ridan-to'g'ri tanlanmaydi.", "stage")
-    target = S.PENDING_APPROVAL if stage == S.DONE and project.order_id else stage
-    check_project_transition(project.stage, target, user.role)
-    project.stage = target
-    if target == S.PENDING_APPROVAL:
+    final_target = S.PENDING_APPROVAL if stage == S.DONE and project.order_id else stage
+    check_project_transition(project.stage, final_target, user.role)
+
+    if stage == S.DONE:
+        developers = active_members(project)
+        if developers:
+            if project.completion_requested_at is None:
+                _request_completion_acks(project, user, developers)
+                return
+            member_ids = {d.pk for d in developers}
+            if project.completion_acks.filter(developer_id__in=member_ids, confirmed__isnull=True).exists():
+                raise ServiceError("Hali hamma dasturchi tasdiqlamagan — javoblarini kutamiz.")
+            project.completion_acks.all().delete()
+            project.completion_requested_at = None
+
+    project.stage = final_target
+    if final_target == S.PENDING_APPROVAL:
         notify([project.order.submitted_by], K.PROJECT_COMPLETION_REQUESTED,
                f"Loyiha yakunlanishini tasdiqlang: {project.name}", project.order, exclude=user)
         log(user, "project_completion_requested",
@@ -147,6 +165,61 @@ def _apply_stage(project, user, stage):
     else:
         log(user, "project_stage",
             f"{user.full_name} loyiha darajasini o'zgartirdi: {project.get_stage_display()} ({project.name})", project)
+
+
+def _request_completion_acks(project, user, developers):
+    """Yakunlashdan oldin loyihadagi barcha faol dasturchilarga tasdiq so'raladi — stage o'zgarmaydi,
+    javoblarini kutamiz. Oldingi (masalan rad etilgan) davr qoldiqlari bo'lsa tozalanadi."""
+    project.completion_acks.all().delete()
+    ProjectCompletionAck.objects.bulk_create(ProjectCompletionAck(project=project, developer=d) for d in developers)
+    project.completion_requested_at = timezone.now()
+    project.save(update_fields=["completion_requested_at", "updated_at"])
+    notify(developers, K.PROJECT_COMPLETION_ACK_REQUESTED,
+           f"Loyiha yakunlanishi kerak, tasdiqlaysizmi? {project.name}", project, exclude=user)
+    log(user, "project_completion_ack_requested",
+        f"{user.full_name} loyihani yakunlashni dasturchilardan so'radi: {project.name}", project)
+
+
+@transaction.atomic
+def ack_completion(project, user, *, confirmed, reason=""):
+    """Dasturchi loyihani yakunlashni tasdiqlaydi yoki sabab bilan rad etadi.
+
+    Birortasi rad etsa, butun so'rov davri bekor qilinadi — loyiha hozirgi holatida davom etadi,
+    PM/Boshliq sababni ko'radi va qayta so'raganda hammadan yangidan so'raladi. Hammasi tasdiqlasa,
+    PM/Boshliqqa xabar boradi — "Yakunlangan"ni qayta tanlaganda endi haqiqatan yakunlanadi.
+    """
+    project = Project.objects.select_for_update().get(pk=project.pk)
+    try:
+        ack = ProjectCompletionAck.objects.select_for_update().get(project=project, developer=user)
+    except ProjectCompletionAck.DoesNotExist:
+        raise PermissionDenied("Sizdan bu loyiha uchun yakunlash tasdig'i so'ralmagan.")
+    if ack.confirmed is not None:
+        raise ServiceError("Siz bu so'rovga allaqachon javob bergansiz.")
+    if not confirmed and not reason.strip():
+        raise ServiceError("Sababini yozing — menejer nimani kutishini bilishi kerak.", "reason")
+
+    ack.confirmed = confirmed
+    ack.reason = reason.strip()
+    ack.decided_at = timezone.now()
+    ack.save(update_fields=["confirmed", "reason", "decided_at"])
+
+    if not confirmed:
+        project.completion_acks.all().delete()
+        project.completion_requested_at = None
+        project.save(update_fields=["completion_requested_at", "updated_at"])
+        notify([project.created_by], K.PROJECT_COMPLETION_ACK_REJECTED,
+               f"{user.full_name} loyihani yakunlashni rad etdi: {ack.reason} ({project.name})", project, exclude=user)
+        log(user, "project_completion_ack_rejected",
+            f"{user.full_name} loyihani yakunlashni rad etdi: {ack.reason} ({project.name})", project)
+        return project
+
+    log(user, "project_completion_ack_confirmed",
+        f"{user.full_name} loyihani yakunlashni tasdiqladi: {project.name}", project)
+    member_ids = set(project.memberships.values_list("developer_id", flat=True))
+    if not project.completion_acks.filter(developer_id__in=member_ids, confirmed__isnull=True).exists():
+        notify([project.created_by], K.PROJECT_COMPLETION_ACK_DONE,
+               f"Barcha dasturchilar yakunlashni tasdiqladi: {project.name}", project, exclude=user)
+    return project
 
 
 @transaction.atomic
@@ -198,6 +271,12 @@ def set_members(project, user, member_ids):
     ProjectMember.objects.bulk_create(
         ProjectMember(project=project, developer=d) for pk, d in wanted.items() if pk not in current
     )
+    if project.completion_requested_at:
+        # Jamoa o'zgargach eski yakunlash so'rovi eskirib qoladi (yangi a'zo so'rovsiz qolmasin) —
+        # bekor qilinadi, PM qayta so'raganda hammadan yangidan so'raladi.
+        project.completion_acks.all().delete()
+        project.completion_requested_at = None
+        project.save(update_fields=["completion_requested_at", "updated_at"])
     log(user, "project_members", f"{user.full_name} loyiha jamoasini o'zgartirdi: {project.name}", project)
     return project
 

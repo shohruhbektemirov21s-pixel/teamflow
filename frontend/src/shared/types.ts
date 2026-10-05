@@ -175,6 +175,7 @@ export interface ProjectDetail extends Project {
   order: { id: number; title: string; department_name: string; requested_due_date: string } | null;
   actions: { edit: boolean; edit_info: boolean; members: boolean; files: boolean; add_task: boolean };
   stage_targets: ProjectStage[];
+  completion: { requested_at: string; pending: UserBrief[]; confirmed: UserBrief[] } | null;
 }
 
 export interface Person {
@@ -227,6 +228,7 @@ export interface Notice {
   is_read: boolean;
   created_at: string;
   target: { type: "order" | "project" | "task"; id: number } | null;
+  needs_ack: boolean;
 }
 
 export interface CommentItem {
