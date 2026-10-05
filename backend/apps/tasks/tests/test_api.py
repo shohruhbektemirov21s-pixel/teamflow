@@ -272,6 +272,13 @@ class DashboardTests(TestCase):
     def test_search_and_comments(self):
         pm = client_for(self.pm)
         self.assertEqual(len(pm.get("/api/search/?q=Kech").data["tasks"]), 2)
+
+    def test_task_list_search_by_partial_code(self):
+        pm = client_for(self.pm)
+        code = self.overdue.code
+        middle_digits = code[3:5]  # kodning boshidan emas, o'rtasidan ixtiyoriy 2 ta raqam
+        r = pm.get(f"/api/tasks/?q={middle_digits}&all=1")
+        self.assertIn(self.overdue.pk, [item["id"] for item in r.data])
         r = pm.post("/api/comments/", {"target_type": "task", "target_id": self.overdue.pk, "text": "Tezlashtiring"},
                     format="json")
         self.assertEqual(r.status_code, 201)
