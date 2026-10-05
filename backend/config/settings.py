@@ -54,6 +54,7 @@ INSTALLED_APPS = [
     "apps.suggestions",
     "apps.chat",
     "apps.panel",
+    "apps.ai",
 ]
 
 MIDDLEWARE = [
@@ -128,6 +129,12 @@ TELEGRAM_BOT_USERNAME = os.environ.get("TELEGRAM_BOT_USERNAME", "").lstrip("@")
 if "test" in sys.argv:
     TELEGRAM_BOT_TOKEN = ""  # testlar tashqi tarmoqqa chiqmasin
 
+# TinyFish web-agent: kalit faqat `backend/.env` yoki muhit o'zgaruvchisida.
+# Async task yaratish idempotent emas, shuning uchun servis faqat polling GET so'rovlarini retry qiladi.
+TINYFISH_API_KEY = os.environ.get("TINYFISH_API_KEY", "")
+TINYFISH_TIMEOUT_SECONDS = int(os.environ.get("TINYFISH_TIMEOUT_SECONDS", "20"))
+TINYFISH_HTTP_RETRIES = int(os.environ.get("TINYFISH_HTTP_RETRIES", "2"))
+
 # Yuklanadigan fayllar (apps.core.files)
 UPLOAD_ALLOWED_EXTENSIONS = ["docx", "pdf", "png", "jpg", "jpeg"]
 UPLOAD_MAX_MB = 20
@@ -139,7 +146,7 @@ REST_FRAMEWORK = {
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
     "PAGE_SIZE": 50,
     "EXCEPTION_HANDLER": "apps.core.api_utils.api_exception_handler",
-    "DEFAULT_THROTTLE_RATES": {"auth": "20/min"},
+    "DEFAULT_THROTTLE_RATES": {"auth": "20/min", "ai_web_agent": "5/hour"},
 }
 
 SESSION_COOKIE_HTTPONLY = True

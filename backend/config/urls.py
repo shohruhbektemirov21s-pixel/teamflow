@@ -12,6 +12,7 @@ from apps.projects.api import ProjectViewSet
 from apps.suggestions.api import SuggestionViewSet
 from apps.tasks.api import TaskViewSet, project_setup
 from apps.chat.api import ChatViewSet
+from apps.ai.api import WebAgentView
 
 admin.site.site_header = "TeamFlow — Boshqaruv paneli"
 admin.site.site_title = "TeamFlow"
@@ -48,6 +49,8 @@ api = [
     path("history/", panel.history),
     path("files/<str:kind>/<int:pk>/", panel.file_download),
     path("projects/setup/", project_setup),  # router'dagi projects/<pk>/ dan oldin turishi shart
+    path("ai/web-agent/", WebAgentView.as_view()),
+    path("ai/web-agent/<int:pk>/", WebAgentView.as_view()),
     path("", include(router.urls)),
 ]
 

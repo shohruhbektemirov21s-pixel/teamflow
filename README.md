@@ -15,6 +15,7 @@ Jamoa ishini boshqarish tizimi. Boshqarmalar buyurtma (TZ) yuboradi, loyiha mene
 6. [Vazifalar](#6-vazifalar)
 7. [Menyu va sahifalar](#7-menyu-va-sahifalar)
 8. [Telegram bildirishnomalari](#8-telegram-bildirishnomalari)
+9. [TinyFish AI web-agent](#tinyfish-ai-web-agent)
 9. [Modallar](#9-modallar-amalda-11-ta)
 10. [Flow'lar](#10-flowlar-amalda-13-ta)
 11. [Qarorlar va ochiq savollar](#11-qabul-qilingan-qarorlar-va-ochiq-savollar)
@@ -343,6 +344,43 @@ Batafsil bosqichlar: `docs/FLOWS_MODALS.md`.
 - Fayl yuklashda tur va hajm tekshiriladi. Yuklangan fayllar ochiq berilmaydi — faqat `/api/files/...` orqali ruxsat tekshiruvi bilan. Profil rasmlari — `/api/avatars/<id>/`, faqat tizimga kirganlarga.
 - Maxfiy ma'lumotlar (`DJANGO_SECRET_KEY`, Telegram token) muhit o'zgaruvchilarida yoki `backend/.env` da; `DEBUG=0` bo'lganda maxfiy kalitsiz server ishga tushmaydi.
 
+## TinyFish AI web-agent
+
+TinyFish TeamFlow ichidan tashqi saytni avtomatlashtirish yoki manbali web tadqiqot qilish uchun ishlatiladi. URL berilsa Agent API sayt ichida navigatsiya qilib strukturali JSON qaytaradi; URL bo'lmasa Research API bir nechta manbadan hisobot tayyorlaydi. Uzoq davom etadigan ishlar asinxron yaratiladi, natija keyin status endpoint orqali olinadi.
+
+1. `backend/.env.example` dan namunani ko'rib, haqiqiy API kalitni faqat `backend/.env` ga yozing:
+
+   ```env
+   TINYFISH_API_KEY=...
+   TINYFISH_TIMEOUT_SECONDS=20
+   TINYFISH_HTTP_RETRIES=2
+   ```
+
+2. Backend'ni odatdagidek ishga tushiring. Qo'shimcha Python paketi kerak emas: mavjud `requests` HTTP klienti ishlatiladi.
+
+3. PM yoki Boshliq `POST /api/ai/web-agent/` orqali ish boshlaydi. URL ixtiyoriy:
+
+   ```json
+   {
+     "task": "Toshkentdagi eng yaxshi 5 ta coworking joyini top",
+     "url": null
+   }
+   ```
+
+   Javob `202 Accepted` bo'lib, `id`, `provider_run_id` va `pending` holatini qaytaradi. Holat va normallashtirilgan natija: `GET /api/ai/web-agent/<id>/`.
+
+   ```bash
+   curl -X POST http://127.0.0.1:8020/api/ai/web-agent/ \
+     -H "Content-Type: application/json" \
+     -H "X-CSRFToken: <csrftoken>" \
+     -b "sessionid=<session>; csrftoken=<csrftoken>" \
+     -d '{"task":"Toshkentdagi eng yaxshi 5 ta coworking joyini top","url":null}'
+   ```
+
+   Endpoint faqat PM/Boshliqqa berilgan, foydalanuvchi bo'yicha `5/hour` cheklov bor. Ichki/private URL, `localhost`, IP manzillar va file sxemalari rad etiladi. API kalit yoki TinyFish xatosi foydalanuvchiga oshkor qilinmaydi; tizim tushunarli JSON xato qaytaradi.
+
+4. Codex uchun TinyFish MCP faqat shu loyiha darajasida `.codex/config.toml` ga qo'shilgan. Codex yangi sessiyasini ochganda birinchi qo'ng'iroqda TinyFish OAuth tasdig'i talab qilinadi. Claude Code ishlatilsa, shu rasmiy remote URL bilan loyiha ichidan ulang: `claude mcp add --transport http tinyfish https://agent.tinyfish.ai/mcp`.
+
 ## 13. Ishga tushirish va demo loginlar
 
 ### Demo foydalanuvchilar
@@ -408,7 +446,7 @@ Har doim avvalgi holatga qaytish imkoniyati saqlanadi: `v1.0-baseline`, `ui-befo
 
 ```
 backend/    Django: config/ (settings, urls), apps/ (core, accounts, orders, projects,
-            tasks, notifications, panel, chat, suggestions), start_server.bat
+            tasks, notifications, panel, chat, suggestions, ai), start_server.bat
 frontend/   React + TS: src/app (marshrut, menyu, modallar), src/features (sahifalar),
             src/shared (UI komponentlar, text.ts, styles.css, types)
 docs/       ARCHITECTURE.md, FLOWS_MODALS.md

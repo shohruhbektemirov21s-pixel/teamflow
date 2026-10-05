@@ -1,0 +1,5 @@
+# Faqat ushbu ishonchli loyiha uchun TinyFish MCP.
+# Birinchi foydalanishda TinyFish OAuth oynasida autentifikatsiyadan o'tiladi.
+[mcp_servers.tinyfish]
+url = "https://agent.tinyfish.ai/mcp"
+
