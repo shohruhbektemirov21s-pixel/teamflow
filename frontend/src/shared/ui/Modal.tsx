@@ -16,9 +16,20 @@ interface ModalProps {
   children: ReactNode;
 }
 
+/** `body`ning to'g'ridan-to'g'ri bolasi bo'lgan barcha ochiq dialog fonlari (har bir `Modal`/`PhotoModal`
+ * o'zining `.overlay`sini shunga portal qiladi) — DOM tartibida, oxirgisi eng tepada (keyin portal qilingan). */
+function openOverlays(): HTMLElement[] {
+  return Array.from(document.body.querySelectorAll<HTMLElement>(":scope > .overlay, :scope > .photo-viewer"));
+}
+
 /**
  * Dialog xatti-harakati (Modal va rasm ko'rish oynasi uchun umumiy): ochilganda fokus ichkariga, Esc yopadi,
  * Tab dialogdan chiqmaydi, orqa sahifa aylanmaydi; yopilganda fokus avvalgi joyiga qaytadi.
+ *
+ * Bir nechta dialog ustma-ust ochilgan holatda (istisno — CLAUDE.md 4-bo'lim, faqat shunga aniq ruxsat
+ * berilgan joyda, masalan vazifani tekshiruvga yuborish) faqat eng tepadagisi (DOM'da oxirgi portal
+ * qilingan) Esc/Tabga javob beradi — bu doim joriy DOM holatidan hisoblanadi, alohida global holat
+ * saqlanmaydi (shuning uchun testlar orasida hech narsa "sizib chiqmaydi").
  */
 export function useDialogBehavior(ref: RefObject<HTMLElement | null>, onEscape: () => void) {
   const escRef = useRef(onEscape);
@@ -27,11 +38,20 @@ export function useDialogBehavior(ref: RefObject<HTMLElement | null>, onEscape: 
   useEffect(() => {
     const previous = document.activeElement as HTMLElement | null;
     const node = ref.current;
+    // `Modal`da ref ichki `.modal`ga, `PhotoModal`da bevosita o'ziga (`.photo-viewer`) qo'yiladi —
+    // `closest` ikkala holatda ham dialogning tashqi portal elementini topadi.
+    const mine = node?.closest<HTMLElement>(".overlay, .photo-viewer") ?? null;
     const first = node?.querySelector<HTMLElement>("[autofocus], input, textarea, select, button:not([data-close])");
     (first ?? node)?.focus();
     document.body.style.overflow = "hidden";
 
+    const isTopmost = () => {
+      const overlays = openOverlays();
+      return !overlays.length || overlays[overlays.length - 1] === mine;
+    };
+
     const onKey = (e: KeyboardEvent) => {
+      if (!isTopmost()) return;
       if (e.key === "Escape") {
         e.stopPropagation();
         escRef.current();
@@ -55,7 +75,9 @@ export function useDialogBehavior(ref: RefObject<HTMLElement | null>, onEscape: 
     document.addEventListener("keydown", onKey);
     return () => {
       document.removeEventListener("keydown", onKey);
-      document.body.style.overflow = "";
+      // `mine` DOM'dan o'chirilgan yoki hali o'chirilmagan bo'lishi mumkin — ikkala holatda ham
+      // boshqa ochiq dialoglar sonini to'g'ri hisoblash uchun o'zini chiqarib tashlab sanaymiz.
+      if (!openOverlays().some((o) => o !== mine)) document.body.style.overflow = "";
       previous?.focus?.();
     };
   }, [ref]);

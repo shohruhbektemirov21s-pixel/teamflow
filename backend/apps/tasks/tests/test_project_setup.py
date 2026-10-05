@@ -55,7 +55,7 @@ class ProjectSetupTests(TestCase):
         r = self.post([self.task(self.dev1), self.task(self.outsider, "Begona")])
 
         self.assertEqual(r.status_code, 400)
-        self.assertIn("2-vazifa", r.data["detail"])
+        self.assertIn("2-topshiriq", r.data["detail"])
         self.assertFalse(Project.objects.exists())
         self.assertFalse(Task.objects.exists())
 
@@ -69,7 +69,7 @@ class ProjectSetupTests(TestCase):
         exe = SimpleUploadedFile("virus.exe", b"x", content_type="application/octet-stream")
         r = self.post([self.task(self.dev1)], task_files_0=exe)
         self.assertEqual(r.status_code, 400)
-        self.assertIn("1-vazifa fayli", str(r.data))
+        self.assertIn("1-topshiriq fayli", str(r.data))
         self.assertFalse(Project.objects.exists())
 
     def test_only_managers(self):

@@ -1,6 +1,6 @@
 # TeamFlow
 
-Jamoa ishini boshqarish tizimi. Boshqarmalar buyurtma (TZ) yuboradi, loyiha menejeri uni tasdiqlab loyihaga aylantiradi, dasturchilarga vazifa beradi va bajarilgan ishni tekshiradi. Boshliq hamma narsani kuzatadi va boshqaradi.
+Jamoa ishini boshqarish tizimi. Boshqarmalar buyurtma (TZ) yuboradi, loyiha menejeri uni tasdiqlab loyihaga aylantiradi, dasturchilarga topshiriq beradi va bajarilgan ishni tekshiradi. Boshliq hamma narsani kuzatadi va boshqaradi.
 
 > **Holat (2026-10-05):** arxitektura ko'rigi, regressiya tuzatishlari, xizmat safari va GitHub'dagi loyiha tasdiqlash funksiyasi birga tekshirildi: 194 backend testi, 63 frontend testi, TypeScript tur tekshiruvi va frontend build o'tdi. Ishchi muhitdagi joylashtirish alohida tekshirilmagan.
 > Bu fayl — loyihaning **yagona haqiqat manbai**. Agentlar uchun qoidalar: `CLAUDE.md`, `GEMINI.md`. Flow va modal reestri: `docs/FLOWS_MODALS.md`. Arxitektura, ma'lumotlar modeli va API: `docs/ARCHITECTURE.md`.
@@ -12,10 +12,10 @@ Jamoa ishini boshqarish tizimi. Boshqarmalar buyurtma (TZ) yuboradi, loyiha mene
 3. [Ro'yxatdan o'tish va kirish](#3-royxatdan-otish-va-kirish)
 4. [Buyurtma (TZ) jarayoni](#4-buyurtma-tz-jarayoni)
 5. [Loyihalar](#5-loyihalar)
-6. [Vazifalar](#6-vazifalar)
+6. [Topshiriqlar](#6-topshiriqlar)
 7. [Menyu va sahifalar](#7-menyu-va-sahifalar)
 8. [Telegram bildirishnomalari](#8-telegram-bildirishnomalari)
-9. [Modallar](#9-modallar-amalda-11-ta)
+9. [Modallar](#9-modallar-amalda-13-ta)
 10. [Flow'lar](#10-flowlar-amalda-13-ta)
 11. [Qarorlar va ochiq savollar](#11-qabul-qilingan-qarorlar-va-ochiq-savollar)
 12. [Xavfsizlik](#12-xavfsizlik)
@@ -46,21 +46,21 @@ Barcha ma'lumotlar bazadan olinadi. Butun interfeys bitta Design System (ranglar
 | Rol | Qanday paydo bo'ladi | Nima qiladi |
 |---|---|---|
 | **Boshliq** | Faqat Django adminda yaratiladi | Hammani va hamma narsani ko'radi, izoh yozadi, hammaning ishini boshqaradi, takliflar bo'yicha qaror chiqaradi |
-| **Loyiha menejeri (PM)** | Ro'yxatdan o'tadi, admin tasdiqlaydi | Buyurtmani tasdiqlaydi yoki rad etadi, loyiha yaratadi, dasturchi biriktiradi, vazifa beradi, ishni tekshiradi |
-| **Dasturchi** | Ro'yxatdan o'tadi, admin tasdiqlaydi | O'ziga berilgan vazifani bajaradi va tekshiruvga yuboradi |
+| **Loyiha menejeri (PM)** | Ro'yxatdan o'tadi, admin tasdiqlaydi | Buyurtmani tasdiqlaydi yoki rad etadi, loyiha yaratadi, dasturchi biriktiradi, topshiriq beradi, ishni tekshiradi |
+| **Dasturchi** | Ro'yxatdan o'tadi, admin tasdiqlaydi | O'ziga berilgan topshiriqni bajaradi va tekshiruvga yuboradi |
 | **Boshqarma** | Ro'yxatdan o'tadi (boshqarma nomi bilan), admin tasdiqlaydi | Buyurtma (TZ) yuboradi |
 
 ### Ruxsatlar jadvali
 
 | | Boshliq | PM | Dasturchi | Boshqarma |
 |---|---|---|---|---|
-| Ko'radi | Hamma narsa | Loyihalar, buyurtmalar, vazifalar, xodimlar | Faqat o'z vazifalari va o'z loyihalari | Faqat o'z buyurtmalari |
+| Ko'radi | Hamma narsa | Loyihalar, buyurtmalar, topshiriqlar, xodimlar | Faqat o'z topshiriqlari va o'z loyihalari | Faqat o'z buyurtmalari |
 | Buyurtma yuboradi | — | — | — | ✅ |
 | Buyurtmani tasdiqlaydi / rad etadi | ✅ | ✅ | — | — |
 | Loyiha yaratadi | ✅ | ✅ | ❌ | ❌ |
-| Vazifa beradi | ✅ | ✅ | O'zi yaratgan vazifaga boshqa dasturchini qo'shadi | ❌ |
+| Topshiriq beradi | ✅ | ✅ | O'zi yaratgan topshiriqqa boshqa dasturchini qo'shadi | ❌ |
 | Xizmat safarini belgilaydi/tugatadi | ✅ | ❌ | ❌ | ❌ |
-| Vazifa holatini o'zgartiradi | ✅ | ✅ | Faqat o'zinikini (Jarayonda, Tekshiruvga yuborish) | — |
+| Topshiriq holatini o'zgartiradi | ✅ | ✅ | Faqat o'zinikini (Jarayonda, Tekshiruvga yuborish) | — |
 | Ishni tekshiradi (qabul / qaytarish) | ✅ | ✅ | — | — |
 | Izoh yozadi (ko'ra oladigan joyiga) | ✅ | ✅ | ✅ | ✅ |
 | Taklif bo'yicha qaror | ✅ | — | — | — |
@@ -120,31 +120,31 @@ Qoidalar:
 - Loyiha: **loyiha raqami** (qo'lda kiritiladi, majburiy, erkin matn/kod — masalan `PRJ-12`, takrorlanmaydi: band bo'lsa xatolik chiqadi), nom, izoh, boshlanish sanasi, tugash sanasi, fayllar, dasturchilar (bir nechta), darajasi.
 - **Loyiha darajasi (5 ta):** Rejalashtirilgan → Boshlangan → Tuzatish kerak → Tasdiqlash kutilmoqda → Yakunlangan. PM/Boshliq qo'lda o'zgartiradi.
 - **Yakunlashni tasdiqlash:** PM/Boshliq "Yakunlangan"ni tanlaganda, avval **loyihadagi barcha faol dasturchilarga** bildirishnoma boradi ("Loyiha yakunlanishi kerak, tasdiqlaysizmi?" — bildirishnoma ichidagi tugma bilan Ha/Yo'q). **Hammasi tasdiqlagandan keyingina** keyingi bosqich ishga tushadi: buyurtmasiz (PM o'zi yaratgan) loyiha "Yakunlangan"ga to'g'ridan-to'g'ri o'tadi; buyurtmadan yaratilgan loyiha avval **"Tasdiqlash kutilmoqda"**ga o'tadi va buyurtmani yuborgan boshqarmaga bildirishnoma boradi — faqat o'sha boshqarma (Buyurtma oynasidan) **Tasdiqlaydi** (loyiha "Yakunlangan" bo'ladi) yoki **kamchilik sababi bilan rad etadi** ("Tuzatish kerak"ga qaytadi, PM sababni ko'rib tuzatib yana so'raydi). Agar birortasi dasturchi sababli rad etsa, loyiha yakunlanmaydi, hozirgi holatida davom etadi va PM/Boshliq sababni ko'radi; qayta so'ralganda hammadan yangidan so'raladi. Loyihada faol dasturchi bo'lmasa, dasturchi so'rovi o'tkazib yuboriladi.
-- Loyihaga bir nechta dasturchi biriktiriladi, har biriga bir nechta vazifa berish mumkin.
+- Loyihaga bir nechta dasturchi biriktiriladi, har biriga bir nechta topshiriq berish mumkin.
 
-**Loyiha yaratish oynasi (3 qadam):** Asosiy → Jamoa → Vazifalar va fayllar. Buyurtmadan yaratilsa, 1-qadam oldindan to'ldirilgan.
+**Loyiha yaratish oynasi (3 qadam):** Asosiy → Jamoa → Topshiriqlar va fayllar. Buyurtmadan yaratilsa, 1-qadam oldindan to'ldirilgan.
 - 1-qadamda (**Asosiy**) **loyiha raqami** maydoni bor — foydalanuvchi qo'lda kiritadi, bo'sh qoldirib bo'lmaydi, boshqa loyihada xuddi shu raqam bo'lsa xatolik chiqib saqlanmaydi.
-- 3-qadamda **loyiha fayllari** va **har bir xodimga alohida vazifalar** beriladi. Har bir tanlangan xodim uchun alohida blok va "Vazifa qo'shish" tugmasi bor: vazifa nomi, **boshlanish** va **tugash vaqti**, **vazifa fayllari**. Tugash vaqti boshlanishdan oldin bo'lsa, yaratib bo'lmaydi.
-- Loyiha, jamoa va vazifalar bitta so'rovda (`POST /api/projects/setup/`) bitta tranzaksiyada yaratiladi. Biror vazifada xato bo'lsa, hech narsa saqlanmaydi (chala loyiha qolmaydi).
+- 3-qadamda **loyiha fayllari** va **har bir xodimga alohida topshiriqlar** beriladi. Har bir tanlangan xodim uchun alohida blok va "Topshiriq qo'shish" tugmasi bor: topshiriq nomi, **boshlanish** va **tugash vaqti**, **topshiriq fayllari**. Tugash vaqti boshlanishdan oldin bo'lsa, yaratib bo'lmaydi.
+- Loyiha, jamoa va topshiriqlar bitta so'rovda (`POST /api/projects/setup/`) bitta tranzaksiyada yaratiladi. Biror topshiriqda xato bo'lsa, hech narsa saqlanmaydi (chala loyiha qolmaydi).
 
 **Loyiha oynasi — Jamoa bo'limi:**
 - Ro'yxatda faqat shu loyiha a'zolari ko'rinadi. Yangi dasturchi qidiruv maydoni orqali topilib qo'shiladi, keyin "Jamoani saqlash" bosiladi.
-- Har bir a'zo qatorida **"Vazifa berish"** tugmasi bor: shu xodimga alohida vazifa ochiladi, loyiha va ijrochi oldindan tanlangan bo'ladi. Jamoa saqlanmaguncha bu tugma o'chiq turadi.
-- Dasturchi jamoadan chiqarilsa, shu loyihaning tugallanmagan vazifalari va topshiriqlaridan ham olib tashlanadi (bajarilganlari tarix sifatida qoladi). Agar u faol vazifaning yagona ijrochisi bo'lsa, avval vazifani boshqa xodimga berish so'raladi.
+- Har bir a'zo qatorida **"Topshiriq berish"** tugmasi bor: shu xodimga alohida topshiriq ochiladi, loyiha va ijrochi oldindan tanlangan bo'ladi. Jamoa saqlanmaguncha bu tugma o'chiq turadi.
+- Dasturchi jamoadan chiqarilsa, shu loyihaning tugallanmagan topshiriqlari va sub-vazifalaridan ham olib tashlanadi (bajarilganlari tarix sifatida qoladi). Agar u faol topshirig'ining yagona ijrochisi bo'lsa, avval topshiriqni boshqa xodimga berish so'raladi.
 
-## 6. Vazifalar
+## 6. Topshiriqlar
 
-- PM/Boshliq loyiha ichida vazifa yaratadi: nom, izoh, muddat (boshlanish/tugash), muhimlik, fayl.
-- **Ommaviy vazifalar:** PM bitta ro'yxat matni (har qatorga bittadan) orqali ko'p vazifani birdaniga yaratadi va har biriga ijrochi biriktira oladi.
-- **Bitta vazifa bir nechta dasturchiga** biriktiriladi. Vazifa oynasida "Ijrochilar → O'zgartirish": PM va Boshliq har qanday vazifaga, dasturchi faqat **o'zi yaratgan** vazifaga boshqa dasturchini qo'shadi (o'zini olib tashlay olmaydi). Bajarilgan vazifa o'zgartirilmaydi.
-- **Topshiriqlar:** kichik qadamlar, har biriga **bir nechta dasturchi** biriktiriladi. Mavjud topshiriqqa ham keyin qo'shish yoki olib tashlash mumkin (PM, Boshliq yoki vazifa ijrochisi). Ijrochisiz topshiriq "Hamma" deb ko'rinadi (vazifaning barcha ijrochilari).
-- Vazifa oynasida dasturchi **qidiruv** bilan tanlanadi, ro'yxatda hamma faol dasturchilar chiqadi. Loyiha jamoasida bo'lmagan dasturchi tanlansa, u **loyiha jamoasiga avtomatik qo'shiladi**. Vazifa yaratish/tahrirlash formasida esa faqat loyiha jamoasi ko'rinadi.
-- **Ish jurnali:** ijrochi vazifa ichida qilgan ishi va sarflangan vaqtini qayd etadi, menejer uni tekshiruv bilan birga ko'radi.
-- **Vazifani o'chirish:** PM/Boshliq vazifani arxivlaydi. U ish ro'yxatlari va hisoblagichlardan chiqadi, lekin topshirishlar, ish jurnali, izohlar va fayllar tarix uchun saqlanadi. Arxivdagi vazifa faqat ko'riladi.
-- Vazifa tafsilotlari **bitta katta modalda**, telefonda yig'iladigan bo'limlarga ajratilgan: ma'lumot, topshiriqlar, tekshiruv, ish jurnali, izohlar, fayllar.
-- Vazifa berilganda dasturchida **Nazoratda** holatida paydo bo'ladi.
+- PM/Boshliq loyiha ichida topshiriq yaratadi: nom, izoh, muddat (boshlanish/tugash), muhimlik, fayl.
+- **Ommaviy topshiriqlar:** PM bitta ro'yxat matni (har qatorga bittadan) orqali ko'p topshiriqni birdaniga yaratadi va har biriga ijrochi biriktira oladi.
+- **Bitta topshiriq bir nechta dasturchiga** biriktiriladi. Topshiriq oynasida "Ijrochilar → O'zgartirish": PM va Boshliq har qanday topshiriqqa, dasturchi faqat **o'zi yaratgan** topshiriqqa boshqa dasturchini qo'shadi (o'zini olib tashlay olmaydi). Bajarilgan topshiriq o'zgartirilmaydi.
+- **Sub-vazifalar:** kichik qadamlar, har biriga **bir nechta dasturchi** biriktiriladi. Mavjud sub-vazifaga ham keyin qo'shish yoki olib tashlash mumkin (PM, Boshliq yoki topshiriq ijrochisi). Ijrochisiz sub-vazifa "Hamma" deb ko'rinadi (topshiriqning barcha ijrochilari).
+- Topshiriq oynasida dasturchi **qidiruv** bilan tanlanadi, ro'yxatda hamma faol dasturchilar chiqadi. Loyiha jamoasida bo'lmagan dasturchi tanlansa, u **loyiha jamoasiga avtomatik qo'shiladi**. Topshiriq yaratish/tahrirlash formasida esa faqat loyiha jamoasi ko'rinadi.
+- **Ish jurnali:** ijrochi topshiriq ichida qilgan ishi va sarflangan vaqtini qayd etadi, menejer uni tekshiruv bilan birga ko'radi.
+- **Topshiriqni o'chirish:** PM/Boshliq topshiriqni arxivlaydi. U ish ro'yxatlari va hisoblagichlardan chiqadi, lekin topshirishlar, ish jurnali, izohlar va fayllar tarix uchun saqlanadi. Arxivdagi topshiriq faqat ko'riladi.
+- Topshiriq tafsilotlari **bitta katta modalda**, telefonda yig'iladigan bo'limlarga ajratilgan: ma'lumot, sub-vazifalar, tekshiruv, ish jurnali, izohlar, fayllar.
+- Topshiriq berilganda dasturchida **Nazoratda** holatida paydo bo'ladi.
 
-### Vazifa holatlari
+### Topshiriq holatlari
 
 ```
 [Nazoratda] → "Jarayonda" ga o'tkaziladi
@@ -156,17 +156,17 @@ Qoidalar:
 
 - Holatlar: **Nazoratda → Jarayonda → Tekshiruvda → Bajarildi**. "To'xtab qolgan" holati **yo'q** (foydalanuvchi qarori).
 - **Bajarildi** ga faqat tekshiruvda qabul qilinganda o'tiladi, dasturchi o'zi o'tkaza olmaydi.
-- **Menejer (PM/Boshliq) ijrochi bo'lmay "Tekshiruvga yuborish" bossa — ijrochi(lar) ruxsati kerak** (foydalanuvchi talabi, 2026-10-05): vazifa darhol Tekshiruvdaga o'tmaydi, vazifaning barcha faol ijrochilariga bildirishnoma boradi ("Tekshiruvga yuborishga roziman?", "Ha, tayyor"/"Yo'q" tugmasi bilan — mavjud Bildirishnomalar modali ichida, yangi modal yo'q). Barcha ijrochi "Ha" desa, shu zahoti haqiqiy Tekshiruvga o'tadi (menejer qayta bosishi shart emas). Birortasi sabab bilan rad etsa, so'rov bekor bo'ladi, vazifa Jarayonda qoladi, menejer sababni ko'radi; qayta so'raganda hammadan yangidan so'raladi. Vazifaning o'z ijrochisi hech qachon tasdiq so'ralmasdan to'g'ridan-to'g'ri yuboradi (bu qoida faqat ijrochi bo'lmagan menejerga tegishli).
-- Muddati o'tgan faol vazifa — **"Muddati o'tgan"**, muddatdan keyin bajarilgani — **"Kechikib bajarilgan"**.
+- **Menejer (PM/Boshliq) ijrochi bo'lmay "Tekshiruvga yuborish" bossa — ijrochi(lar) ruxsati kerak** (foydalanuvchi talabi, 2026-10-05): topshiriq darhol Tekshiruvdaga o'tmaydi, topshiriqning barcha faol ijrochilariga bildirishnoma boradi ("Tekshiruvga yuborishga roziman?", "Ha, tayyor"/"Yo'q" tugmasi bilan — mavjud Bildirishnomalar modali ichida, yangi modal yo'q). Barcha ijrochi "Ha" desa, shu zahoti haqiqiy Tekshiruvga o'tadi (menejer qayta bosishi shart emas). Birortasi sabab bilan rad etsa, so'rov bekor bo'ladi, topshiriq Jarayonda qoladi, menejer sababni ko'radi; qayta so'raganda hammadan yangidan so'raladi. Topshiriqning o'z ijrochisi hech qachon tasdiq so'ralmasdan to'g'ridan-to'g'ri yuboradi (bu qoida faqat ijrochi bo'lmagan menejerga tegishli).
+- Muddati o'tgan faol topshiriq — **"Muddati o'tgan"**, muddatdan keyin bajarilgani — **"Kechikib bajarilgan"**.
 - O'tishlar bitta jadvalda: `backend/apps/tasks/workflow.py`.
 
 ### Kodlar
 
-**Vazifa** yaratilganda tasodifiy, takrorlanmaydigan **9 xonali kod** oladi (masalan `483920157`) — ketma-ket emas, umumiy sonni ko'rsatmaydi. Bazada saqlanadi (`Task.code`), ro'yxatlarda, doskada, tekshiruv navbatida va modal sarlavhasida ko'rinadi. Qoida bitta joyda: `backend/apps/core/codes.py`.
+**Topshiriq** yaratilganda tasodifiy, takrorlanmaydigan **9 xonali kod** oladi (masalan `483920157`) — ketma-ket emas, umumiy sonni ko'rsatmaydi. Bazada saqlanadi (`Task.code`), ro'yxatlarda, doskada, tekshiruv navbatida va modal sarlavhasida ko'rinadi. Qoida bitta joyda: `backend/apps/core/codes.py`.
 
 **Loyiha** endi avtomatik kod olmaydi — o'rniga PM/Boshliq loyiha yaratishda (1-qadam) **loyiha raqamini qo'lda kiritadi** (majburiy, erkin matn/kod, masalan `PRJ-12`). Boshqa loyihada xuddi shu raqam bo'lsa, saqlashda xatolik chiqadi (takrorlanmaydi). `Project.code` shu qo'lda kiritilgan raqamni saqlaydi; ro'yxatlarda, loyiha oynasi sarlavhasida va qidiruvda shu raqam ko'rinadi.
-- `Ctrl K` qidiruvida vazifaning 9 xonali kodi yoki loyihaning qo'lda kiritilgan raqami yozilsa, aynan o'sha vazifa/loyiha darrov chiqadi (ko'rish huquqi bo'lsa).
-- Vazifalar jadvali qidiruvida vazifa kodi — shu vazifa, loyiha raqami — shu loyihaning vazifalari.
+- `Ctrl K` qidiruvida topshiriqning 9 xonali kodi yoki loyihaning qo'lda kiritilgan raqami yozilsa, aynan o'sha topshiriq/loyiha darrov chiqadi (ko'rish huquqi bo'lsa).
+- Topshiriqlar jadvali qidiruvida topshiriq kodi — shu topshiriq, loyiha raqami — shu loyihaning topshiriqlari.
 
 ## 7. Menyu va sahifalar
 
@@ -176,8 +176,8 @@ Menyu guruhlarga bo'lingan: *Asosiy ish* | *Muloqot* | *Kuzatuv* (Kuzatuv faqat 
 
 | Rol | Asosiy ish | Muloqot | Kuzatuv |
 |---|---|---|---|
-| **Dasturchi** | Bosh panel · Vazifalar · Mening ishim · Taqvim | Xabarlar · Takliflar | — |
-| **PM va Boshliq** | Bosh panel · Loyihalar · Buyurtmalar (TZ) · Vazifalar · Taqvim | Xodimlar · Xabarlar · Tekshiruv navbati · Takliflar | Qilingan ishlar |
+| **Dasturchi** | Bosh panel · Topshiriqlar · Mening ishim · Taqvim | Xabarlar · Takliflar | — |
+| **PM va Boshliq** | Bosh panel · Loyihalar · Buyurtmalar (TZ) · Topshiriqlar · Taqvim | Xodimlar · Xabarlar · Tekshiruv navbati · Takliflar | Qilingan ishlar |
 | **Boshqarma** | Bosh panel · Buyurtmalarim | Xabarlar · Takliflar | — |
 
 - Menyu pastida foydalanuvchi kartasi (ism, rol; bosilsa Profil ochiladi) va "Chiqish".
@@ -186,14 +186,14 @@ Menyu guruhlarga bo'lingan: *Asosiy ish* | *Muloqot* | *Kuzatuv* (Kuzatuv faqat 
 - Manzillar: `/`, `/vazifalar`, `/mening-ishim`, `/taqvim`, `/loyihalar`, `/buyurtmalar`, `/xodimlar`, `/tekshiruv`, `/xabarlar`, `/takliflar`, `/qilingan-ishlar`, `/profil`. Rolga tegishli bo'lmagan sahifa ochilmaydi. (Bildirishnomalar alohida sahifa emas — qo'ng'iroq ikonkasi modal ochadi, 9-bo'lim.)
 
 ### Bosh panel — PM va Boshliq
-- Tepada salomlashish va asosiy amallar: Xodimlar, (yangi buyurtma bo'lsa) Buyurtmalar, Yangi loyiha, **Yangi vazifa**.
+- Tepada salomlashish va asosiy amallar: Xodimlar, (yangi buyurtma bo'lsa) Buyurtmalar, Yangi loyiha, **Yangi topshiriq**.
 - Davr kartalari: **Yil boshidan, Oy boshidan, Hafta boshidan** — har birida Faol, Muddati o'tgan, Bajarilgan.
 - Qo'shimcha kartalar aniq nomlar bilan: **Kechikib bajarilgan**, **Muddati o'tgan**, **Tekshiruv kutilmoqda**.
-- Kirganda **"Hafta boshidan — Faol"** vazifalar jadvali darrov ochiq turadi (boshqa kartani bossa almashadi, "Yopish" bilan yopiladi).
-- Kartani bossa, filtrli vazifalar jadvali ochiladi: qidiruv, muddat, sana oralig'i (**Sanadan** / **Sanagacha**), holat, xodim. "Loyiha" filtri vazifalar jadvallarida yo'q (foydalanuvchi qarori). Telefonda qidiruvdan boshqa filtrlar "Filtrlar" tugmasi ortida.
+- Kirganda **"Hafta boshidan — Faol"** topshiriqlar jadvali darrov ochiq turadi (boshqa kartani bossa almashadi, "Yopish" bilan yopiladi).
+- Kartani bossa, filtrli topshiriqlar jadvali ochiladi: qidiruv, muddat, sana oralig'i (**Sanadan** / **Sanagacha**), holat, xodim. "Loyiha" filtri topshiriqlar jadvallarida yo'q (foydalanuvchi qarori). Telefonda qidiruvdan boshqa filtrlar "Filtrlar" tugmasi ortida.
 
 ### Bosh panel — Dasturchi
-- Xuddi shu tuzilma, sonlar faqat shu dasturchining o'z vazifalari bo'yicha.
+- Xuddi shu tuzilma, sonlar faqat shu dasturchining o'z topshiriqlari bo'yicha.
 
 ### Bosh panel — Boshqarma
 - Salomlashish, boshqarma nomi, "Yangi buyurtma" va "Buyurtmalarim" tugmalari.
@@ -201,27 +201,27 @@ Menyu guruhlarga bo'lingan: *Asosiy ish* | *Muloqot* | *Kuzatuv* (Kuzatuv faqat 
 - Holat kartalari: Yuborilgan, Rad etilgan, Tasdiqlangan (loyiha bo'lganlari bilan). Bosilsa pastdagi ro'yxat filtrlanadi.
 - Pastda faqat o'z buyurtmalari jadvali. Qo'shimcha eslatma matnlari chiqmaydi (foydalanuvchi qarori).
 
-### Vazifalar (`/vazifalar`)
-- Vazifalar jadvali: qidiruv (kodlar bilan ham), muddat, sana oralig'i, holat, xodim filtrlari. Telefonda filtrlar "Filtrlar" tugmasi ortida, jadvalda holat va muddat sarlavha ostida ko'rinadi.
-- Dasturchiga **faqat o'ziga biriktirilgan** vazifalar chiqadi (Ctrl K qidiruvida ham). Faqat topshirig'i biriktirilgan boshqa vazifa ro'yxatda chiqmaydi, lekin ochib topshiriqni bajarish mumkin. Qoida bitta joyda: `tasks/permissions.py` → `listed_tasks`.
+### Topshiriqlar (`/vazifalar`)
+- Topshiriqlar jadvali: qidiruv (kodlar bilan ham), muddat, sana oralig'i, holat, xodim filtrlari. Telefonda filtrlar "Filtrlar" tugmasi ortida, jadvalda holat va muddat sarlavha ostida ko'rinadi.
+- Dasturchiga **faqat o'ziga biriktirilgan** topshiriqlar chiqadi (Ctrl K qidiruvida ham). Faqat sub-vazifasi biriktirilgan boshqa topshiriq ro'yxatda chiqmaydi, lekin ochib sub-vazifani bajarish mumkin. Qoida bitta joyda: `tasks/permissions.py` → `listed_tasks`.
 
 ### Mening ishim (`/mening-ishim`, Dasturchi)
-- "+ Yangi vazifa" tugmasi, filtrlar: loyiha, muddat (Bugun / Shu hafta / Hammasi).
+- "+ Yangi topshiriq" tugmasi, filtrlar: loyiha, muddat (Bugun / Shu hafta / Hammasi).
 - Doska ustunlari — holatlar: **Nazoratda | Jarayonda | Tekshiruvda | Bajarildi**.
-- Vazifani **sichqoncha bilan sudrab** ustunlar orasida o'tkazish mumkin.
+- Topshiriqni **sichqoncha bilan sudrab** ustunlar orasida o'tkazish mumkin.
 - **Tekshiruvda** ustuniga tashlanganda "Nima qildingiz?" oynasi ochiladi (izoh, fayl).
 - **Bajarildi** ustuniga dasturchi tashlay olmaydi, uni faqat PM tasdiqlaydi.
 - Sudrab bo'lmaydigan holat uchun kartada "⋯" menyu (klaviatura bilan).
 - Xato bo'lsa o'zgarish orqaga qaytariladi, "Bekor qilish" xabari chiqadi.
 
 ### Taqvim (`/taqvim`, Dasturchi, PM, Boshliq)
-- Oylik ko'rinish: vazifalar tugash sanasi bo'yicha va **loyihalarning tugash sanasi** (binafsha belgi, bayroqcha bilan; dasturchi faqat o'z loyihalarini ko'radi).
-- **Kun bosilsa** "Taqvim kuni" oynasi ochiladi: shu kuni tugaydigan loyihalar va shu kungi vazifalar.
-- Ro'yxatdagi vazifa (yoki loyiha) bosilsa, kun oynasi o'rniga uning oynasi ochiladi (modal ustida modal yo'q); "Orqaga" yoki ✕ kun ro'yxatiga qaytaradi.
-- Kundagi vazifa/loyiha belgisini to'g'ridan-to'g'ri bossa ham o'z oynasi ochiladi; "yana N ta" kun ro'yxatini ochadi.
+- Oylik ko'rinish: topshiriqlar tugash sanasi bo'yicha va **loyihalarning tugash sanasi** (binafsha belgi, bayroqcha bilan; dasturchi faqat o'z loyihalarini ko'radi).
+- **Kun bosilsa** "Taqvim kuni" oynasi ochiladi: shu kuni tugaydigan loyihalar va shu kungi topshiriqlar.
+- Ro'yxatdagi topshiriq (yoki loyiha) bosilsa, kun oynasi o'rniga uning oynasi ochiladi (modal ustida modal yo'q); "Orqaga" yoki ✕ kun ro'yxatiga qaytaradi.
+- Kundagi topshiriq/loyiha belgisini to'g'ridan-to'g'ri bossa ham o'z oynasi ochiladi; "yana N ta" kun ro'yxatini ochadi.
 
 ### Loyihalar (`/loyihalar`, PM, Boshliq)
-- Loyihalar ro'yxati: qidiruv, daraja filtri, har birida jarayon ("5 / 12 vazifa bajarildi") va "Buyurtmadan" belgisi. Eng yangisi tepada.
+- Loyihalar ro'yxati: qidiruv, daraja filtri, har birida jarayon ("5 / 12 topshiriq bajarildi") va "Buyurtmadan" belgisi. Eng yangisi tepada.
 - "Yangi loyiha" — 3 qadamli yaratish oynasi (5-bo'lim). Loyiha bosilsa loyiha oynasi ochiladi.
 
 ### Buyurtmalar (`/buyurtmalar`)
@@ -229,14 +229,14 @@ Menyu guruhlarga bo'lingan: *Asosiy ish* | *Muloqot* | *Kuzatuv* (Kuzatuv faqat 
 - Filtrlar: **Hammasi** (birinchi, standart tanlangan) · Yangi · Tasdiqlangan · Rad etilgan.
 
 ### Xodimlar (`/xodimlar`, PM, Boshliq)
-- Barcha jamoa a'zolari (dasturchilar, menejerlar): bandligi, faol va kechikkan vazifalari, hozir nima qilayotgani. Vazifasi yo'qlar birinchi turadi.
-- Bo'sh (vazifasi yo'q yoki yuklamasi kam) xodimga to'g'ridan-to'g'ri vazifa berish tugmasi.
-- Vazifa topshiriqlarga ajratilib, ularga boshqa xodimlar biriktiriladi.
-- Xodim bosilsa, xodim oynasi ochiladi: profil sarlavhasi, statistika, joriy ishlari, vazifa berish.
-- Boshliq o'z profilidagi **Xizmat safarlari** bo'limida faol PM yoki dasturchining qaytish sanasini belgilaydi yoki safarni muddatidan oldin tugatadi. Safar darhol boshlanadi; qaytish kuni yangi vazifa berish avtomatik qayta ochiladi. Safardagi dasturchiga yangi vazifa/topshiriq biriktirilmaydi; avvaldan biriktirilgan ishlar saqlanadi. Bu qoida serverda ham tekshiriladi.
+- Barcha jamoa a'zolari (dasturchilar, menejerlar): bandligi, faol va kechikkan topshiriqlari, hozir nima qilayotgani. Topshirig'i yo'qlar birinchi turadi.
+- Bo'sh (topshirig'i yo'q yoki yuklamasi kam) xodimga to'g'ridan-to'g'ri topshiriq berish tugmasi.
+- Topshiriq sub-vazifalarga ajratilib, ularga boshqa xodimlar biriktiriladi.
+- Xodim bosilsa, xodim oynasi ochiladi: profil sarlavhasi, statistika, joriy ishlari, topshiriq berish.
+- Boshliq o'z profilidagi **Xizmat safarlari** bo'limida faol PM yoki dasturchining qaytish sanasini belgilaydi yoki safarni muddatidan oldin tugatadi. Safar darhol boshlanadi; qaytish kuni yangi topshiriq berish avtomatik qayta ochiladi. Safardagi dasturchiga yangi topshiriq/sub-vazifa biriktirilmaydi; avvaldan biriktirilgan ishlar saqlanadi. Bu qoida serverda ham tekshiriladi.
 
 ### Tekshiruv navbati (`/tekshiruv`, PM, Boshliq)
-- Tekshiruvga yuborilgan vazifalar ro'yxati, kim yuborgani bilan. "Ko'rib chiqish" vazifa oynasini ochadi, qabul qilish yoki qaytarish shu yerda. Menyuda kutayotganlar soni ko'rinadi.
+- Tekshiruvga yuborilgan topshiriqlar ro'yxati, kim yuborgani bilan. "Ko'rib chiqish" topshiriq oynasini ochadi, qabul qilish yoki qaytarish shu yerda. Menyuda kutayotganlar soni ko'rinadi.
 
 ### Xabarlar (`/xabarlar`)
 - Foydalanuvchilar orasida shaxsiy yozishma. Chapda suhbatlar ro'yxati va ism bo'yicha qidiruv, o'ngda suhbat. Telefonga moslangan.
@@ -246,7 +246,7 @@ Menyu guruhlarga bo'lingan: *Asosiy ish* | *Muloqot* | *Kuzatuv* (Kuzatuv faqat 
 - Alohida sahifa/menyu bandi emas — tepadagi qo'ng'iroq ikonkasi bosilganda modal ochiladi (2026-10-05).
 - Kun bo'yicha guruhlangan (Bugun, Kecha, sana), har bir turning o'z rangli ikonkasi bor, o'qilmaganlar ajratib ko'rsatiladi.
 - Sarlavha ostida o'qilmaganlar soni, "Hammasi / O'qilmagan" filtri, "Hammasini o'qildi deb belgilash". Bosilsa tegishli oyna ochiladi.
-- Turlari: yangi buyurtma, buyurtma tasdiqlandi, buyurtma rad etildi, yangi TZ versiyasi, vazifa berildi, tekshiruvga yuborildi, vazifa qabul qilindi, vazifa qaytarildi, yangi izoh, loyihani yakunlashga dasturchi tasdig'i so'raldi, dasturchi loyihani yakunlashni rad etdi, barcha dasturchilar tasdiqladi (PM/Boshliqqa), loyihani yakunlashni tasdiqlash so'raldi (boshqarmaga), loyihani yakunlash tasdiqlandi, loyihani yakunlash rad etildi.
+- Turlari: yangi buyurtma, buyurtma tasdiqlandi, buyurtma rad etildi, yangi TZ versiyasi, topshiriq berildi, tekshiruvga yuborildi, topshiriq qabul qilindi, topshiriq qaytarildi, yangi izoh, loyihani yakunlashga dasturchi tasdig'i so'raldi, dasturchi loyihani yakunlashni rad etdi, barcha dasturchilar tasdiqladi (PM/Boshliqqa), loyihani yakunlashni tasdiqlash so'raldi (boshqarmaga), loyihani yakunlash tasdiqlandi, loyihani yakunlash rad etildi.
 
 ### Takliflar (`/takliflar`, hamma)
 - Tizimni yaxshilash bo'yicha g'oyalar. Taklif ochiq yoki **anonim** yuboriladi (sarlavha va matn).
@@ -254,19 +254,19 @@ Menyu guruhlarga bo'lingan: *Asosiy ish* | *Muloqot* | *Kuzatuv* (Kuzatuv faqat 
 - Holatlar: **Ko'rib chiqilmoqda → Qabul qilingan / Rad etilgan**. Taklif tahrirlanmaydi.
 
 ### Qilingan ishlar (`/qilingan-ishlar`, PM, Boshliq)
-- 3 ta tab: **Vazifalar** (bajarilgan vazifalar, ijrochilar va sanasi), **Tekshiruvlar** (kim yubordi, kim tekshirdi, qaror, izoh), **Tarix** (tizimdagi amallar lentasi — kim nima qildi va qachon).
-- Loyiha, oxirgi necha kun va **"Faqat men"** bo'yicha filtr, sahifalash. PM/Boshliq vazifaga ijrochi bo'la olmagani uchun "Faqat men" — o'zi yaratgan va yakunlangan vazifalar, o'zi tekshirib qabul/rad etgan ishlar va o'z amallari (Tarix tabida).
+- 3 ta tab: **Topshiriqlar** (bajarilgan topshiriqlar, ijrochilar va sanasi), **Tekshiruvlar** (kim yubordi, kim tekshirdi, qaror, izoh), **Tarix** (tizimdagi amallar lentasi — kim nima qildi va qachon).
+- Loyiha, oxirgi necha kun va **"Faqat men"** bo'yicha filtr, sahifalash. PM/Boshliq topshiriqqa ijrochi bo'la olmagani uchun "Faqat men" — o'zi yaratgan va yakunlangan topshiriqlar, o'zi tekshirib qabul/rad etgan ishlar va o'z amallari (Tarix tabida).
 
 ### Profil (`/profil`)
-- Barcha profillar bir xil ko'rinishda (o'z profilim va xodim oynasi): umumiy `ProfileHeader` (avatar, ism, lavozim, 4 ko'rsatkich: faol, kechikkan, tekshiruvda, bajarilgan) va umumiy vazifalar jadvali (`TaskTable`). "Faol" soni hamma joyda bir xil qoida bilan hisoblanadi.
+- Barcha profillar bir xil ko'rinishda (o'z profilim va xodim oynasi): umumiy `ProfileHeader` (avatar, ism, lavozim, 4 ko'rsatkich: faol, kechikkan, tekshiruvda, bajarilgan) va umumiy topshiriqlar jadvali (`TaskTable`). "Faol" soni hamma joyda bir xil qoida bilan hisoblanadi.
 - Ism, familiya, Telegram username, parolni almashtirish. Telegram username o'zgarsa, eski chat uziladi (botga `/start` qayta yuboriladi).
-- Dasturchi profilida **"Mening vazifalarim"** jadvali — faqat o'ziga biriktirilgan vazifalar.
+- Dasturchi profilida **"Mening topshiriqlarim"** jadvali — faqat o'ziga biriktirilgan topshiriqlar.
 - **Profil rasmi:** "Rasm yuklash" (keyin "Rasmni almashtirish" / "Rasmni o'chirish"). JPG, PNG yoki WEBP, 5 MB gacha. Server rasmni tekshiradi, 1024px gacha kichraytiradi, joylashuv kabi ichki ma'lumotlarni (EXIF) o'chiradi. Rasm faqat tizimga kirganlarga ko'rinadi.
 - **Rasmni ko'rish:** profil sarlavhasidagi rasm (o'z profilim va xodim oynasi) bosilsa, Telegram kabi to'liq ekranda ochiladi: to'q fon, tepada ism va ✕. `Esc`, fonga bosish yoki "Orqaga" yopadi. Xodim oynasidan ochilsa, uning o'rnini egallaydi va "Orqaga" xodim oynasiga qaytaradi.
-- **Avatar kartochkasi:** har qanday joyda (jadval, vazifa oynasi, chat, menyu) avatar ustiga sichqoncha olib borilsa, kichik profil kartochkasi chiqadi: rasm, ism familiya, rol (Boshqarma bo'lsa, boshqarma nomi). Rasm bo'lmasa, bosh harflar. Kartochka modal emas.
+- **Avatar kartochkasi:** har qanday joyda (jadval, topshiriq oynasi, chat, menyu) avatar ustiga sichqoncha olib borilsa, kichik profil kartochkasi chiqadi: rasm, ism familiya, rol (Boshqarma bo'lsa, boshqarma nomi). Rasm bo'lmasa, bosh harflar. Kartochka modal emas.
 
 ### Izohlar
-- Buyurtma, loyiha va vazifa oynalarida izohlar bo'limi bor. Izoh yozilsa, ishtirokchilarga bildirishnoma boradi va tarixga yoziladi.
+- Buyurtma, loyiha va topshiriq oynalarida izohlar bo'limi bor. Izoh yozilsa, ishtirokchilarga bildirishnoma boradi va tarixga yoziladi.
 
 ## 8. Telegram bildirishnomalari
 
@@ -278,7 +278,7 @@ Menyu guruhlarga bo'lingan: *Asosiy ish* | *Muloqot* | *Kuzatuv* (Kuzatuv faqat 
 - Bot (`runbot`) server bilan birga avtomatik ishga tushadi (`backend/start_server.bat`, log: `backend/bot.log`). Logga token yozilmaydi.
 - Bitta token bilan faqat **bitta** bot jarayoni ishlashi mumkin: boshqa joyda ham ishlasa, logda "409" chiqadi va `/start` xabarlari o'sha joyga ketadi.
 
-## 9. Modallar (amalda: 12 ta)
+## 9. Modallar (amalda: 13 ta)
 
 Ko'rish, yaratish, tahrirlash — hammasi modalda. Batafsil: `docs/FLOWS_MODALS.md`.
 
@@ -288,14 +288,15 @@ Ko'rish, yaratish, tahrirlash — hammasi modalda. Batafsil: `docs/FLOWS_MODALS.
 | 2 | Buyurtma ko'rish (tasdiqlash / rad etish shu yerda) | 8 | Taklif yaratish |
 | 3 | Loyiha yaratish (3 qadam) | 9 | Taklif ko'rish |
 | 4 | Loyiha ko'rish / tahrirlash | 10 | Taqvim kuni |
-| 5 | Vazifa yaratish / tahrirlash (ommaviy yaratish ham) | 11 | Rasm ko'rish |
-| 6 | Vazifa ko'rish (tekshiruv shu yerda) | 12 | Bildirishnomalar (qo'ng'iroq ikonkasi) |
+| 5 | Topshiriq yaratish / tahrirlash (ommaviy yaratish ham) | 11 | Rasm ko'rish |
+| 6 | Topshiriq ko'rish (tekshiruv shu yerda) | 12 | Bildirishnomalar (qo'ng'iroq ikonkasi) |
+| 13 | Tekshiruvga yuborish (topshiriq oynasi ustida) |  |  |
 
 Word ko'rish alohida modal emas — joriy modal ichini almashtiradi ("← Orqaga").
 
 **Modal qoidalari:**
 - Tepada sarlavha va ✕, o'rtada aylanuvchi tarkib, pastda doim ko'rinadigan tugmalar paneli (asosiy amal o'ngda, xavfli amal chapda).
-- **Modal ustida modal ochilmaydi.** Ichki amal (rad etish sababi, sana kiritish) modal ichidagi pastki panelda bajariladi.
+- **Modal ustida modal ochilmaydi.** Ichki amal (rad etish sababi, sana kiritish) modal ichidagi pastki panelda bajariladi. Yagona istisno: "Tekshiruvga yuborish" modali topshiriq oynasi ustida ochiladi (foydalanuvchi qarori, 2026-10-05).
 - Manzil satriga yozilmaydi: manzil toza qoladi (masalan `/qilingan-ishlar`, `?task=4` emas). Modal holati brauzer tarixida: "Orqaga" yopadi, sahifa yangilansa qayta ochiladi. Eski `?task=4` havolalar ishlaydi va darrov tozalanadi (`frontend/src/app/modals.tsx`).
 - `Esc` yopadi, fokus modal ichida qoladi, saqlanmagan o'zgarish bo'lsa so'raydi. Telefonda butun ekran.
 - Tugmalar rolga va holatga qarab chiqadi, keraksiz tugma ko'rsatilmaydi.
@@ -309,7 +310,7 @@ Cheklov: bitta bo'limda **3–4 ta flow**, istisnoda **5 ta**. Oshsa — flow'la
 | auth (1) | Ro'yxatdan o'tish va tasdiqlash |
 | orders (3) | Buyurtma yuborish · Buyurtmani ko'rib chiqish · TZ qayta yuborish (v2, v3…) |
 | projects (2) | Loyiha yaratish · Loyihani yakunlashni tasdiqlash |
-| tasks (3) | Vazifa yaratish va biriktirish · Vazifani bajarish · Tekshiruv |
+| tasks (3) | Topshiriq yaratish va biriktirish · Topshiriqni bajarish · Tekshiruv |
 | profile (1) | Profil tahrirlash (rasm va parol bilan) |
 | suggestions (1) | Takliflar berish va ovoz |
 | history (1) | Qilingan ishlar |
@@ -322,16 +323,16 @@ Batafsil bosqichlar: `docs/FLOWS_MODALS.md`.
 **Qabul qilingan qarorlar:**
 - **Muhimlik turi:** boshqarma buyurtma yuborganda tanlaydi, PM tasdiqlaganda o'zgartira oladi.
 - **Mas'ul PM:** buyurtmani tasdiqlagan PM avtomatik mas'ul bo'ladi. Dasturchilar loyiha yaratilganda biriktiriladi.
-- **Topshiriqlar:** kichik qadamlar, har biriga bir nechta dasturchi biriktirish mumkin.
+- **Sub-vazifalar:** kichik qadamlar, har biriga bir nechta dasturchi biriktirish mumkin.
 - **Xabarlar (chat):** foydalanuvchilar orasida shaxsiy yozishma.
-- **Ommaviy vazifalar:** bir nechta vazifani matn shaklida birdaniga yaratish.
+- **Ommaviy topshiriqlar:** bir nechta topshiriqni matn shaklida birdaniga yaratish.
 - **Mutaxassisliklar** Django adminda boshqariladi. Demo ro'yxat: Backend dasturchi, Frontend dasturchi, Mobil dasturchi, Dizayner, Tester, Loyiha menejeri, Boshqaruv.
 - **Autentifikatsiya:** Cookie / Session (DRF standart), CSRF himoyasi bilan.
 - **Fayl turlari va hajm:** .docx, .pdf, .png, .jpg, .jpeg — 20 MB gacha. Profil rasmi: JPG, PNG, WEBP — 5 MB gacha.
 - **Takliflar bo'limi:** tizimni yaxshilash bo'yicha g'oyalar, qarorni Boshliq chiqaradi.
 - **Yon panel (drawer) yo'q** — foydalanuvchini chalg'itmasligi uchun faqat modal va sahifalar.
-- **"To'xtab qolgan" vazifa holati yo'q.**
-- **Vazifalar filtrida "Loyiha" va "Oy yarmi" yo'q** — o'rniga "Sanadan / Sanagacha" oralig'i.
+- **"To'xtab qolgan" topshiriq holati yo'q.**
+- **Topshiriqlar filtrida "Loyiha" va "Oy yarmi" yo'q** — o'rniga "Sanadan / Sanagacha" oralig'i.
 - **Loyihani yakunlash:** avval loyihadagi barcha faol dasturchilar bildirishnoma orqali tasdiqlashi kerak (birortasi sababli rad etsa, yakunlanmaydi). Shundan keyin: buyurtmasiz loyiha to'g'ridan-to'g'ri yakunlanadi; buyurtmadan yaratilgan loyiha avval "Tasdiqlash kutilmoqda"ga o'tadi — faqat buyurtmani yuborgan boshqarma uni Yakunlangan deb tasdiqlaydi yoki sabab bilan Tuzatish kerak'ga qaytaradi. (Qaror: 2026-10-05.)
 
 **Ochiq savollar:** hozircha yo'q.
@@ -339,7 +340,7 @@ Batafsil bosqichlar: `docs/FLOWS_MODALS.md`.
 ## 12. Xavfsizlik
 
 - Parollar Django parol hesh mexanizmi bilan saqlanadi. Kirish so'rovlari cheklangan (throttle).
-- Har bir API so'rovda rol va egalik **serverda** tekshiriladi: boshqarma faqat o'z buyurtmasini, dasturchi faqat o'z vazifasi va loyihasini ko'radi.
+- Har bir API so'rovda rol va egalik **serverda** tekshiriladi: boshqarma faqat o'z buyurtmasini, dasturchi faqat o'z topshirig'i va loyihasini ko'radi.
 - Buyurtma yuborilgach boshqarma uni tahrirlay ham, o'chira ham olmaydi.
 - Fayl yuklashda tur va hajm tekshiriladi. Yuklangan fayllar ochiq berilmaydi — faqat `/api/files/...` orqali ruxsat tekshiruvi bilan. Profil rasmlari — `/api/avatars/<id>/`, faqat tizimga kirganlarga.
 - Maxfiy ma'lumotlar (`DJANGO_SECRET_KEY`, Telegram token) muhit o'zgaruvchilarida yoki `backend/.env` da; `DEBUG=0` bo'lganda maxfiy kalitsiz server ishga tushmaydi.

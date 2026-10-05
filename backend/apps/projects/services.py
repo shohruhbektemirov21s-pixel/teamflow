@@ -294,7 +294,7 @@ def _release_developers(project, developer_ids):
         names = ", ".join(sorted({a.developer.full_name for t in blocked for a in t.assignments.all()}))
         codes = ", ".join(t.code for t in blocked)
         raise ServiceError(
-            f"{names} — {codes} vazifasining yagona ijrochisi. Avval bu vazifani boshqa xodimga bering.",
+            f"{names} — {codes} topshirig'ining yagona ijrochisi. Avval bu topshiriqni boshqa xodimga bering.",
             "member_ids",
         )
     open_ids = open_tasks.values("pk")

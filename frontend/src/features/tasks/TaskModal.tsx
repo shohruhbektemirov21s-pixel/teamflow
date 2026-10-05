@@ -197,38 +197,33 @@ export default function TaskModal({ id, submitMode }: { id: number; submitMode?:
   const step = statuses.findIndex((s) => s.value === task.status);
   const lastReturned = [...task.submissions].reverse().find((s) => s.decision === "returned");
 
+  const closeSubmit = () => (setPanel(null), setNote(""), setFiles([]), setNoteError(undefined));
+
   const footer = (() => {
     const a = task.actions;
-    if (panel === "submit" || panel === "return") {
-      const isSubmit = panel === "submit";
+    if (panel === "return") {
       return (
         <div className="inline-panel">
-          <Field label={isSubmit ? T.tasks.submitTitle : T.tasks.returnTitle} required error={noteError}>
+          <Field label={T.tasks.returnTitle} required error={noteError}>
             {(fid, bad) => (
               <textarea
                 id={fid}
                 className="textarea"
                 aria-invalid={bad}
                 autoFocus
-                placeholder={isSubmit ? T.tasks.submitPh : T.tasks.returnPh}
+                placeholder={T.tasks.returnPh}
                 value={note}
                 onChange={(e) => setNote(e.target.value)}
               />
             )}
           </Field>
-          {isSubmit && <FilePicker files={files} onChange={setFiles} />}
           <div className="row">
             <span className="spacer" />
             <Button variant="ghost" onClick={() => (setPanel(null), setNoteError(undefined))}>
               {T.common.cancel}
             </Button>
-            <Button
-              variant={isSubmit ? "primary" : "danger"}
-              icon={isSubmit ? <Send /> : <RotateCcw />}
-              loading={act.isPending}
-              onClick={() => act.mutate(isSubmit ? "submit" : "return")}
-            >
-              {isSubmit ? T.tasks.submitSend : T.tasks.returnSend}
+            <Button variant="danger" icon={<RotateCcw />} loading={act.isPending} onClick={() => act.mutate("return")}>
+              {T.tasks.returnSend}
             </Button>
           </div>
         </div>
@@ -277,6 +272,7 @@ export default function TaskModal({ id, submitMode }: { id: number; submitMode?:
   })();
 
   return (
+    <>
     <Modal
       size="lg"
       title={<><CodeTag code={task.code} /> {task.title}</>}
@@ -290,7 +286,7 @@ export default function TaskModal({ id, submitMode }: { id: number; submitMode?:
         </>
       }
       onClose={close}
-      dirty={Boolean(panel && note.trim())}
+      dirty={panel === "return" && Boolean(note.trim())}
       footer={footer}
     >
       <div className="stack" style={{ gap: 18 }}>
@@ -547,6 +543,43 @@ export default function TaskModal({ id, submitMode }: { id: number; submitMode?:
         </div>
       </div>
     </Modal>
+    {panel === "submit" && (
+      <Modal
+        size="sm"
+        title={T.tasks.submit}
+        onClose={closeSubmit}
+        dirty={Boolean(note.trim() || files.length)}
+        footer={
+          <>
+            <span className="spacer" />
+            <Button variant="ghost" onClick={closeSubmit}>
+              {T.common.cancel}
+            </Button>
+            <Button variant="primary" icon={<Send />} loading={act.isPending} onClick={() => act.mutate("submit")}>
+              {T.tasks.submitSend}
+            </Button>
+          </>
+        }
+      >
+        <div className="stack">
+          <Field label={T.tasks.submitTitle} required error={noteError}>
+            {(fid, bad) => (
+              <textarea
+                id={fid}
+                className="textarea"
+                aria-invalid={bad}
+                autoFocus
+                placeholder={T.tasks.submitPh}
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+              />
+            )}
+          </Field>
+          <FilePicker files={files} onChange={setFiles} />
+        </div>
+      </Modal>
+    )}
+    </>
   );
 }
 

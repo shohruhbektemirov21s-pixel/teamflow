@@ -221,7 +221,7 @@ def project_setup(request):
         if not fs.is_valid():
             errors = fs.errors["files"]  # ListField: {tartib_raqami: [xato, ...]}
             messages = {str(m) for group in (errors.values() if isinstance(errors, dict) else [errors]) for m in group}
-            raise ValidationError({"tasks": [f"{index + 1}-vazifa fayli: {' '.join(sorted(messages))}"]})
+            raise ValidationError({"tasks": [f"{index + 1}-topshiriq fayli: {' '.join(sorted(messages))}"]})
         task_files[index] = fs.validated_data["files"]
     project = services.create_project_with_tasks(request.user, order=order, task_files=task_files, **data)
     return Response({"id": project.pk, "code": project.code}, status=status.HTTP_201_CREATED)

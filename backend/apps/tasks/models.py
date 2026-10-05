@@ -45,8 +45,8 @@ class Task(models.Model):
 
     class Meta:
         ordering = ["-created_at"]
-        verbose_name = "Vazifa"
-        verbose_name_plural = "Vazifalar"
+        verbose_name = "Topshiriq"
+        verbose_name_plural = "Topshiriqlar"
 
     def clean(self):
         super().clean()
@@ -78,13 +78,13 @@ class TaskAssignment(models.Model):
 
     class Meta:
         constraints = [models.UniqueConstraint(fields=["task", "developer"], name="uniq_task_assignment")]
-        verbose_name = "Vazifa ijrochisi"
-        verbose_name_plural = "Vazifa ijrochilari"
+        verbose_name = "Topshiriq ijrochisi"
+        verbose_name_plural = "Topshiriq ijrochilari"
 
     def clean(self):
         super().clean()
         if self.developer_id and not self.developer.is_developer:
-            raise ValidationError({"developer": "Vazifa faqat 'Dasturchi' rolidagi foydalanuvchiga biriktiriladi."})
+            raise ValidationError({"developer": "Topshiriq faqat 'Dasturchi' rolidagi foydalanuvchiga biriktiriladi."})
 
     def __str__(self):
         return f"{self.task} — {self.developer}"
@@ -139,8 +139,8 @@ class SubTask(models.Model):
 
     class Meta:
         ordering = ["position", "id"]
-        verbose_name = "Topshiriq"
-        verbose_name_plural = "Topshiriqlar"
+        verbose_name = "Sub-vazifa"
+        verbose_name_plural = "Sub-vazifalar"
 
     def __str__(self):
         return self.title
@@ -155,8 +155,8 @@ class TaskFile(models.Model):
 
     class Meta:
         ordering = ["-created_at"]
-        verbose_name = "Vazifa fayli"
-        verbose_name_plural = "Vazifa fayllari"
+        verbose_name = "Topshiriq fayli"
+        verbose_name_plural = "Topshiriq fayllari"
 
     def __str__(self):
         return self.original_name

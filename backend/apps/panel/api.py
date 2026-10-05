@@ -234,7 +234,7 @@ def comments(request):
     s.is_valid(raise_exception=True)
     obj = _resolve_target(request.user, s.validated_data["target_type"], s.validated_data["target_id"])
     if isinstance(obj, Task) and obj.archived_at is not None:
-        raise PermissionDenied("Arxivlangan vazifaga yangi izoh yozib bo'lmaydi.")
+        raise PermissionDenied("Arxivlangan topshiriqqa yangi izoh yozib bo'lmaydi.")
     text = s.validated_data["text"].strip()
     if not text:
         return Response({"detail": "Izoh bo'sh bo'lmasin."}, status=400)

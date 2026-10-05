@@ -180,7 +180,7 @@ class BulkTaskSerializer(serializers.Serializer):
 
     def validate(self, data):
         if ("tasks" in data) == ("titles" in data):
-            raise serializers.ValidationError("Vazifalar ro'yxatini bitta usulda yuboring.")
+            raise serializers.ValidationError("Topshiriqlar ro'yxatini bitta usulda yuboring.")
         if "titles" in data:
             data["tasks"] = [
                 {"title": title, "assignee_ids": data["assignee_ids"], "priority": data["priority"],

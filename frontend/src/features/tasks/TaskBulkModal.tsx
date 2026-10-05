@@ -38,7 +38,7 @@ export default function TaskBulkModal({ projectId }: { projectId?: number }) {
       tasks: rows.map((row) => ({ ...row, due_at: fromLocalInput(row.due_at) })),
     }),
     onSuccess: (result) => {
-      toast(`${result.created} ta vazifa yaratildi`);
+      toast(`${result.created} ta topshiriq yaratildi`);
       refresh();
       close();
     },
@@ -63,10 +63,10 @@ export default function TaskBulkModal({ projectId }: { projectId?: number }) {
         <Field label={T.tasks.project} required>
           {(id) => <select id={id} className="select" value={project} onChange={(event) => { setProject(event.target.value ? Number(event.target.value) : ""); setRows([emptyRow()]); }}><option value="">{T.tasks.pickProject}</option>{projects.data?.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select>}
         </Field>
-        {!project ? <Callout tone="info">Avval loyiha tanlang, keyin vazifalarni xodimlarga taqsimlang.</Callout> : team.isLoading ? <Skeleton h={160} /> : !members.length ? <Callout tone="warning">{T.tasks.noTeam}</Callout> : (
+        {!project ? <Callout tone="info">Avval loyiha tanlang, keyin topshiriqlarni xodimlarga taqsimlang.</Callout> : team.isLoading ? <Skeleton h={160} /> : !members.length ? <Callout tone="warning">{T.tasks.noTeam}</Callout> : (
           <div className="stack">
             {rows.map((row, index) => (
-              <section key={index} className="card card-pad stack-sm" aria-label={`${index + 1}-vazifa`}>
+              <section key={index} className="card card-pad stack-sm" aria-label={`${index + 1}-topshiriq`}>
                 <div className="row-wrap">
                   <input className="input grow" placeholder={T.tasks.namePh} value={row.title} onChange={(event) => update(index, { title: event.target.value })} />
                   <select className="select" value={row.priority} aria-label={T.tasks.priority} onChange={(event) => update(index, { priority: event.target.value as Priority })}>
