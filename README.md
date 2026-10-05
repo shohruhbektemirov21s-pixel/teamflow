@@ -174,12 +174,12 @@ Menyu guruhlarga bo'lingan: *Asosiy ish* | *Muloqot* | *Kuzatuv* (Kuzatuv faqat 
 
 | Rol | Asosiy ish | Muloqot | Kuzatuv |
 |---|---|---|---|
-| **Dasturchi** | Bosh panel · Vazifalar · Mening ishim · Taqvim | Xabarlar · Bildirishnomalar · Takliflar | — |
-| **PM va Boshliq** | Bosh panel · Loyihalar · Buyurtmalar (TZ) · Vazifalar · Taqvim | Xodimlar · Xabarlar · Bildirishnomalar · Tekshiruv navbati · Takliflar | Qilingan ishlar |
-| **Boshqarma** | Bosh panel · Buyurtmalarim | Xabarlar · Bildirishnomalar · Takliflar | — |
+| **Dasturchi** | Bosh panel · Vazifalar · Mening ishim · Taqvim | Xabarlar · Takliflar | — |
+| **PM va Boshliq** | Bosh panel · Loyihalar · Buyurtmalar (TZ) · Vazifalar · Taqvim | Xodimlar · Xabarlar · Tekshiruv navbati · Takliflar | Qilingan ishlar |
+| **Boshqarma** | Bosh panel · Buyurtmalarim | Xabarlar · Takliflar | — |
 
 - Menyu pastida foydalanuvchi kartasi (ism, rol; bosilsa Profil ochiladi) va "Chiqish".
-- Yuqorida: qidiruv (`Ctrl K`, kodlar bilan ham), tungi/kunduzgi rejim, bildirishnomalar.
+- Yuqorida: qidiruv (`Ctrl K`, kodlar bilan ham), tungi/kunduzgi rejim, bildirishnomalar (qo'ng'iroq ikonkasi — o'z soni bilan; chap menyuda alohida band yo'q, barcha rolda shu yerdan ochiladi).
 - Yon panel (drawer) **ishlatilmaydi**: ko'rish, yaratish, tahrirlash — faqat modalda.
 - Manzillar: `/`, `/vazifalar`, `/mening-ishim`, `/taqvim`, `/loyihalar`, `/buyurtmalar`, `/xodimlar`, `/tekshiruv`, `/xabarlar`, `/bildirishnomalar`, `/takliflar`, `/qilingan-ishlar`, `/profil`. Rolga tegishli bo'lmagan sahifa ochilmaydi.
 
