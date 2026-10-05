@@ -22,7 +22,7 @@ import { useMeta } from "@/shared/meta";
 import { boardMove, TASK_TONE } from "@/shared/status";
 import { T } from "@/shared/text";
 import type { Task, TaskStatus } from "@/shared/types";
-import { Button, CodeTag, Due, ErrorBox, PriorityBadge, Segmented, Skeleton, useToast } from "@/shared/ui";
+import { Button, CodeTag, Due, ErrorBox, PriorityBadge, Skeleton, useToast } from "@/shared/ui";
 
 type DueFilter = "" | "today" | "week";
 
@@ -40,7 +40,8 @@ export default function BoardPage() {
   const meta = useMeta();
   const statuses = meta.values<TaskStatus>("task_statuses");
   const [project, setProject] = useState("");
-  const [due, setDue] = useState<DueFilter>("");
+  // Sahifa birinchi ochilganda standart tanlov "Shu hafta" (foydalanuvchi so'rovi, 2026-10-05).
+  const [due, setDue] = useState<DueFilter>("week");
   const [dragging, setDragging] = useState<Task | null>(null);
 
   const key = ["tasks", "board", project, due];
@@ -116,19 +117,14 @@ export default function BoardPage() {
             ))}
           </select>
         </label>
-        <div className="field">
+        <label className="field" style={{ minWidth: 160 }}>
           <span className="field-label">{T.filters.due}</span>
-          <Segmented<DueFilter>
-            value={due}
-            onChange={setDue}
-            label={T.filters.due}
-            options={[
-              { value: "", label: T.filters.dueAll },
-              { value: "today", label: T.filters.dueToday },
-              { value: "week", label: T.filters.dueWeek },
-            ]}
-          />
-        </div>
+          <select className="select" value={due} onChange={(e) => setDue(e.target.value as DueFilter)}>
+            <option value="">{T.filters.dueAll}</option>
+            <option value="today">{T.filters.dueToday}</option>
+            <option value="week">{T.filters.dueWeek}</option>
+          </select>
+        </label>
       </div>
 
       {query.error && <ErrorBox error={query.error} onRetry={() => query.refetch()} />}

@@ -27,6 +27,14 @@ class Task(models.Model):
     due_at = models.DateTimeField("Tugash vaqti (muddat)", null=True, blank=True, db_index=True)
     completed_at = models.DateTimeField("Bajarilgan vaqt", null=True, blank=True)
     archived_at = models.DateTimeField("Arxivlangan vaqt", null=True, blank=True, db_index=True)
+    # Menejer (PM/Boshliq) ijrochi bo'lmay "Tekshiruvga yuborish" bossa, shu paytdagi izoh shu yerda kutadi —
+    # ijrochilar tasdiqlagach haqiqiy Submission shundan yaratiladi (TaskSubmitAck/TaskSubmitAttachment).
+    submit_requested_at = models.DateTimeField("Tekshiruvga yuborish tasdig'i so'ralgan payt", null=True, blank=True)
+    submit_requested_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name="+",
+        verbose_name="Tekshiruvga yuborishni so'ragan menejer",
+    )
+    pending_submit_note = models.TextField("Kutilayotgan izoh", blank=True)
     created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="+")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -37,8 +45,8 @@ class Task(models.Model):
 
     class Meta:
         ordering = ["-created_at"]
-        verbose_name = "Vazifa"
-        verbose_name_plural = "Vazifalar"
+        verbose_name = "Topshiriq"
+        verbose_name_plural = "Topshiriqlar"
 
     def clean(self):
         super().clean()
@@ -70,16 +78,52 @@ class TaskAssignment(models.Model):
 
     class Meta:
         constraints = [models.UniqueConstraint(fields=["task", "developer"], name="uniq_task_assignment")]
-        verbose_name = "Vazifa ijrochisi"
-        verbose_name_plural = "Vazifa ijrochilari"
+        verbose_name = "Topshiriq ijrochisi"
+        verbose_name_plural = "Topshiriq ijrochilari"
 
     def clean(self):
         super().clean()
         if self.developer_id and not self.developer.is_developer:
-            raise ValidationError({"developer": "Vazifa faqat 'Dasturchi' rolidagi foydalanuvchiga biriktiriladi."})
+            raise ValidationError({"developer": "Topshiriq faqat 'Dasturchi' rolidagi foydalanuvchiga biriktiriladi."})
 
     def __str__(self):
         return f"{self.task} — {self.developer}"
+
+
+class TaskSubmitAck(models.Model):
+    """Menejer (PM/Boshliq) ijrochi bo'lmay vazifani tekshiruvga yubormoqchi bo'lsa so'ralgan ijrochi tasdig'i
+    (bir davr = bitta so'rov turi). Birortasi rad etsa, butun davr bekor qilinadi; qayta so'raganda
+    hammadan yangidan so'raladi (ProjectCompletionAck namunasida)."""
+
+    task = models.ForeignKey(Task, on_delete=models.CASCADE, related_name="submit_acks")
+    developer = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="+")
+    confirmed = models.BooleanField("Tasdiqladi", null=True, default=None)
+    reason = models.CharField("Rad etish sababi", max_length=500, blank=True)
+    decided_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=["task", "developer"], name="uniq_task_submit_ack")]
+        verbose_name = "Tekshiruvga yuborish tasdig'i"
+        verbose_name_plural = "Tekshiruvga yuborish tasdiqlari"
+
+    def __str__(self):
+        return f"{self.task} — {self.developer}"
+
+
+class TaskSubmitAttachment(models.Model):
+    """Menejer so'ragan tekshiruvga yuborish uchun kutilayotgan fayl — tasdiqlangach `SubmissionFile`ga ko'chadi."""
+
+    task = models.ForeignKey(Task, on_delete=models.CASCADE, related_name="submit_attachments")
+    file = models.FileField(upload_to=UploadTo("tasks/submit_attachments"), validators=[validate_upload])
+    original_name = models.CharField("Asl fayl nomi", max_length=255)
+
+    class Meta:
+        verbose_name = "Kutilayotgan tekshiruv fayli"
+        verbose_name_plural = "Kutilayotgan tekshiruv fayllari"
+
+    def __str__(self):
+        return self.original_name
 
 
 class SubTask(models.Model):
@@ -95,8 +139,8 @@ class SubTask(models.Model):
 
     class Meta:
         ordering = ["position", "id"]
-        verbose_name = "Topshiriq"
-        verbose_name_plural = "Topshiriqlar"
+        verbose_name = "Sub-vazifa"
+        verbose_name_plural = "Sub-vazifalar"
 
     def __str__(self):
         return self.title
@@ -111,8 +155,8 @@ class TaskFile(models.Model):
 
     class Meta:
         ordering = ["-created_at"]
-        verbose_name = "Vazifa fayli"
-        verbose_name_plural = "Vazifa fayllari"
+        verbose_name = "Topshiriq fayli"
+        verbose_name_plural = "Topshiriq fayllari"
 
     def __str__(self):
         return self.original_name

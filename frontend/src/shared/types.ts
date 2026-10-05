@@ -104,6 +104,7 @@ export interface TaskDetail extends Task {
   worklogs: WorkLog[];
   worklog_hours: string;
   actions: { start: boolean; submit: boolean; review: boolean; edit: boolean; delete: boolean; add_files: boolean; manage_subtasks?: boolean; manage_assignees?: boolean; log_work?: boolean };
+  submit_ack: { requested_at: string; requested_by: UserBrief | null; pending: UserBrief[]; confirmed: UserBrief[] } | null;
 }
 
 export interface WorkLog {

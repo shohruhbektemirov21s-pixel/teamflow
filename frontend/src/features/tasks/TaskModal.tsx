@@ -88,21 +88,26 @@ export default function TaskModal({ id, submitMode }: { id: number; submitMode?:
   const act = useMutation({
     mutationFn: async (kind: "start" | "submit" | "accept" | "return" | "delete" | "files") => {
       if (kind === "start") return api.post(`/tasks/${id}/start/`);
-      if (kind === "submit") return api.post(`/tasks/${id}/submit/`, formData({ note }, files));
+      if (kind === "submit") return api.post<TaskDetail>(`/tasks/${id}/submit/`, formData({ note }, files));
       if (kind === "accept") return api.post(`/tasks/${id}/review/`, { decision: "accept", note });
       if (kind === "return") return api.post(`/tasks/${id}/review/`, { decision: "return", note });
       if (kind === "files") return api.post(`/tasks/${id}/files/`, formData({}, files));
       return api.del(`/tasks/${id}/`);
     },
-    onSuccess: (_d, kind) => {
-      const msg = {
-        start: T.tasks.startedToast,
-        submit: T.tasks.submittedToast,
-        accept: T.tasks.acceptedToast,
-        return: T.tasks.returnedToast,
-        delete: T.tasks.deletedToast,
-        files: T.common.saved,
-      }[kind];
+    onSuccess: (d, kind) => {
+      // Menejer ijrochi bo'lmay yuborsa, submit_ack to'ldirilgan holda qaytadi — hali yuborilmadi,
+      // ijrochi tasdiqlashini kutamiz (submittedToast emas).
+      const msg =
+        kind === "submit" && (d as TaskDetail | undefined)?.submit_ack
+          ? T.tasks.submitAckRequestedToast
+          : {
+              start: T.tasks.startedToast,
+              submit: T.tasks.submittedToast,
+              accept: T.tasks.acceptedToast,
+              return: T.tasks.returnedToast,
+              delete: T.tasks.deletedToast,
+              files: T.common.saved,
+            }[kind];
       toast(msg);
       setPanel(null);
       setNote("");
@@ -192,38 +197,33 @@ export default function TaskModal({ id, submitMode }: { id: number; submitMode?:
   const step = statuses.findIndex((s) => s.value === task.status);
   const lastReturned = [...task.submissions].reverse().find((s) => s.decision === "returned");
 
+  const closeSubmit = () => (setPanel(null), setNote(""), setFiles([]), setNoteError(undefined));
+
   const footer = (() => {
     const a = task.actions;
-    if (panel === "submit" || panel === "return") {
-      const isSubmit = panel === "submit";
+    if (panel === "return") {
       return (
         <div className="inline-panel">
-          <Field label={isSubmit ? T.tasks.submitTitle : T.tasks.returnTitle} required error={noteError}>
+          <Field label={T.tasks.returnTitle} required error={noteError}>
             {(fid, bad) => (
               <textarea
                 id={fid}
                 className="textarea"
                 aria-invalid={bad}
                 autoFocus
-                placeholder={isSubmit ? T.tasks.submitPh : T.tasks.returnPh}
+                placeholder={T.tasks.returnPh}
                 value={note}
                 onChange={(e) => setNote(e.target.value)}
               />
             )}
           </Field>
-          {isSubmit && <FilePicker files={files} onChange={setFiles} />}
           <div className="row">
             <span className="spacer" />
             <Button variant="ghost" onClick={() => (setPanel(null), setNoteError(undefined))}>
               {T.common.cancel}
             </Button>
-            <Button
-              variant={isSubmit ? "primary" : "danger"}
-              icon={isSubmit ? <Send /> : <RotateCcw />}
-              loading={act.isPending}
-              onClick={() => act.mutate(isSubmit ? "submit" : "return")}
-            >
-              {isSubmit ? T.tasks.submitSend : T.tasks.returnSend}
+            <Button variant="danger" icon={<RotateCcw />} loading={act.isPending} onClick={() => act.mutate("return")}>
+              {T.tasks.returnSend}
             </Button>
           </div>
         </div>
@@ -272,6 +272,7 @@ export default function TaskModal({ id, submitMode }: { id: number; submitMode?:
   })();
 
   return (
+    <>
     <Modal
       size="lg"
       title={<><CodeTag code={task.code} /> {task.title}</>}
@@ -285,7 +286,7 @@ export default function TaskModal({ id, submitMode }: { id: number; submitMode?:
         </>
       }
       onClose={close}
-      dirty={Boolean(panel && note.trim())}
+      dirty={panel === "return" && Boolean(note.trim())}
       footer={footer}
     >
       <div className="stack" style={{ gap: 18 }}>
@@ -294,6 +295,9 @@ export default function TaskModal({ id, submitMode }: { id: number; submitMode?:
           <Callout tone="warning">
             <b>{T.tasks.returnTitle}</b> {lastReturned.review_note}
           </Callout>
+        )}
+        {task.submit_ack && (
+          <Callout tone="info">{T.tasks.submitAckPending(task.submit_ack.pending.map((u) => u.full_name).join(", "))}</Callout>
         )}
 
         <div className="modal-split" style={{ marginTop: 8 }}>
@@ -539,6 +543,43 @@ export default function TaskModal({ id, submitMode }: { id: number; submitMode?:
         </div>
       </div>
     </Modal>
+    {panel === "submit" && (
+      <Modal
+        size="sm"
+        title={T.tasks.submit}
+        onClose={closeSubmit}
+        dirty={Boolean(note.trim() || files.length)}
+        footer={
+          <>
+            <span className="spacer" />
+            <Button variant="ghost" onClick={closeSubmit}>
+              {T.common.cancel}
+            </Button>
+            <Button variant="primary" icon={<Send />} loading={act.isPending} onClick={() => act.mutate("submit")}>
+              {T.tasks.submitSend}
+            </Button>
+          </>
+        }
+      >
+        <div className="stack">
+          <Field label={T.tasks.submitTitle} required error={noteError}>
+            {(fid, bad) => (
+              <textarea
+                id={fid}
+                className="textarea"
+                aria-invalid={bad}
+                autoFocus
+                placeholder={T.tasks.submitPh}
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+              />
+            )}
+          </Field>
+          <FilePicker files={files} onChange={setFiles} />
+        </div>
+      </Modal>
+    )}
+    </>
   );
 }
 

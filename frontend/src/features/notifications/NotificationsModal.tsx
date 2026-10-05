@@ -43,6 +43,14 @@ const NOTICE_ICON: Record<string, LucideIcon> = {
   project_completion_requested: Hourglass,
   project_completion_approved: CheckCircle2,
   project_completion_rejected: RotateCcw,
+  task_submit_ack_requested: Hourglass,
+  task_submit_ack_rejected: RotateCcw,
+};
+
+/** `needs_ack` bildirishnomasi uchun tasdiq so'ralgan obyekt turiga qarab API manzili. */
+const ACK_URL: Record<string, (id: number) => string> = {
+  project: (id) => `/projects/${id}/completion-ack/`,
+  task: (id) => `/tasks/${id}/submit-ack/`,
 };
 
 /** Loyihani yakunlashga tasdiq so'ralgan bildirishnoma: tugmalar bildirishnomaning o'zida (yangi modal yo'q).
@@ -56,7 +64,7 @@ function AckNotice({ notice, Icon, onOpen }: { notice: Notice; Icon: LucideIcon;
 
   const ack = useMutation({
     mutationFn: (data: { confirmed: boolean; reason?: string }) =>
-      api.post(`/projects/${notice.target!.id}/completion-ack/`, data),
+      api.post(ACK_URL[notice.target!.type](notice.target!.id), data),
     onSuccess: () => {
       toast(T.notifications.ackSent);
       setRejecting(false);

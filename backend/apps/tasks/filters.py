@@ -65,7 +65,12 @@ def filter_tasks(qs, params, user):
             qs = qs.filter(id=pk) if kind == "task" else qs.filter(project_id=pk)
         else:
             q = params["q"].strip()
-            qs = qs.filter(Q(title__icontains=q) | Q(description__icontains=q) | Q(project__name__icontains=q))
+            qs = qs.filter(
+                Q(title__icontains=q)
+                | Q(description__icontains=q)
+                | Q(project__name__icontains=q)
+                | Q(code__icontains=q)
+            )
     if params.get("status"):
         qs = qs.filter(status__in=params["status"].split(","))
     if params.get("priority"):

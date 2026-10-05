@@ -20,6 +20,7 @@ from .serializers import (
     FilesSerializer,
     ProjectSetupSerializer,
     ReviewSerializer,
+    SubmitAckSerializer,
     SubmitSerializer,
     SubTaskCreateSerializer,
     SubTaskToggleSerializer,
@@ -100,6 +101,15 @@ class TaskViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.Gen
         s = SubmitSerializer(data={"note": request.data.get("note", ""), "files": request.FILES.getlist("files")})
         s.is_valid(raise_exception=True)
         services.submit_task(task, request.user, **s.validated_data)
+        return Response(self._detail(task))
+
+    @action(detail=True, methods=["post"], url_path="submit-ack")
+    def submit_ack(self, request, pk=None):
+        """Vazifa ijrochisi menejer so'ragan tekshiruvga yuborishni tasdiqlaydi yoki rad etadi."""
+        task = self.get_object()
+        s = SubmitAckSerializer(data=request.data)
+        s.is_valid(raise_exception=True)
+        services.ack_submit(task, request.user, **s.validated_data)
         return Response(self._detail(task))
 
     @action(detail=True, methods=["post"])
@@ -211,7 +221,7 @@ def project_setup(request):
         if not fs.is_valid():
             errors = fs.errors["files"]  # ListField: {tartib_raqami: [xato, ...]}
             messages = {str(m) for group in (errors.values() if isinstance(errors, dict) else [errors]) for m in group}
-            raise ValidationError({"tasks": [f"{index + 1}-vazifa fayli: {' '.join(sorted(messages))}"]})
+            raise ValidationError({"tasks": [f"{index + 1}-topshiriq fayli: {' '.join(sorted(messages))}"]})
         task_files[index] = fs.validated_data["files"]
     project = services.create_project_with_tasks(request.user, order=order, task_files=task_files, **data)
     return Response({"id": project.pk, "code": project.code}, status=status.HTTP_201_CREATED)

@@ -1,4 +1,4 @@
-import { fireEvent, screen, waitFor } from "@testing-library/react";
+import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
 import { api } from "@/shared/api";
@@ -63,6 +63,25 @@ describe("TaskModal", () => {
 
     await screen.findByText(T.tasks.info);
     expect(screen.queryByRole("button", { name: T.tasks.assigneesEdit })).toBeNull();
+  });
+
+  it("tekshiruvga yuborish asosiy topshiriq oynasi ustida alohida modal ochadi", async () => {
+    mockGet({
+      "/tasks/1/": taskDetail({ actions: { ...taskDetail().actions, submit: true } }),
+    });
+    renderApp(<TaskModal id={1} />);
+
+    const mainDialog = await screen.findByRole("dialog", { name: /Kirish sahifasini yaratish/ });
+    fireEvent.click(within(mainDialog).getByRole("button", { name: T.tasks.submit }));
+
+    const submitDialog = screen.getByRole("dialog", { name: T.tasks.submit });
+    expect(within(submitDialog).getByRole("textbox", { name: /Nima qildingiz/ })).toBeTruthy();
+    expect(within(submitDialog).getByRole("button", { name: T.tasks.submitSend })).toBeTruthy();
+    expect(within(mainDialog).queryByRole("textbox", { name: /Nima qildingiz/ })).toBeNull();
+
+    fireEvent.click(within(submitDialog).getByRole("button", { name: T.common.cancel }));
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: T.tasks.submit })).toBeNull());
+    expect(screen.getByRole("dialog", { name: /Kirish sahifasini yaratish/ })).toBeTruthy();
   });
 
   it("sub-vazifada bir nechta ijrochi ko'rinadi", async () => {
