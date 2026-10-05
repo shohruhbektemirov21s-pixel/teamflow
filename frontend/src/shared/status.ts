@@ -49,6 +49,8 @@ export const NOTICE_TONE: Record<string, Tone> = {
   project_completion_requested: "violet",
   project_completion_approved: "success",
   project_completion_rejected: "danger",
+  task_submit_ack_requested: "violet",
+  task_submit_ack_rejected: "danger",
 };
 
 /**

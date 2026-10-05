@@ -20,6 +20,7 @@ from .serializers import (
     FilesSerializer,
     ProjectSetupSerializer,
     ReviewSerializer,
+    SubmitAckSerializer,
     SubmitSerializer,
     SubTaskCreateSerializer,
     SubTaskToggleSerializer,
@@ -100,6 +101,15 @@ class TaskViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.Gen
         s = SubmitSerializer(data={"note": request.data.get("note", ""), "files": request.FILES.getlist("files")})
         s.is_valid(raise_exception=True)
         services.submit_task(task, request.user, **s.validated_data)
+        return Response(self._detail(task))
+
+    @action(detail=True, methods=["post"], url_path="submit-ack")
+    def submit_ack(self, request, pk=None):
+        """Vazifa ijrochisi menejer so'ragan tekshiruvga yuborishni tasdiqlaydi yoki rad etadi."""
+        task = self.get_object()
+        s = SubmitAckSerializer(data=request.data)
+        s.is_valid(raise_exception=True)
+        services.ack_submit(task, request.user, **s.validated_data)
         return Response(self._detail(task))
 
     @action(detail=True, methods=["post"])

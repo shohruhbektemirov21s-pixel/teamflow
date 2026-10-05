@@ -207,6 +207,8 @@ export const T = {
     createdToast: "Vazifa yaratildi",
     startedToast: "Vazifa boshlandi",
     submittedToast: "Tekshiruvga yuborildi",
+    submitAckRequestedToast: "Ijrochidan so'ralgan tasdiqdan keyin tekshiruvga yuboriladi",
+    submitAckPending: (names: string) => `Tekshiruvga yuborishdan oldin ijrochi tasdig'i kutilmoqda: ${names}`,
     acceptedToast: "Vazifa qabul qilindi",
     returnedToast: "Vazifa qaytarildi",
     deletedToast: "Vazifa arxivlandi",

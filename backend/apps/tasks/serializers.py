@@ -47,9 +47,12 @@ class TaskDetailSerializer(TaskListSerializer):
     actions = serializers.SerializerMethodField()
     worklogs = serializers.SerializerMethodField()
     worklog_hours = serializers.SerializerMethodField()
+    submit_ack = serializers.SerializerMethodField()
 
     class Meta(TaskListSerializer.Meta):
-        fields = TaskListSerializer.Meta.fields + ["created_by", "subtasks", "files", "submissions", "actions", "worklogs", "worklog_hours"]
+        fields = TaskListSerializer.Meta.fields + [
+            "created_by", "subtasks", "files", "submissions", "actions", "worklogs", "worklog_hours", "submit_ack",
+        ]
 
     def get_worklogs(self, obj):
         user = self.context["request"].user
@@ -93,6 +96,19 @@ class TaskDetailSerializer(TaskListSerializer):
             for s in obj.submissions.all()
         ]
 
+    def get_submit_ack(self, obj):
+        """Menejer ijrochi bo'lmay "Tekshiruvga yuborish"ni bosganda so'ralgan tasdiq holati — kim
+        tasdiqladi, kim kutilmoqda. Hech kim so'ralmagan bo'lsa `None` (ko'rsatadigan narsa yo'q)."""
+        if not obj.submit_requested_at:
+            return None
+        acks = list(obj.submit_acks.select_related("developer"))
+        return {
+            "requested_at": obj.submit_requested_at,
+            "requested_by": user_brief(obj.submit_requested_by),
+            "pending": [user_brief(a.developer) for a in acks if a.confirmed is None],
+            "confirmed": [user_brief(a.developer) for a in acks if a.confirmed is True],
+        }
+
     def get_actions(self, obj):
         if obj.archived_at is not None:
             return dict.fromkeys(("start", "submit", "review", "edit", "delete", "add_files", "log_work",
@@ -102,7 +118,9 @@ class TaskDetailSerializer(TaskListSerializer):
         worker = can_work_on(user, obj)
         return {
             "start": worker and Task.Status.IN_PROGRESS in targets and obj.status == Task.Status.CONTROL,
-            "submit": worker and Task.Status.IN_REVIEW in targets,
+            # Menejer so'ragan tasdiq hali kutilayotganda tugma yashiriladi (kutilmoqda kartasi ko'rsatiladi);
+            # ijrochining o'zi baribir to'g'ridan-to'g'ri yuborishi mumkin.
+            "submit": worker and Task.Status.IN_REVIEW in targets and not (user.is_manager and obj.submit_requested_at),
             "review": Task.Status.DONE in targets,
             "edit": user.is_manager and obj.status != Task.Status.DONE,
             "delete": user.is_manager,
@@ -191,6 +209,11 @@ class ProjectSetupSerializer(ProjectCreateSerializer):
 class SubmitSerializer(serializers.Serializer):
     note = serializers.CharField(allow_blank=True)
     files = serializers.ListField(child=serializers.FileField(validators=[validate_upload]), required=False, default=list)
+
+
+class SubmitAckSerializer(serializers.Serializer):
+    confirmed = serializers.BooleanField()
+    reason = serializers.CharField(required=False, allow_blank=True, default="")
 
 
 class ReviewSerializer(serializers.Serializer):

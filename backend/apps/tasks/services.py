@@ -3,6 +3,7 @@ from django.contrib.auth import get_user_model
 from django.db import transaction
 from django.db.models import Max
 from django.utils import timezone
+from rest_framework.exceptions import PermissionDenied
 
 from apps.accounts.models import Role
 from apps.core.api_utils import ServiceError
@@ -11,7 +12,17 @@ from apps.notifications.models import Notification
 from apps.notifications.services import managers, notify
 from apps.projects.services import create_project, ensure_members
 
-from .models import SubTask, Submission, SubmissionFile, Task, TaskAssignment, TaskFile, WorkLog
+from .models import (
+    SubTask,
+    Submission,
+    SubmissionFile,
+    Task,
+    TaskAssignment,
+    TaskFile,
+    TaskSubmitAck,
+    TaskSubmitAttachment,
+    WorkLog,
+)
 from .permissions import can_manage_assignees, can_manage_subtasks, can_work_on, is_assignee
 from .workflow import check_task_transition
 
@@ -177,6 +188,11 @@ def _apply_assignees(task, user, new):
     added = [d for d in new if d.pk not in current]
     TaskAssignment.objects.bulk_create(TaskAssignment(task=task, developer=d) for d in added)
     notify(added, K.TASK_ASSIGNED, f"Sizga vazifa berildi: {task.title}", task, exclude=user)
+    if task.submit_requested_at and current != {d.pk for d in new}:
+        # Ijrochilar ro'yxati o'zgargach eski tekshiruvga-yuborish so'rovi eskirib qoladi (yangi ijrochi
+        # so'rovsiz qolmasin) — bekor qilinadi, menejer qayta yuborganda hammadan yangidan so'raladi.
+        _clear_submit_ack(task)
+        task.save(update_fields=["submit_requested_at", "submit_requested_by", "pending_submit_note", "updated_at"])
     return added
 
 
@@ -226,16 +242,41 @@ def start_task(task, user):
 
 @transaction.atomic
 def submit_task(task, user, *, note, files=None):
-    """Jarayonda → Tekshiruvda. Dasturchi nima qilganini yozadi."""
+    """Jarayonda → Tekshiruvda.
+
+    Vazifa ijrochisi (dasturchi) to'g'ridan-to'g'ri yuboradi. Menejer (PM/Boshliq) — ijrochi emasligi
+    sababli — avval vazifaning barcha faol ijrochilaridan tasdiq so'raydi (`_request_submit_ack`);
+    holat faqat hammasi "Ha" degandan keyin, oxirgi tasdiqlagan payt (`ack_submit`) o'zgaradi.
+    """
     task = Task.objects.select_for_update().select_related("project__created_by", "created_by").get(pk=task.pk)
     if not can_work_on(user, task):
         raise ServiceError("Bu vazifa sizga biriktirilmagan.")
     check_task_transition(task.status, S.IN_REVIEW, user.role)
     if not note.strip():
         raise ServiceError("Nima qilganingizni qisqacha yozing.", "note")
+
+    if user.is_manager:
+        if task.submit_requested_at is None:
+            _request_submit_ack(task, user, note=note.strip(), files=files or [])
+            return None
+        if task.submit_acks.filter(confirmed__isnull=True).exists():
+            raise ServiceError("Hali ijrochi tasdiqlamagan — javobini kutamiz.")
+        # Hammasi tasdiqlagan (odatda `ack_submit` o'zi darhol yakunlaydi) — ehtiyot uchun shu yerda ham tozalanadi.
+        _clear_submit_ack(task)
+        task.save(update_fields=["submit_requested_at", "submit_requested_by", "pending_submit_note", "updated_at"])
+    elif task.submit_requested_at is not None:
+        # Ijrochi o'zi to'g'ridan-to'g'ri yubormoqchi — menejerning eski (hali javobsiz) so'rovi eskirgan,
+        # bekor qilinadi (ijrochi hozir o'zi harakat qilyapti, tasdiq so'rashning hojati qolmadi).
+        _clear_submit_ack(task)
+        task.save(update_fields=["submit_requested_at", "submit_requested_by", "pending_submit_note", "updated_at"])
+
+    return _create_submission(task, user, note=note.strip(), files=files or [])
+
+
+def _create_submission(task, user, *, note, files):
     last_round = task.submissions.aggregate(m=Max("round"))["m"] or 0
-    submission = Submission.objects.create(task=task, round=last_round + 1, submitted_by=user, note=note.strip())
-    for f in files or []:
+    submission = Submission.objects.create(task=task, round=last_round + 1, submitted_by=user, note=note)
+    for f in files:
         SubmissionFile.objects.create(submission=submission, file=f, original_name=f.name[:255])
     task.status = S.IN_REVIEW
     task.save(update_fields=["status", "updated_at"])
@@ -243,6 +284,90 @@ def submit_task(task, user, *, note, files=None):
            exclude=user)
     log(user, "task_submitted", f"{user.full_name} vazifani tekshiruvga yubordi: {task.title}", task)
     return submission
+
+
+def _clear_submit_ack(task):
+    task.submit_acks.all().delete()
+    task.submit_attachments.all().delete()
+    task.submit_requested_at = None
+    task.submit_requested_by = None
+    task.pending_submit_note = ""
+
+
+def _request_submit_ack(task, user, *, note, files):
+    """Menejer ijrochi bo'lmay yuborganda: holat o'zgarmaydi, vazifaning barcha faol ijrochilaridan
+    tasdiq so'raladi. Eski (masalan rad etilgan) davr qoldig'i bo'lsa tozalanadi."""
+    _clear_submit_ack(task)
+    developers = list(task.assignees.all())
+    task.pending_submit_note = note
+    task.submit_requested_at = timezone.now()
+    task.submit_requested_by = user
+    task.save(update_fields=["pending_submit_note", "submit_requested_at", "submit_requested_by", "updated_at"])
+    TaskSubmitAck.objects.bulk_create(TaskSubmitAck(task=task, developer=d) for d in developers)
+    for f in files:
+        TaskSubmitAttachment.objects.create(task=task, file=f, original_name=f.name[:255])
+    notify(developers, K.TASK_SUBMIT_ACK_REQUESTED,
+           f"Vazifani tekshiruvga yuborishga roziman? {task.title}", task, exclude=user)
+    log(user, "task_submit_ack_requested",
+        f"{user.full_name} vazifani tekshiruvga yuborishni ijrochidan so'radi: {task.title}", task)
+
+
+@transaction.atomic
+def ack_submit(task, user, *, confirmed, reason=""):
+    """Ijrochi menejer so'ragan tekshiruvga yuborishni tasdiqlaydi yoki sabab bilan rad etadi.
+
+    Birortasi rad etsa, butun so'rov davri bekor qilinadi — vazifa Jarayonda qoladi, menejer sababni
+    ko'radi. Barcha ijrochilar tasdiqlasa, shu zahoti haqiqiy Submission yaratiladi va vazifa
+    Tekshiruvdaga o'tadi (menejer qayta bosishi shart emas).
+    """
+    task = Task.objects.select_for_update().select_related(
+        "project__created_by", "created_by", "submit_requested_by"
+    ).get(pk=task.pk)
+    try:
+        ack = TaskSubmitAck.objects.select_for_update().get(task=task, developer=user)
+    except TaskSubmitAck.DoesNotExist:
+        raise PermissionDenied("Sizdan bu vazifa uchun tekshiruvga yuborish tasdig'i so'ralmagan.")
+    if ack.confirmed is not None:
+        raise ServiceError("Siz bu so'rovga allaqachon javob bergansiz.")
+    if not confirmed and not reason.strip():
+        raise ServiceError("Sababini yozing — menejer nimani kutishini bilishi kerak.", "reason")
+
+    ack.confirmed = confirmed
+    ack.reason = reason.strip()
+    ack.decided_at = timezone.now()
+    ack.save(update_fields=["confirmed", "reason", "decided_at"])
+    requester = task.submit_requested_by
+
+    if not confirmed:
+        _clear_submit_ack(task)
+        task.save(update_fields=["submit_requested_at", "submit_requested_by", "pending_submit_note", "updated_at"])
+        if requester:
+            notify([requester], K.TASK_SUBMIT_ACK_REJECTED,
+                   f"{user.full_name} tekshiruvga yuborishni rad etdi: {ack.reason} ({task.title})", task,
+                   exclude=user)
+        log(user, "task_submit_ack_rejected",
+            f"{user.full_name} tekshiruvga yuborishni rad etdi: {ack.reason} ({task.title})", task)
+        return task
+
+    log(user, "task_submit_ack_confirmed",
+        f"{user.full_name} tekshiruvga yuborishni tasdiqladi: {task.title}", task)
+    if task.submit_acks.filter(confirmed__isnull=True).exists():
+        return task
+
+    note = task.pending_submit_note
+    attachments = list(task.submit_attachments.all())
+    submitted_by = requester or task.created_by
+    last_round = task.submissions.aggregate(m=Max("round"))["m"] or 0
+    submission = Submission.objects.create(task=task, round=last_round + 1, submitted_by=submitted_by, note=note)
+    for a in attachments:
+        SubmissionFile.objects.create(submission=submission, file=a.file.name, original_name=a.original_name)
+    _clear_submit_ack(task)
+    task.status = S.IN_REVIEW
+    task.save(update_fields=["status", "submit_requested_at", "submit_requested_by", "pending_submit_note", "updated_at"])
+    notify(_reviewers(task), K.TASK_SUBMITTED, f"Tekshiruvga yuborildi: {task.title} ({submitted_by.full_name})",
+           task, exclude=user)
+    log(submitted_by, "task_submitted", f"{submitted_by.full_name} vazifani tekshiruvga yubordi: {task.title}", task)
+    return task
 
 
 @transaction.atomic

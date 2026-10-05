@@ -156,6 +156,7 @@ Qoidalar:
 
 - Holatlar: **Nazoratda → Jarayonda → Tekshiruvda → Bajarildi**. "To'xtab qolgan" holati **yo'q** (foydalanuvchi qarori).
 - **Bajarildi** ga faqat tekshiruvda qabul qilinganda o'tiladi, dasturchi o'zi o'tkaza olmaydi.
+- **Menejer (PM/Boshliq) ijrochi bo'lmay "Tekshiruvga yuborish" bossa — ijrochi(lar) ruxsati kerak** (foydalanuvchi talabi, 2026-10-05): vazifa darhol Tekshiruvdaga o'tmaydi, vazifaning barcha faol ijrochilariga bildirishnoma boradi ("Tekshiruvga yuborishga roziman?", "Ha, tayyor"/"Yo'q" tugmasi bilan — mavjud Bildirishnomalar modali ichida, yangi modal yo'q). Barcha ijrochi "Ha" desa, shu zahoti haqiqiy Tekshiruvga o'tadi (menejer qayta bosishi shart emas). Birortasi sabab bilan rad etsa, so'rov bekor bo'ladi, vazifa Jarayonda qoladi, menejer sababni ko'radi; qayta so'raganda hammadan yangidan so'raladi. Vazifaning o'z ijrochisi hech qachon tasdiq so'ralmasdan to'g'ridan-to'g'ri yuboradi (bu qoida faqat ijrochi bo'lmagan menejerga tegishli).
 - Muddati o'tgan faol vazifa — **"Muddati o'tgan"**, muddatdan keyin bajarilgani — **"Kechikib bajarilgan"**.
 - O'tishlar bitta jadvalda: `backend/apps/tasks/workflow.py`.
 

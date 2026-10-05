@@ -88,21 +88,26 @@ export default function TaskModal({ id, submitMode }: { id: number; submitMode?:
   const act = useMutation({
     mutationFn: async (kind: "start" | "submit" | "accept" | "return" | "delete" | "files") => {
       if (kind === "start") return api.post(`/tasks/${id}/start/`);
-      if (kind === "submit") return api.post(`/tasks/${id}/submit/`, formData({ note }, files));
+      if (kind === "submit") return api.post<TaskDetail>(`/tasks/${id}/submit/`, formData({ note }, files));
       if (kind === "accept") return api.post(`/tasks/${id}/review/`, { decision: "accept", note });
       if (kind === "return") return api.post(`/tasks/${id}/review/`, { decision: "return", note });
       if (kind === "files") return api.post(`/tasks/${id}/files/`, formData({}, files));
       return api.del(`/tasks/${id}/`);
     },
-    onSuccess: (_d, kind) => {
-      const msg = {
-        start: T.tasks.startedToast,
-        submit: T.tasks.submittedToast,
-        accept: T.tasks.acceptedToast,
-        return: T.tasks.returnedToast,
-        delete: T.tasks.deletedToast,
-        files: T.common.saved,
-      }[kind];
+    onSuccess: (d, kind) => {
+      // Menejer ijrochi bo'lmay yuborsa, submit_ack to'ldirilgan holda qaytadi — hali yuborilmadi,
+      // ijrochi tasdiqlashini kutamiz (submittedToast emas).
+      const msg =
+        kind === "submit" && (d as TaskDetail | undefined)?.submit_ack
+          ? T.tasks.submitAckRequestedToast
+          : {
+              start: T.tasks.startedToast,
+              submit: T.tasks.submittedToast,
+              accept: T.tasks.acceptedToast,
+              return: T.tasks.returnedToast,
+              delete: T.tasks.deletedToast,
+              files: T.common.saved,
+            }[kind];
       toast(msg);
       setPanel(null);
       setNote("");
@@ -294,6 +299,9 @@ export default function TaskModal({ id, submitMode }: { id: number; submitMode?:
           <Callout tone="warning">
             <b>{T.tasks.returnTitle}</b> {lastReturned.review_note}
           </Callout>
+        )}
+        {task.submit_ack && (
+          <Callout tone="info">{T.tasks.submitAckPending(task.submit_ack.pending.map((u) => u.full_name).join(", "))}</Callout>
         )}
 
         <div className="modal-split" style={{ marginTop: 8 }}>

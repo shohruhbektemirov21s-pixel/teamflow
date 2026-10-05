@@ -16,6 +16,8 @@ class Notification(models.Model):
         TASK_SUBMITTED = "task_submitted", "Tekshiruvga yuborildi"
         TASK_ACCEPTED = "task_accepted", "Vazifa qabul qilindi"
         TASK_RETURNED = "task_returned", "Vazifa qaytarildi"
+        TASK_SUBMIT_ACK_REQUESTED = "task_submit_ack_requested", "Tekshiruvga yuborishga tasdiq so'raldi"
+        TASK_SUBMIT_ACK_REJECTED = "task_submit_ack_rejected", "Tekshiruvga yuborish rad etildi"
         COMMENT = "comment", "Yangi izoh"
         PROJECT_COMPLETION_ACK_REQUESTED = "project_completion_ack_requested", "Loyihani yakunlashga tasdiq so'raldi"
         PROJECT_COMPLETION_ACK_REJECTED = "project_completion_ack_rejected", "Dasturchi yakunlashni rad etdi"

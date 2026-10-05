@@ -71,6 +71,7 @@ export function taskDetail(overrides: Partial<TaskDetail> = {}): TaskDetail {
     worklogs: [],
     worklog_hours: "0.00",
     actions: { start: false, submit: false, review: false, edit: false, delete: false, add_files: false, log_work: false },
+    submit_ack: null,
     ...overrides,
   };
 }

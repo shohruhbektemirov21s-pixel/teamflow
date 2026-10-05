@@ -27,12 +27,29 @@ def _pending_ack_project_ids(user, notices):
     )
 
 
-def serialize(n, pending_ack_project_ids=frozenset()):
+def _pending_ack_task_ids(user, notices):
+    """`task_submit_ack_requested` bildirishnomalari uchun — xuddi `_pending_ack_project_ids` kabi,
+    faqat `tasks.TaskSubmitAck` uchun."""
+    task_ids = {
+        n.target_id for n in notices
+        if n.kind == Notification.Kind.TASK_SUBMIT_ACK_REQUESTED and n.target_id
+    }
+    if not task_ids:
+        return set()
+    Ack = django_apps.get_model("tasks", "TaskSubmitAck")
+    return set(
+        Ack.objects.filter(task_id__in=task_ids, developer=user, confirmed__isnull=True)
+        .values_list("task_id", flat=True)
+    )
+
+
+def serialize(n, pending_ack_project_ids=frozenset(), pending_ack_task_ids=frozenset()):
     kind = TARGET_KIND.get(n.target_type.model) if n.target_type_id else None
     needs_ack = (
-        n.kind == Notification.Kind.PROJECT_COMPLETION_ACK_REQUESTED
-        and kind == "project"
-        and n.target_id in pending_ack_project_ids
+        (n.kind == Notification.Kind.PROJECT_COMPLETION_ACK_REQUESTED
+         and kind == "project" and n.target_id in pending_ack_project_ids)
+        or (n.kind == Notification.Kind.TASK_SUBMIT_ACK_REQUESTED
+            and kind == "task" and n.target_id in pending_ack_task_ids)
     )
     return {
         "id": n.pk,
@@ -57,8 +74,9 @@ class NotificationViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
 
     def list(self, request):
         page = self.paginate_queryset(self.get_queryset())
-        pending = _pending_ack_project_ids(request.user, page)
-        return self.get_paginated_response([serialize(n, pending) for n in page])
+        pending_projects = _pending_ack_project_ids(request.user, page)
+        pending_tasks = _pending_ack_task_ids(request.user, page)
+        return self.get_paginated_response([serialize(n, pending_projects, pending_tasks) for n in page])
 
     @action(detail=False, methods=["get"])
     def unread_count(self, request):
