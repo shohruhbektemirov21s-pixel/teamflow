@@ -258,9 +258,19 @@ class ProjectCompletionAckTests(TestCase):
         self.ack(self.dev1, True)
         mid = client_for(self.pm).get(f"/api/projects/{self.pid}/").data
         self.assertEqual({p["id"] for p in mid["completion"]["pending"]}, {self.dev2.pk})
+        self.assertNotIn("done", mid["stage_targets"])
         self.ack(self.dev2, True)
         kinds_pm = [n["kind"] for n in client_for(self.pm).get("/api/notifications/").data["results"]]
         self.assertIn("project_completion_ack_done", kinds_pm)
+
+        # review 2026-10-05 (BLOKLOVCHI, tuzatildi): hammasi tasdiqlagach "stage_targets"da "done"
+        # qaytadan ko'rinishi SHART — aks holda frontend select/tugma uni hech qachon ko'rsatmaydi va
+        # PM butunlay tiqilib qoladi (backend `_apply_stage` to'g'ri ishlasa ham). Vizual (brauzer)
+        # tekshiruvda aynan shu holat tutilgan edi.
+        after_all = client_for(self.pm).get(f"/api/projects/{self.pid}/").data
+        self.assertIn("done", after_all["stage_targets"])
+        self.assertIsNone(after_all["completion"])
+
         r = self.finish()
         self.assertEqual(r.status_code, 200, r.data)
         self.assertEqual(r.data["stage"], "done")
@@ -308,6 +318,14 @@ class ProjectCompletionAckTests(TestCase):
         detail = pm.get(f"/api/projects/{self.pid}/").data
         self.assertIsNone(detail["completion"])
         self.assertIn("done", detail["stage_targets"])
+
+    def test_reclicking_done_while_still_pending_returns_400_not_crash(self):
+        """review 2026-10-05: oldingi "pending_approval" bugi aynan shunday — sinab ko'rilmagan
+        qayta-bosish holati 500 bergan edi. Shu safar kod yo'lini aniq test qilib tasdiqlaymiz."""
+        self.finish()
+        r = self.finish()
+        self.assertEqual(r.status_code, 400, r.data)
+        self.assertEqual(Project.objects.get(pk=self.pid).stage, "planned")
 
 
 class ProjectCompletionAckWithOrderTests(TestCase):

@@ -65,20 +65,28 @@ class ProjectDetailSerializer(ProjectListSerializer):
             "add_task": manager,
         }
 
+    def _completion_acks(self, obj):
+        if not obj.completion_requested_at:
+            return None
+        acks = list(obj.completion_acks.select_related("developer"))
+        return acks if any(a.confirmed is None for a in acks) else []
+
     def get_stage_targets(self, obj):
         """PM/Boshliq uchun daraja tanlovi shu ro'yxat bilan cheklanadi (masalan "Tasdiqlash kutilmoqda"
-        paytida bo'sh — qaror endi boshqarmaga tegishli). Dasturchi tasdig'i so'ralgan paytda "Yakunlangan"
-        qayta tanlanmaydi — javoblarini kutamiz."""
+        paytida bo'sh — qaror endi boshqarmaga tegishli). Dasturchi tasdig'i hali kutilayotgan paytda
+        "Yakunlangan" qayta tanlanmaydi; hammasi tasdiqlagach qaytadan tanlanadi (PM yana bosib yakunlaydi)."""
         targets = list(project_targets(obj.stage, self.context["request"].user.role))
-        if obj.completion_requested_at:
+        if self._completion_acks(obj):  # bo'sh ro'yxat ([]) — hammasi tasdiqlagan, "done" qaytadi
             targets = [t for t in targets if t != S.DONE]
         return targets
 
     def get_completion(self, obj):
-        """Yakunlash uchun dasturchi tasdig'i so'ralgan bo'lsa — kim tasdiqladi, kim kutilmoqda."""
-        if not obj.completion_requested_at:
+        """Yakunlash uchun dasturchi tasdig'i hali kutilayotgan bo'lsa — kim tasdiqladi, kim kutilmoqda.
+        Hammasi tasdiqlagach `None` (ko'rsatadigan narsa qolmadi, PM "Yakunlangan"ni qayta tanlashi mumkin —
+        shuni allaqachon alohida bildirishnoma orqali bilgan)."""
+        acks = self._completion_acks(obj)
+        if not acks:
             return None
-        acks = list(obj.completion_acks.select_related("developer"))
         return {
             "requested_at": obj.completion_requested_at,
             "pending": [user_brief(a.developer) for a in acks if a.confirmed is None],
