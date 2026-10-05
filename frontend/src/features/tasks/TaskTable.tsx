@@ -130,10 +130,6 @@ export function TaskTable({ tasks, loading, emptyHint }: { tasks: Task[] | undef
                 <div className="task-title">
                   <CodeTag code={t.code} /> {t.title}
                 </div>
-                <div className="small muted ellipsis" style={{ maxWidth: 480 }}>
-                  {t.project.name}
-                  {t.description && ` · ${t.description}`}
-                </div>
                 <div className="row-wrap show-sm" style={{ marginTop: 8 }}>
                   <TaskStatusBadge status={t.status} />
                   <Due value={t.due_at} done={t.status === "done"} format={fmtDateTime} />
