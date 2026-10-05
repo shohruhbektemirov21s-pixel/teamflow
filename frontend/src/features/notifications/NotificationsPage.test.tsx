@@ -12,7 +12,7 @@ const yesterday = new Date(now.getTime() - 26 * 3600 * 1000);
 
 const notice = (id: number, overrides: Partial<Notice>): Notice => ({
   id, kind: "task_assigned", kind_label: "Vazifa berildi", message: `Xabar ${id}`, is_read: true,
-  created_at: now.toISOString(), target: { type: "task", id }, ...overrides,
+  created_at: now.toISOString(), target: { type: "task", id }, needs_ack: false, ...overrides,
 });
 
 describe("NotificationsPage", () => {

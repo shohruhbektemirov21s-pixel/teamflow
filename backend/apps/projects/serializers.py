@@ -6,6 +6,8 @@ from apps.core.files import validate_upload
 from .models import Project
 from .workflow import project_targets
 
+S = Project.Stage
+
 
 class ProjectListSerializer(serializers.ModelSerializer):
     stage_label = serializers.CharField(source="get_stage_display")
@@ -33,9 +35,12 @@ class ProjectDetailSerializer(ProjectListSerializer):
     order = serializers.SerializerMethodField()
     actions = serializers.SerializerMethodField()
     stage_targets = serializers.SerializerMethodField()
+    completion = serializers.SerializerMethodField()
 
     class Meta(ProjectListSerializer.Meta):
-        fields = ProjectListSerializer.Meta.fields + ["created_by", "files", "order", "actions", "stage_targets"]
+        fields = ProjectListSerializer.Meta.fields + [
+            "created_by", "files", "order", "actions", "stage_targets", "completion",
+        ]
 
     def get_created_by(self, obj):
         return user_brief(obj.created_by)
@@ -62,8 +67,23 @@ class ProjectDetailSerializer(ProjectListSerializer):
 
     def get_stage_targets(self, obj):
         """PM/Boshliq uchun daraja tanlovi shu ro'yxat bilan cheklanadi (masalan "Tasdiqlash kutilmoqda"
-        paytida bo'sh — qaror endi boshqarmaga tegishli)."""
-        return list(project_targets(obj.stage, self.context["request"].user.role))
+        paytida bo'sh — qaror endi boshqarmaga tegishli). Dasturchi tasdig'i so'ralgan paytda "Yakunlangan"
+        qayta tanlanmaydi — javoblarini kutamiz."""
+        targets = list(project_targets(obj.stage, self.context["request"].user.role))
+        if obj.completion_requested_at:
+            targets = [t for t in targets if t != S.DONE]
+        return targets
+
+    def get_completion(self, obj):
+        """Yakunlash uchun dasturchi tasdig'i so'ralgan bo'lsa — kim tasdiqladi, kim kutilmoqda."""
+        if not obj.completion_requested_at:
+            return None
+        acks = list(obj.completion_acks.select_related("developer"))
+        return {
+            "requested_at": obj.completion_requested_at,
+            "pending": [user_brief(a.developer) for a in acks if a.confirmed is None],
+            "confirmed": [user_brief(a.developer) for a in acks if a.confirmed is True],
+        }
 
 
 class ProjectCreateSerializer(serializers.Serializer):
@@ -101,3 +121,8 @@ class FilesSerializer(serializers.Serializer):
 
 class RejectCompletionSerializer(serializers.Serializer):
     reason = serializers.CharField(allow_blank=True)
+
+
+class CompletionAckSerializer(serializers.Serializer):
+    confirmed = serializers.BooleanField()
+    reason = serializers.CharField(required=False, allow_blank=True, default="")
