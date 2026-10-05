@@ -1,5 +1,4 @@
 import {
-  Bell,
   CalendarDays,
   ClipboardCheck,
   FileText,
@@ -35,7 +34,6 @@ const dashboard: NavItem = { to: "/", label: T.nav.dashboard, icon: LayoutDashbo
 const tasks: NavItem = { to: "/vazifalar", label: T.nav.tasks, icon: ListChecks };
 const calendar: NavItem = { to: "/taqvim", label: T.nav.calendar, icon: CalendarDays };
 const people: NavItem = { to: "/xodimlar", label: T.nav.people, icon: Users };
-const notifications: NavItem = { to: "/bildirishnomalar", label: T.nav.notifications, icon: Bell, counter: "notifications" };
 const suggestions: NavItem = { to: "/takliflar", label: T.nav.suggestions, icon: Lightbulb };
 const messages: NavItem = { to: "/xabarlar", label: T.nav.messages, icon: MessageCircle };
 const workDone: NavItem = { to: "/qilingan-ishlar", label: T.nav.workDone, icon: CheckSquare };
@@ -51,12 +49,12 @@ export function navFor(role: Role): NavGroup[] {
           title: T.nav.groupMain,
           items: [dashboard, tasks, { to: "/mening-ishim", label: T.nav.myWork, icon: KanbanSquare, counter: "myWork" }, calendar],
         },
-        { title: T.nav.groupTeam, items: [messages, notifications, suggestions] },
+        { title: T.nav.groupTeam, items: [messages, suggestions] },
       ];
     case "department":
       return [
         { title: T.nav.groupMain, items: [dashboard, { to: "/buyurtmalar", label: T.nav.myOrders, icon: FileText }] },
-        { title: T.nav.groupTeam, items: [messages, notifications, suggestions] },
+        { title: T.nav.groupTeam, items: [messages, suggestions] },
       ];
     default: // pm, boss
       return [
@@ -72,7 +70,7 @@ export function navFor(role: Role): NavGroup[] {
         },
         {
           title: T.nav.groupTeam,
-          items: [people, messages, notifications, { to: "/tekshiruv", label: T.nav.review, icon: ClipboardCheck, counter: "review" }, suggestions],
+          items: [people, messages, { to: "/tekshiruv", label: T.nav.review, icon: ClipboardCheck, counter: "review" }, suggestions],
         },
         { title: T.nav.groupControl, items: [workDone] },
       ];
