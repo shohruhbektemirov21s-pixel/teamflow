@@ -233,7 +233,7 @@ frontend/src/
     calendar/     CalendarPage
     comments/     Comments
     history/      HistoryPage
-    notifications/ NotificationsPage
+    notifications/ NotificationsModal (modal — qo'ng'iroq ikonkasi; sahifa emas)
     chat/          MessagesPage
 ```
 

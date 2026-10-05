@@ -1,11 +1,12 @@
 import { fireEvent, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
+import { useModal } from "@/app/modals";
 import { T } from "@/shared/text";
 import type { Notice } from "@/shared/types";
 import { mockGet, renderApp } from "@/test/render";
 
-import NotificationsPage from "./NotificationsPage";
+import NotificationsModal from "./NotificationsModal";
 
 const now = new Date();
 const yesterday = new Date(now.getTime() - 26 * 3600 * 1000);
@@ -15,7 +16,20 @@ const notice = (id: number, overrides: Partial<Notice>): Notice => ({
   created_at: now.toISOString(), target: { type: "task", id }, needs_ack: false, ...overrides,
 });
 
-describe("NotificationsPage", () => {
+/** Qaysi modal ochiq — tarix holatidan (manzil satriga yozilmaydi). */
+function OpenModal() {
+  return <output aria-label="modal">{useModal().params.toString()}</output>;
+}
+
+const renderModal = () =>
+  renderApp(
+    <>
+      <NotificationsModal />
+      <OpenModal />
+    </>,
+  );
+
+describe("NotificationsModal", () => {
   it("kun bo'yicha guruhlaydi va o'qilmaganlarni ajratib ko'rsatadi", async () => {
     mockGet({
       "/notifications/": { count: 2, next: null, previous: null, results: [
@@ -24,8 +38,9 @@ describe("NotificationsPage", () => {
       ] },
       "/notifications/unread_count/": { count: 1 },
     });
-    renderApp(<NotificationsPage />);
+    renderModal();
 
+    expect(await screen.findByRole("dialog")).toBeTruthy();
     expect(await screen.findByRole("region", { name: T.notifications.today })).toBeTruthy();
     expect(screen.getByRole("region", { name: T.notifications.yesterday })).toBeTruthy();
     expect(screen.getByText("Yangi vazifa").closest("button")?.className).toContain("unread");
@@ -39,7 +54,7 @@ describe("NotificationsPage", () => {
       "/notifications/?unread=1": { count: 0, next: null, previous: null, results: [] },
       "/notifications/unread_count/": { count: 0 },
     });
-    renderApp(<NotificationsPage />);
+    renderModal();
 
     fireEvent.click(await screen.findByRole("button", { name: T.notifications.unread }));
 
@@ -53,10 +68,22 @@ describe("NotificationsPage", () => {
       "/notifications/?page=2": { count: 51, next: null, previous: "/api/notifications/", results: [notice(51, {})] },
       "/notifications/unread_count/": { count: 0 },
     });
-    renderApp(<NotificationsPage />);
+    renderModal();
 
     fireEvent.click(await screen.findByRole("button", { name: /Keyingi/ }));
 
     expect(await screen.findByText("Xabar 51")).toBeTruthy();
+  });
+
+  it("bosilsa tegishli nishon (task) modali shu modal o'rniga ochiladi", async () => {
+    mockGet({
+      "/notifications/": { count: 1, next: null, previous: null, results: [notice(1, { message: "Topshirilgan vazifa" })] },
+      "/notifications/unread_count/": { count: 0 },
+    });
+    renderModal();
+
+    fireEvent.click(await screen.findByText("Topshirilgan vazifa"));
+
+    expect(screen.getByLabelText("modal").textContent).toBe("task=1");
   });
 });

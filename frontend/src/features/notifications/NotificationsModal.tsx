@@ -23,7 +23,7 @@ import { fmtDate, isoDate, timeAgo } from "@/shared/format";
 import { NOTICE_TONE } from "@/shared/status";
 import { T } from "@/shared/text";
 import type { Notice, Paged } from "@/shared/types";
-import { Button, Empty, ErrorBox, Field, Segmented, SkeletonRows, useToast } from "@/shared/ui";
+import { Button, Empty, ErrorBox, Field, Modal, Segmented, SkeletonRows, useToast } from "@/shared/ui";
 import { Pagination } from "@/shared/ui/Pagination";
 
 /** Bildirishnoma turi → ikonka (rangi `NOTICE_TONE` da). */
@@ -140,9 +140,10 @@ function groupByDay(items: Notice[], now = new Date()): { label: string; items: 
   return groups;
 }
 
-/** Bildirishnomalar: bosilganda o'qildi deb belgilanadi va tegishli modal ochiladi. */
-export default function NotificationsPage() {
-  const { open } = useModal();
+/** Bildirishnomalar modali: tepadagi qo'ng'iroq ikonkasi ochadi (sahifa emas — foydalanuvchi talabi, 2026-10-05).
+ * Bosilganda o'qildi deb belgilanadi va tegishli modal shu modal o'rniga ochiladi (modal ustida modal yo'q). */
+export default function NotificationsModal() {
+  const { open, close } = useModal();
   const refresh = useRefresh();
   const [filter, setFilter] = useState<"" | "1">("");
   const [page, setPage] = useState(1);
@@ -162,12 +163,11 @@ export default function NotificationsPage() {
 
   const items = query.data?.results ?? [];
   return (
-    <>
-      <div className="page-head">
-        <div className="grow">
-          <h1>{T.notifications.title}</h1>
-          <p>{unread ? T.notifications.unreadCount(unread) : T.notifications.allRead}</p>
-        </div>
+    <Modal
+      size="lg"
+      title={T.notifications.title}
+      subtitle={<span className="muted small">{unread ? T.notifications.unreadCount(unread) : T.notifications.allRead}</span>}
+      headerExtra={
         <Segmented
           value={filter}
           onChange={(value) => { setFilter(value); setPage(1); }}
@@ -177,11 +177,17 @@ export default function NotificationsPage() {
             { value: "1", label: T.notifications.unread },
           ]}
         />
-        <Button icon={<CheckCheck />} disabled={!unread} loading={readAll.isPending} onClick={() => readAll.mutate()}>
-          {T.notifications.readAll}
-        </Button>
-      </div>
-
+      }
+      onClose={close}
+      footer={
+        <>
+          <span className="spacer" />
+          <Button icon={<CheckCheck />} disabled={!unread} loading={readAll.isPending} onClick={() => readAll.mutate()}>
+            {T.notifications.readAll}
+          </Button>
+        </>
+      }
+    >
       {query.error && <ErrorBox error={query.error} onRetry={() => query.refetch()} />}
       {query.isLoading && (
         <div className="card">
@@ -225,6 +231,6 @@ export default function NotificationsPage() {
         </section>
       ))}
       <Pagination data={query.data} page={page} onPageChange={setPage} />
-    </>
+    </Modal>
   );
 }
