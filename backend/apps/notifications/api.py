@@ -1,3 +1,4 @@
+from django.apps import apps as django_apps
 from rest_framework import mixins, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -8,8 +9,31 @@ from .models import Notification
 TARGET_KIND = {"order": "order", "project": "project", "task": "task"}
 
 
-def serialize(n):
+def _pending_ack_project_ids(user, notices):
+    """`project_completion_ack_requested` bildirishnomalari uchun — foydalanuvchi hali javob
+    bermagan loyihalar (javob berilgandan keyin bildirishnomadagi tugma qayta ko'rsatilmasin).
+    `notifications` qatlami `projects` modelini statik import qilmaydi (ARCHITECTURE 3-bo'lim),
+    shuning uchun `apps.get_model` orqali."""
+    project_ids = {
+        n.target_id for n in notices
+        if n.kind == Notification.Kind.PROJECT_COMPLETION_ACK_REQUESTED and n.target_id
+    }
+    if not project_ids:
+        return set()
+    Ack = django_apps.get_model("projects", "ProjectCompletionAck")
+    return set(
+        Ack.objects.filter(project_id__in=project_ids, developer=user, confirmed__isnull=True)
+        .values_list("project_id", flat=True)
+    )
+
+
+def serialize(n, pending_ack_project_ids=frozenset()):
     kind = TARGET_KIND.get(n.target_type.model) if n.target_type_id else None
+    needs_ack = (
+        n.kind == Notification.Kind.PROJECT_COMPLETION_ACK_REQUESTED
+        and kind == "project"
+        and n.target_id in pending_ack_project_ids
+    )
     return {
         "id": n.pk,
         "kind": n.kind,
@@ -18,6 +42,7 @@ def serialize(n):
         "is_read": n.is_read,
         "created_at": n.created_at,
         "target": {"type": kind, "id": n.target_id} if kind else None,
+        "needs_ack": needs_ack,
     }
 
 
@@ -32,7 +57,8 @@ class NotificationViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
 
     def list(self, request):
         page = self.paginate_queryset(self.get_queryset())
-        return self.get_paginated_response([serialize(n) for n in page])
+        pending = _pending_ack_project_ids(request.user, page)
+        return self.get_paginated_response([serialize(n, pending) for n in page])
 
     @action(detail=False, methods=["get"])
     def unread_count(self, request):

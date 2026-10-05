@@ -241,6 +241,149 @@ class ProjectCompletionTests(TestCase):
         self.assertNotIn("pending_approval", pm.get(f"/api/projects/{pid2}/").data["stage_targets"])
 
 
+class ProjectCompletionAckTests(TestCase):
+    """Yakunlashdan oldin loyihadagi barcha faol dasturchilar tasdiqlashi kerak (2026-10-05)."""
+
+    def setUp(self):
+        self.pm = make_user(Role.PM)
+        self.dev1 = make_user(Role.DEVELOPER)
+        self.dev2 = make_user(Role.DEVELOPER)
+        pm = client_for(self.pm)
+        self.pid = pm.post(
+            "/api/projects/",
+            {"code": "ACK-1", "name": "Portal", **dates(), "member_ids": [self.dev1.pk, self.dev2.pk]},
+            format="json",
+        ).data["id"]
+
+    def finish(self, user=None):
+        return client_for(user or self.pm).patch(f"/api/projects/{self.pid}/", {"stage": "done"}, format="json")
+
+    def ack(self, dev, confirmed, reason=""):
+        return client_for(dev).post(
+            f"/api/projects/{self.pid}/completion-ack/", {"confirmed": confirmed, "reason": reason}, format="json"
+        )
+
+    def test_first_click_requests_acks_instead_of_finishing(self):
+        r = self.finish()
+        self.assertEqual(r.status_code, 200, r.data)
+        self.assertEqual(r.data["stage"], "planned")
+        self.assertNotIn("done", r.data["stage_targets"])
+        self.assertEqual({p["id"] for p in r.data["completion"]["pending"]}, {self.dev1.pk, self.dev2.pk})
+        kinds1 = [n["kind"] for n in client_for(self.dev1).get("/api/notifications/").data["results"]]
+        self.assertIn("project_completion_ack_requested", kinds1)
+
+    def test_all_confirm_then_pm_finishes(self):
+        self.finish()
+        self.ack(self.dev1, True)
+        mid = client_for(self.pm).get(f"/api/projects/{self.pid}/").data
+        self.assertEqual({p["id"] for p in mid["completion"]["pending"]}, {self.dev2.pk})
+        self.assertNotIn("done", mid["stage_targets"])
+        self.ack(self.dev2, True)
+        kinds_pm = [n["kind"] for n in client_for(self.pm).get("/api/notifications/").data["results"]]
+        self.assertIn("project_completion_ack_done", kinds_pm)
+
+        # review 2026-10-05 (BLOKLOVCHI, tuzatildi): hammasi tasdiqlagach "stage_targets"da "done"
+        # qaytadan ko'rinishi SHART — aks holda frontend select/tugma uni hech qachon ko'rsatmaydi va
+        # PM butunlay tiqilib qoladi (backend `_apply_stage` to'g'ri ishlasa ham). Vizual (brauzer)
+        # tekshiruvda aynan shu holat tutilgan edi.
+        after_all = client_for(self.pm).get(f"/api/projects/{self.pid}/").data
+        self.assertIn("done", after_all["stage_targets"])
+        self.assertIsNone(after_all["completion"])
+
+        r = self.finish()
+        self.assertEqual(r.status_code, 200, r.data)
+        self.assertEqual(r.data["stage"], "done")
+        self.assertIsNone(r.data["completion"])
+
+    def test_reject_with_reason_cancels_round_and_project_stays(self):
+        self.finish()
+        self.ack(self.dev1, True)
+        r = self.ack(self.dev2, False, "Testlar tugamagan")
+        self.assertEqual(r.status_code, 200, r.data)
+        detail = client_for(self.pm).get(f"/api/projects/{self.pid}/").data
+        self.assertEqual(detail["stage"], "planned")
+        self.assertIsNone(detail["completion"])
+        self.assertIn("done", detail["stage_targets"])
+        kinds_pm = [n["kind"] for n in client_for(self.pm).get("/api/notifications/").data["results"]]
+        self.assertIn("project_completion_ack_rejected", kinds_pm)
+
+    def test_reject_requires_reason(self):
+        self.finish()
+        r = self.ack(self.dev1, False, "")
+        self.assertEqual(r.status_code, 400)
+
+    def test_cannot_ack_twice(self):
+        self.finish()
+        self.ack(self.dev1, True)
+        r = self.ack(self.dev1, True)
+        self.assertEqual(r.status_code, 400)
+
+    def test_non_member_cannot_ack(self):
+        """Begona dasturchi uchun loyiha umuman ko'rinmaydi (`visible_projects`) — 404, boshqa
+        sahifalardagi kabi (masalan `test_developer_sees_only_own_projects`)."""
+        self.finish()
+        outsider = make_user(Role.DEVELOPER)
+        r = self.ack(outsider, True)
+        self.assertEqual(r.status_code, 404)
+
+    def test_cannot_ack_before_requested(self):
+        r = self.ack(self.dev1, True)
+        self.assertEqual(r.status_code, 403)
+
+    def test_changing_team_mid_round_cancels_it(self):
+        self.finish()
+        pm = client_for(self.pm)
+        pm.put(f"/api/projects/{self.pid}/members/", {"member_ids": [self.dev1.pk]}, format="json")
+        detail = pm.get(f"/api/projects/{self.pid}/").data
+        self.assertIsNone(detail["completion"])
+        self.assertIn("done", detail["stage_targets"])
+
+    def test_reclicking_done_while_still_pending_returns_400_not_crash(self):
+        """review 2026-10-05: oldingi "pending_approval" bugi aynan shunday — sinab ko'rilmagan
+        qayta-bosish holati 500 bergan edi. Shu safar kod yo'lini aniq test qilib tasdiqlaymiz."""
+        self.finish()
+        r = self.finish()
+        self.assertEqual(r.status_code, 400, r.data)
+        self.assertEqual(Project.objects.get(pk=self.pid).stage, "planned")
+
+
+class ProjectCompletionAckWithOrderTests(TestCase):
+    """Buyurtmali loyihada dasturchi tasdig'i boshqarma tasdig'idan oldin turadi."""
+
+    def setUp(self):
+        self.pm = make_user(Role.PM)
+        self.dept = make_user(Role.DEPARTMENT)
+        self.dev = make_user(Role.DEVELOPER)
+        r = client_for(self.dept).post(
+            "/api/orders/",
+            {"title": "Portal", "description": "Izoh", "requested_due_date": str(future(30)), "file": docx("tz.docx")},
+            format="multipart",
+        )
+        order_id = r.data["id"]
+        pm = client_for(self.pm)
+        pm.post(f"/api/orders/{order_id}/approve/", dates(14), format="json")
+        self.pid = pm.post(
+            "/api/projects/", {"code": "ACKORD-1", "order": order_id, "member_ids": [self.dev.pk]}, format="json"
+        ).data["id"]
+
+    def test_dev_ack_then_department_approval(self):
+        pm = client_for(self.pm)
+        r = pm.patch(f"/api/projects/{self.pid}/", {"stage": "done"}, format="json")
+        self.assertEqual(r.status_code, 200, r.data)
+        self.assertEqual(r.data["stage"], "planned")
+        self.assertIsNotNone(r.data["completion"])
+
+        r2 = client_for(self.dev).post(f"/api/projects/{self.pid}/completion-ack/", {"confirmed": True}, format="json")
+        self.assertEqual(r2.status_code, 200, r2.data)
+
+        r3 = pm.patch(f"/api/projects/{self.pid}/", {"stage": "done"}, format="json")
+        self.assertEqual(r3.data["stage"], "pending_approval")
+
+        r4 = client_for(self.dept).post(f"/api/projects/{self.pid}/confirm-completion/")
+        self.assertEqual(r4.status_code, 200, r4.data)
+        self.assertEqual(Project.objects.get(pk=self.pid).stage, "done")
+
+
 class ProjectListOrderTests(TestCase):
     """Ro'yxat Count bilan annotatsiya qilinadi — tartib aniq berilmasa sahifalashda yozuvlar takrorlanishi mumkin."""
 
