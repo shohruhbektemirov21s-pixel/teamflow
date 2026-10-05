@@ -118,7 +118,7 @@ Qoidalar:
 - Faqat **PM va Boshliq** loyiha yaratadi. **Dasturchi yarata olmaydi.**
 - Loyiha: **loyiha raqami** (qo'lda kiritiladi, majburiy, erkin matn/kod — masalan `PRJ-12`, takrorlanmaydi: band bo'lsa xatolik chiqadi), nom, izoh, boshlanish sanasi, tugash sanasi, fayllar, dasturchilar (bir nechta), darajasi.
 - **Loyiha darajasi (5 ta):** Rejalashtirilgan → Boshlangan → Tuzatish kerak → Tasdiqlash kutilmoqda → Yakunlangan. PM/Boshliq qo'lda o'zgartiradi.
-- **Yakunlashni tasdiqlash:** buyurtmasiz (PM o'zi yaratgan) loyiha "Yakunlangan"ga to'g'ridan-to'g'ri o'tadi. Buyurtmadan yaratilgan loyihada "Yakunlangan" tanlansa, avval **"Tasdiqlash kutilmoqda"**ga o'tadi va buyurtmani yuborgan boshqarmaga bildirishnoma boradi — faqat o'sha boshqarma (Buyurtma oynasidan) **Tasdiqlaydi** (loyiha "Yakunlangan" bo'ladi) yoki **kamchilik sababi bilan rad etadi** ("Tuzatish kerak"ga qaytadi, PM sababni ko'rib tuzatib yana so'raydi).
+- **Yakunlashni tasdiqlash:** PM/Boshliq "Yakunlangan"ni tanlaganda, avval **loyihadagi barcha faol dasturchilarga** bildirishnoma boradi ("Loyiha yakunlanishi kerak, tasdiqlaysizmi?" — bildirishnoma ichidagi tugma bilan Ha/Yo'q). **Hammasi tasdiqlagandan keyingina** keyingi bosqich ishga tushadi: buyurtmasiz (PM o'zi yaratgan) loyiha "Yakunlangan"ga to'g'ridan-to'g'ri o'tadi; buyurtmadan yaratilgan loyiha avval **"Tasdiqlash kutilmoqda"**ga o'tadi va buyurtmani yuborgan boshqarmaga bildirishnoma boradi — faqat o'sha boshqarma (Buyurtma oynasidan) **Tasdiqlaydi** (loyiha "Yakunlangan" bo'ladi) yoki **kamchilik sababi bilan rad etadi** ("Tuzatish kerak"ga qaytadi, PM sababni ko'rib tuzatib yana so'raydi). Agar birortasi dasturchi sababli rad etsa, loyiha yakunlanmaydi, hozirgi holatida davom etadi va PM/Boshliq sababni ko'radi; qayta so'ralganda hammadan yangidan so'raladi. Loyihada faol dasturchi bo'lmasa, dasturchi so'rovi o'tkazib yuboriladi.
 - Loyihaga bir nechta dasturchi biriktiriladi, har biriga bir nechta vazifa berish mumkin.
 
 **Loyiha yaratish oynasi (3 qadam):** Asosiy → Jamoa → Vazifalar va fayllar. Buyurtmadan yaratilsa, 1-qadam oldindan to'ldirilgan.
@@ -243,7 +243,7 @@ Menyu guruhlarga bo'lingan: *Asosiy ish* | *Muloqot* | *Kuzatuv* (Kuzatuv faqat 
 - Alohida sahifa/menyu bandi emas — tepadagi qo'ng'iroq ikonkasi bosilganda modal ochiladi (2026-10-05).
 - Kun bo'yicha guruhlangan (Bugun, Kecha, sana), har bir turning o'z rangli ikonkasi bor, o'qilmaganlar ajratib ko'rsatiladi.
 - Sarlavha ostida o'qilmaganlar soni, "Hammasi / O'qilmagan" filtri, "Hammasini o'qildi deb belgilash". Bosilsa tegishli oyna ochiladi.
-- Turlari: yangi buyurtma, buyurtma tasdiqlandi, buyurtma rad etildi, yangi TZ versiyasi, vazifa berildi, tekshiruvga yuborildi, vazifa qabul qilindi, vazifa qaytarildi, yangi izoh, loyihani yakunlashni tasdiqlash so'raldi, loyihani yakunlash tasdiqlandi, loyihani yakunlash rad etildi.
+- Turlari: yangi buyurtma, buyurtma tasdiqlandi, buyurtma rad etildi, yangi TZ versiyasi, vazifa berildi, tekshiruvga yuborildi, vazifa qabul qilindi, vazifa qaytarildi, yangi izoh, loyihani yakunlashga dasturchi tasdig'i so'raldi, dasturchi loyihani yakunlashni rad etdi, barcha dasturchilar tasdiqladi (PM/Boshliqqa), loyihani yakunlashni tasdiqlash so'raldi (boshqarmaga), loyihani yakunlash tasdiqlandi, loyihani yakunlash rad etildi.
 
 ### Takliflar (`/takliflar`, hamma)
 - Tizimni yaxshilash bo'yicha g'oyalar. Taklif ochiq yoki **anonim** yuboriladi (sarlavha va matn).
@@ -329,7 +329,7 @@ Batafsil bosqichlar: `docs/FLOWS_MODALS.md`.
 - **Yon panel (drawer) yo'q** — foydalanuvchini chalg'itmasligi uchun faqat modal va sahifalar.
 - **"To'xtab qolgan" vazifa holati yo'q.**
 - **Vazifalar filtrida "Loyiha" va "Oy yarmi" yo'q** — o'rniga "Sanadan / Sanagacha" oralig'i.
-- **Loyihani yakunlash:** buyurtmasiz loyiha to'g'ridan-to'g'ri yakunlanadi. Buyurtmadan yaratilgan loyiha avval "Tasdiqlash kutilmoqda"ga o'tadi — faqat buyurtmani yuborgan boshqarma uni Yakunlangan deb tasdiqlaydi yoki sabab bilan Tuzatish kerak'ga qaytaradi.
+- **Loyihani yakunlash:** avval loyihadagi barcha faol dasturchilar bildirishnoma orqali tasdiqlashi kerak (birortasi sababli rad etsa, yakunlanmaydi). Shundan keyin: buyurtmasiz loyiha to'g'ridan-to'g'ri yakunlanadi; buyurtmadan yaratilgan loyiha avval "Tasdiqlash kutilmoqda"ga o'tadi — faqat buyurtmani yuborgan boshqarma uni Yakunlangan deb tasdiqlaydi yoki sabab bilan Tuzatish kerak'ga qaytaradi. (Qaror: 2026-10-05.)
 
 **Ochiq savollar:** hozircha yo'q.
 

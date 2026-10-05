@@ -44,3 +44,8 @@ def project_targets(current, role):
     """UI uchun tanlanadigan daraja ro'yxati. `PENDING_APPROVAL` bunga kirmaydi — u foydalanuvchi
     tanlovi emas, `services._apply_stage` "done" so'ralganda hosil qiladigan ichki oraliq holat."""
     return [t for t in allowed_targets(TRANSITIONS, current, role) if t != S.PENDING_APPROVAL]
+
+
+def active_members(project):
+    """Loyihadagi faol dasturchilar — yakunlashdan oldin shularga tasdiq so'raladi."""
+    return [m.developer for m in project.memberships.select_related("developer") if m.developer.is_active]
