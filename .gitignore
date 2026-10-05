@@ -7,6 +7,7 @@ backend/server.log
 backend/bot.log
 frontend/node_modules/
 frontend/dist/
+frontend/dist-audit/
 .env
 
 .playwright-mcp/
