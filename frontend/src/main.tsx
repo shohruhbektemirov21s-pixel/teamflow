@@ -22,7 +22,6 @@ const OrdersPage = lazy(() => import("./features/orders/OrdersPage"));
 const ProjectsPage = lazy(() => import("./features/projects/ProjectsPage"));
 const CalendarPage = lazy(() => import("./features/calendar/CalendarPage"));
 const PeoplePage = lazy(() => import("./features/people/PeoplePage"));
-const NotificationsPage = lazy(() => import("./features/notifications/NotificationsPage"));
 const ProfilePage = lazy(() => import("./features/people/ProfilePage"));
 const WorkDonePage = lazy(() => import("./features/history/WorkDonePage"));
 const SuggestionsPage = lazy(() => import("./features/suggestions/SuggestionsPage"));
@@ -77,7 +76,6 @@ function AppRoutes() {
             {manager && <Route path="loyihalar" element={page(<ProjectsPage />)} />}
             {manager && <Route path="xodimlar" element={page(<PeoplePage />)} />}
             {(manager || dept) && <Route path="buyurtmalar" element={page(<OrdersPage />)} />}
-            <Route path="bildirishnomalar" element={page(<NotificationsPage />)} />
             <Route path="takliflar" element={page(<SuggestionsPage />)} />
             <Route path="xabarlar" element={page(<MessagesPage />)} />
             <Route path="profil" element={page(<ProfilePage />)} />

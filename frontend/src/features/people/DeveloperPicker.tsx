@@ -9,6 +9,7 @@ export interface PickerPerson {
   id: number;
   full_name: string;
   specialty?: string;
+  is_on_business_trip?: boolean;
 }
 
 /**
@@ -80,7 +81,7 @@ export function DeveloperPicker({
             // Enter tashqi formani yubormaydi — birinchi mos dasturchi qo'shiladi
             if (e.key !== "Enter") return;
             e.preventDefault();
-            const first = candidates[0];
+            const first = candidates.find((p) => !p.is_on_business_trip);
             if (first) {
               onChange([...value, first.id]);
               setQ("");
@@ -95,6 +96,8 @@ export function DeveloperPicker({
             <button
               key={p.id}
               type="button"
+              disabled={p.is_on_business_trip}
+              title={p.is_on_business_trip ? T.people.tripBlocked : undefined}
               className="pick"
               style={{ background: "var(--surface)", textAlign: "left", font: "inherit", color: "inherit" }}
               onClick={() => {
@@ -106,9 +109,10 @@ export function DeveloperPicker({
               <span className="grow">
                 <b style={{ fontWeight: 600 }}>{p.full_name}</b>
                 {p.specialty && <span className="small muted"> · {p.specialty}</span>}
+                {p.is_on_business_trip && <span className="small muted"> · {T.people.onBusinessTrip}</span>}
               </span>
               <span className="row small" style={{ gap: 4, color: "var(--primary)" }}>
-                <UserPlus size={16} /> {T.tasks.picker.add}
+                {!p.is_on_business_trip && <><UserPlus size={16} /> {T.tasks.picker.add}</>}
               </span>
             </button>
           ))}

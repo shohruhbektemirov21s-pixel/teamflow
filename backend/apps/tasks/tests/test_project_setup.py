@@ -80,3 +80,8 @@ class ProjectSetupTests(TestCase):
         r = self.post([])
         self.assertEqual(r.status_code, 201, r.data)
         self.assertEqual(Project.objects.get().memberships.count(), 2)
+
+    def test_setup_cannot_select_pending_approval_directly(self):
+        r = self.post([], stage=Project.Stage.PENDING_APPROVAL)
+        self.assertEqual(r.status_code, 400)
+        self.assertFalse(Project.objects.exists())

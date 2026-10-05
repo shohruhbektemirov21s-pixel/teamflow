@@ -25,7 +25,7 @@ def _project_developers(project, ids, field="assignee_ids"):
     if not ids:
         return []
     users = list(
-        get_user_model().objects.filter(
+        get_user_model().objects.select_for_update().filter(
             pk__in=ids, role=Role.DEVELOPER, is_active=True, project_memberships__project=project
         )
     )
@@ -34,12 +34,20 @@ def _project_developers(project, ids, field="assignee_ids"):
     return users
 
 
-def _any_developers(project, ids, field):
+def _check_trip_availability(users, existing_ids=(), field="assignee_ids"):
+    existing_ids = set(existing_ids)
+    away = [u.full_name for u in users if u.pk not in existing_ids and u.is_on_business_trip]
+    if away:
+        raise ServiceError(f"Xizmat safaridagi xodimga qaytguncha yangi vazifa biriktirib bo'lmaydi: {', '.join(away)}.", field)
+
+
+def _any_developers(project, ids, field, existing_ids=()):
     """Vazifa oynasi: istalgan faol dasturchi tanlanadi; jamoada bo'lmasa, loyiha jamoasiga qo'shiladi."""
     ids = set(ids or [])
-    users = list(get_user_model().objects.filter(pk__in=ids, role=Role.DEVELOPER, is_active=True))
+    users = list(get_user_model().objects.select_for_update().filter(pk__in=ids, role=Role.DEVELOPER, is_active=True))
     if len(users) != len(ids):
         raise ServiceError("Faqat faol dasturchilarni biriktirish mumkin.", field)
+    _check_trip_availability(users, existing_ids, field)
     ensure_members(project, users)
     return users
 
@@ -70,6 +78,7 @@ def create_task(user, project, *, title, description="", priority="medium", star
         raise ServiceError("Vazifa nomini yozing.", "title")
     _check_times(starts_at, due_at)
     assignees = _project_developers(project, assignee_ids)
+    _check_trip_availability(assignees)
     if not assignees:
         raise ServiceError("Kamida bitta ijrochi tanlang.", "assignee_ids")
 
@@ -90,7 +99,17 @@ def create_task(user, project, *, title, description="", priority="medium", star
 def _replace_subtasks(task, items):
     """Formadan: sub-vazifalar qaytadan yoziladi, ijrochilar faqat loyiha jamoasidan."""
     items = [i for i in items if i.get("title", "").strip()]
-    _project_developers(task.project, {pk for i in items for pk in i.get("assignee_ids") or []}, field="subtasks")
+    users = _project_developers(task.project, {pk for i in items for pk in i.get("assignee_ids") or []}, field="subtasks")
+    by_id = {item.pk: item for item in task.subtasks.prefetch_related("assignees")}
+    seen = set()
+    for item in items:
+        subtask_id = item.get("id")
+        if subtask_id is not None and (subtask_id not in by_id or subtask_id in seen):
+            raise ServiceError("Topshiriq bu vazifaga tegishli emas yoki takrorlangan.", "subtasks")
+        seen.add(subtask_id)
+        existing_ids = {u.pk for u in by_id[subtask_id].assignees.all()} if subtask_id is not None else set()
+        selected = set(item.get("assignee_ids") or [])
+        _check_trip_availability((u for u in users if u.pk in selected), existing_ids, "subtasks")
     task.subtasks.all().delete()
     for n, i in enumerate(items):
         subtask = SubTask.objects.create(task=task, title=i["title"].strip(), is_done=bool(i.get("is_done")), position=n)
@@ -131,6 +150,8 @@ def update_task(task, user, *, assignee_ids=None, subtasks=None, **data):
     """Menejer: nom, izoh, muhimlik, vaqt, ijrochilar, sub-vazifalar."""
     if not user.is_manager:
         raise ServiceError("Vazifani faqat loyiha menejeri yoki boshliq tahrirlaydi.")
+    if task.status == S.DONE:
+        raise ServiceError("Bajarilgan vazifa o'zgartirilmaydi.")
     for field in ("title", "description", "priority", "starts_at", "due_at"):
         if field in data:
             setattr(task, field, data[field])
@@ -151,6 +172,7 @@ def _apply_assignees(task, user, new):
     if not new:
         raise ServiceError("Kamida bitta ijrochi tanlang.", "assignee_ids")
     current = set(task.assignments.values_list("developer_id", flat=True))
+    _check_trip_availability(new, current)
     task.assignments.exclude(developer_id__in=[d.pk for d in new]).delete()
     added = [d for d in new if d.pk not in current]
     TaskAssignment.objects.bulk_create(TaskAssignment(task=task, developer=d) for d in added)
@@ -169,7 +191,7 @@ def set_task_assignees(task, user, assignee_ids):
     if user.is_developer and user.pk not in set(assignee_ids):
         raise ServiceError("O'zingizni ijrochilardan olib tashlay olmaysiz.", "assignee_ids")
     before = set(task.assignments.values_list("developer_id", flat=True))
-    new = _any_developers(task.project, assignee_ids, "assignee_ids")
+    new = _any_developers(task.project, assignee_ids, "assignee_ids", before)
     _apply_assignees(task, user, new)
     if before != {d.pk for d in new}:
         names = ", ".join(d.full_name for d in new)
@@ -293,8 +315,8 @@ def set_subtask_assignees(task, user, subtask_id, assignee_ids):
     subtask = SubTask.objects.filter(pk=subtask_id, task=task).first()
     if not subtask:
         raise ServiceError("Topshiriq topilmadi.")
-    assignees = _any_developers(task.project, assignee_ids, "assignee_ids")
     current = set(subtask.assignees.values_list("pk", flat=True))
+    assignees = _any_developers(task.project, assignee_ids, "assignee_ids", current)
     subtask.assignees.set(assignees)
     _notify_subtask(subtask, user, [d for d in assignees if d.pk not in current])
     log(user, "subtask_assignees", f"{user.full_name} topshiriq ijrochilarini o'zgartirdi: {subtask.title}", task)
@@ -324,6 +346,8 @@ def delete_subtask(task, user, subtask_id):
 def add_task_files(task, user, files):
     if not can_work_on(user, task):
         raise ServiceError("Bu vazifaga fayl qo'sha olmaysiz.")
+    if task.status == S.DONE:
+        raise ServiceError("Bajarilgan vazifa o'zgartirilmaydi.")
     return [TaskFile.objects.create(task=task, file=f, original_name=f.name[:255], uploaded_by=user) for f in files]
 
 
@@ -331,6 +355,8 @@ def add_task_files(task, user, files):
 def log_work(task, user, **data):
     if not can_work_on(user, task):
         raise ServiceError("Bu vazifa sizga biriktirilmagan.")
+    if task.status == S.DONE:
+        raise ServiceError("Bajarilgan vazifaga ish qayd qilib bo'lmaydi.")
     entry = WorkLog.objects.create(task=task, author=user, **data)
     log(user, "work_logged", f"{user.full_name} ish qayd etdi: {task.title} ({entry.hours} soat)", task)
     return entry
@@ -341,5 +367,7 @@ def delete_worklog(entry, user):
     from rest_framework.exceptions import PermissionDenied
     if not (user.is_manager or entry.author_id == user.pk):
         raise PermissionDenied("Faqat o'zingizning yozuvingizni o'chira olasiz.")
+    if entry.task.status == S.DONE:
+        raise ServiceError("Bajarilgan vazifaning ish jurnali o'zgartirilmaydi.")
     log(user, "worklog_deleted", f"{user.full_name} ish jurnali yozuvini o'chirdi: {entry.task.title}", entry.task)
     entry.delete()

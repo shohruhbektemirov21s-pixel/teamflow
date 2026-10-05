@@ -31,7 +31,7 @@ export default function PeoplePage() {
 
   const allPeople = peopleQuery.data ?? [];
   const filtered = allPeople.filter((p) => {
-    if (onlyFree && (p.active_tasks > 0 || p.role !== "developer")) return false;
+    if (onlyFree && (p.active_tasks > 0 || p.role !== "developer" || p.is_on_business_trip)) return false;
     if (!search) return true;
     return (
       p.full_name.toLowerCase().includes(search) ||
@@ -157,6 +157,7 @@ export default function PeoplePage() {
                       <div className="row">
                         <Avatar user={p} size="sm" />
                         <span style={{ fontWeight: 600 }}>{p.full_name}</span>
+                        {p.is_on_business_trip && <Badge tone="warning">{T.people.onBusinessTrip}</Badge>}
                       </div>
                     </td>
                     <td>
@@ -165,7 +166,9 @@ export default function PeoplePage() {
                       </span>
                     </td>
                     <td>
-                      {p.role === "developer" || p.active_tasks || p.done_tasks ? (
+                      {p.is_on_business_trip ? (
+                        <Badge tone="warning">{T.people.onBusinessTrip}</Badge>
+                      ) : p.role === "developer" || p.active_tasks || p.done_tasks ? (
                         p.active_tasks === 0 ? (
                           <Badge tone="success">{T.dashboard.free}</Badge>
                         ) : (
@@ -217,6 +220,8 @@ export default function PeoplePage() {
                             size="sm"
                             variant={p.active_tasks === 0 ? "primary" : "default"}
                             icon={<Plus size={14} />}
+                            disabled={p.is_on_business_trip}
+                            title={p.is_on_business_trip ? T.people.tripBlocked : undefined}
                             onClick={(e) => {
                               e.stopPropagation();
                               open({ new: "task", assignee: p.id });
@@ -257,9 +262,12 @@ export default function PeoplePage() {
                     {p.full_name}
                   </div>
                   <div className="small muted ellipsis">{p.department_name || p.specialty || p.role_label}</div>
+                  {p.is_on_business_trip && <Badge tone="warning">{T.people.onBusinessTrip}</Badge>}
                 </div>
               </div>
-              {p.role === "developer" || p.active_tasks || p.done_tasks ? (
+              {p.is_on_business_trip ? (
+                <Badge tone="warning">{T.people.onBusinessTrip}</Badge>
+              ) : p.role === "developer" || p.active_tasks || p.done_tasks ? (
                 <div className="person-nums">
                   {p.active_tasks === 0 ? (
                     <Badge tone="success">{T.dashboard.free}</Badge>
@@ -293,6 +301,8 @@ export default function PeoplePage() {
                     size="sm"
                     variant={p.active_tasks === 0 ? "primary" : "default"}
                     icon={<Plus size={14} />}
+                    disabled={p.is_on_business_trip}
+                    title={p.is_on_business_trip ? T.people.tripBlocked : undefined}
                     style={{ width: "100%" }}
                     onClick={() => open({ new: "task", assignee: p.id })}
                   >

@@ -17,6 +17,24 @@ afterEach(() => {
 });
 
 describe("ProfilePage", () => {
+  it("boshliq profilidan xodimni xizmat safariga chiqaradi", async () => {
+    testUser.current = { ...PM, role: "boss", role_label: "Boshliq" };
+    mockGet({
+      "/auth/profile/": { ...PROFILE, ...testUser.current, stats: null },
+      "/people/": [{ id: 3, full_name: "Jasur Alimov", role: "developer", role_label: "Dasturchi", is_on_business_trip: false }],
+    });
+    vi.mocked(api.put).mockResolvedValue({ id: 3, is_on_business_trip: true, business_trip_return_date: "2099-01-01" });
+    renderApp(<ProfilePage />);
+
+    const panel = await screen.findByRole("region", { name: T.profile.businessTrips });
+    fireEvent.change(await screen.findByLabelText(T.profile.tripEmployee), { target: { value: "3" } });
+    fireEvent.change(screen.getByLabelText(T.profile.tripReturnDate), { target: { value: "2099-01-01" } });
+    fireEvent.click(screen.getByRole("button", { name: T.profile.tripSet }));
+
+    expect(panel).toBeTruthy();
+    await waitFor(() => expect(api.put).toHaveBeenCalledWith("/people/3/business-trip/", { return_date: "2099-01-01" }));
+  });
+
   it("dasturchi profilida faqat o'z vazifalari chiqadi", async () => {
     testUser.current = DEV;
     mockGet({

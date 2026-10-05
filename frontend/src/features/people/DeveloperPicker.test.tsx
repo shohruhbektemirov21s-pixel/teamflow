@@ -40,4 +40,16 @@ describe("DeveloperPicker", () => {
     fireEvent.click(removeMalika);
     expect(onChange).toHaveBeenCalledWith([3]);
   });
+
+  it("xizmat safaridagi dasturchini tanlashni bloklaydi", async () => {
+    mockGet({});
+    const onChange = vi.fn();
+    renderApp(<DeveloperPicker label="Ijrochilar" options={[{ ...PEOPLE[0]!, is_on_business_trip: true }]} value={[]} onChange={onChange} />);
+    const input = await screen.findByLabelText(`Ijrochilar: ${T.tasks.picker.searchPh}`);
+    fireEvent.change(input, { target: { value: "Jasur" } });
+    const option = screen.getByRole("button", { name: /Jasur Alimov/ });
+    expect((option as HTMLButtonElement).disabled).toBe(true);
+    fireEvent.keyDown(input, { key: "Enter" });
+    expect(onChange).not.toHaveBeenCalled();
+  });
 });

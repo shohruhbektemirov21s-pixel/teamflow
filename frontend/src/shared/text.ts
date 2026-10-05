@@ -442,6 +442,14 @@ export const T = {
 
   profile: {
     title: "Profil",
+    businessTrips: "Xizmat safarlari",
+    businessTripHint: "Boshliq xodimning qaytish sanasini belgilaydi. Shu sanagacha unga yangi vazifa berilmaydi.",
+    tripEmployee: "Xodim",
+    tripReturnDate: "Qaytish sanasi",
+    tripSet: "Xizmat safariga chiqarish",
+    tripEnd: "Safarni muddatidan oldin tugatish",
+    tripSaved: "Xizmat safari saqlandi",
+    tripEnded: "Xizmat safari tugatildi",
     photoUpload: "Rasm yuklash",
     photoChange: "Rasmni almashtirish",
     photoRemove: "Rasmni o'chirish",
@@ -471,6 +479,9 @@ export const T = {
   },
 
   people: {
+    onBusinessTrip: "Xizmat safarida",
+    tripUntil: (date: string) => `Qaytish sanasi: ${date}`,
+    tripBlocked: "Xizmat safaridan qaytguncha yangi vazifa berib bo'lmaydi",
     photoOpen: "Rasmni kattalashtirish",
     photoOf: (name: string) => `${name} — profil rasmi`,
     profileTitle: "Xodim profili",

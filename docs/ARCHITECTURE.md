@@ -204,6 +204,8 @@ GET        /api/notifications/  POST /api/notifications/{id}/read/
 GET        /api/dashboard/      rolga mos hisob-kitob kartalari (Boshqarma: orders + periods — orders/filters.py)
 GET        /api/orders/?period=week&bucket=sent|rejected|approved   bosh panel kartasi bilan bir xil ro'yxat
 GET        /api/people/         xodimlar va bandligi (vazifasi yo'qlar tepada)
+PUT        /api/people/{id}/business-trip/    {return_date: YYYY-MM-DD} (faqat boshliq; safar darhol boshlanadi)
+DELETE     /api/people/{id}/business-trip/    safarni muddatidan oldin tugatish (faqat boshliq)
 GET        /api/developers/     dasturchilar ro'yxati (menejer va dasturchi)
 GET        /api/search/?q=...   global qidiruv (Ctrl K)
 GET        /api/history/        umumiy tarix
@@ -230,7 +232,7 @@ frontend/src/
     calendar/     CalendarPage
     comments/     Comments
     history/      HistoryPage
-    notifications/ NotificationsPage
+    notifications/ NotificationsModal (modal — qo'ng'iroq ikonkasi; sahifa emas)
     chat/          MessagesPage
 ```
 
@@ -277,3 +279,16 @@ frontend/src/
 3. Orders/Projects/Tasks servislari va API ✅ (2026-09-28)
 4. Frontend asosi (tokenlar, layout, Modal) va sahifalar ✅ (2026-09-28)
 5. Word ko'rish, fayllar, bildirishnomalar, dashboard, testlar ✅ (2026-09-28)
+
+## 13. Arxitektura ko'rigi (2026-10-05)
+
+**Hozirgi ko'lam uchun mos tuzilma:** Django domen app'lari, servisdagi tranzaksiyalar, serverdagi ruxsat tekshiruvi, yagona API klient va qat'iy TypeScript tekshiruvi mavjud. Mikroservis yoki yangi global state kutubxonasi hozir kerak emas.
+
+| Ustuvorlik | Holat | Dalil va keyingi qadam |
+|---|---|---|
+| P0 — tuzatildi | PM `people` tafsilotida ro'yxat ruxsatini chetlab o'tardi; loyiha yaratishda ichki `pending_approval` holati tanlanardi; yakunlangan vazifada tahrir va ish jurnali ochiq edi. Windows start skripti hujjatdagi mahalliy manzil o'rniga barcha interfeyslarga (`0.0.0.0`) ulanardi. | API, servis, serializer va UI bir xil qoidaga keltirildi. Start skripti `127.0.0.1:8020`ga bog'landi. 178 backend va 61 frontend testi o'tdi. |
+| P1 — joylashtirishdan oldin | Telegram xabarlari `notify()` ichida `on_commit` dan so'ng daemon thread orqali yuboriladi | Jarayon kutilmaganda to'xtasa xabar yo'qolishi mumkin. Xabar kafolati zarur bo'lsa, tranzaksion outbox va alohida worker qo'shish kerak. |
+| P1 — ma'lumot hajmi oshganda | `GET /api/tasks/?all=1` va `GET /api/projects/?all=1` sahifalashni chetlab o'tadi | Doska va taqvimga to'liq ro'yxat kerak; yozuvlar ko'payganda sana/holat bo'yicha cheklash va yuklama sinovi kerak. |
+| P1 — tashqi tarmoqqa chiqarishdan oldin | `validate_upload()` fayl kengaytmasi va hajmini tekshiradi | Yuklangan fayl mazmunini tekshirish va inline ko'rsatish siyosatini tahdid modeliga ko'ra qayta ko'rish kerak. `DEBUG=False` bilan `check --deploy` o'tkazildi; HSTS preload bo'yicha bitta ogohlantirish qoldi. Lokal HTTP rejimi uchun uni avtomatik yoqmaslik kerak. |
+
+Bu baho mahalliy kod va avtomatik testlarga asoslangan; real foydalanuvchi yuklamasi hamda ishlab chiqarish joylashtirishi tekshirilmagan.

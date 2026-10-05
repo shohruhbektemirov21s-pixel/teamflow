@@ -1,5 +1,6 @@
 from django.contrib.auth import authenticate, login, logout
 from django.http import FileResponse, Http404
+from django.shortcuts import get_object_or_404
 from django.views.decorators.csrf import csrf_protect, ensure_csrf_cookie
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes, throttle_classes
@@ -14,7 +15,7 @@ from . import services
 from .models import Role, Specialty, User
 from .serializers import (
     LoginSerializer, MeSerializer, RegisterSerializer, SpecialtySerializer,
-    ProfileSerializer, ProfileUpdateSerializer, ChangePasswordSerializer
+    ProfileSerializer, ProfileUpdateSerializer, ChangePasswordSerializer, BusinessTripSerializer
 )
 
 
@@ -101,10 +102,30 @@ def developers(request):
     return Response(
         [
             {"id": u.pk, "full_name": u.full_name, "specialty": u.specialty.name if u.specialty else "",
-             "avatar": avatar_url(u)}
+             "avatar": avatar_url(u), "business_trip_return_date": u.business_trip_return_date,
+             "is_on_business_trip": u.is_on_business_trip}
             for u in qs.order_by("first_name", "last_name")
         ]
     )
+
+
+@api_view(["PUT", "DELETE"])
+@permission_classes([IsAuthenticated])
+def business_trip(request, pk):
+    if not request.user.is_boss:
+        raise PermissionDenied("Xizmat safarini faqat boshliq boshqaradi.")
+    employee = get_object_or_404(User, pk=pk, is_active=True, role__in=[Role.PM, Role.DEVELOPER])
+    if request.method == "PUT":
+        serializer = BusinessTripSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        employee = services.set_business_trip(request.user, employee, serializer.validated_data["return_date"])
+    else:
+        employee = services.end_business_trip(request.user, employee)
+    return Response({
+        "id": employee.pk,
+        "business_trip_return_date": employee.business_trip_return_date,
+        "is_on_business_trip": employee.is_on_business_trip,
+    })
 
 
 @api_view(["GET", "PATCH"])

@@ -48,3 +48,13 @@ class WorkLogTests(TestCase):
         self.assertEqual(client_for(self.dev).delete(url).status_code, 200)
         self.assertEqual(client_for(self.pm).get(f"/api/tasks/{self.task.pk}/").data["worklogs"], [])
 
+    def test_completed_task_worklog_is_locked(self):
+        entry = client_for(self.dev).post(self.url, self.payload, format="json").data["worklogs"][0]
+        self.task.status = Task.Status.DONE
+        self.task.save(update_fields=["status"])
+        detail = client_for(self.dev).get(f"/api/tasks/{self.task.pk}/").data
+        self.assertFalse(detail["actions"]["log_work"])
+        self.assertFalse(detail["worklogs"][0]["can_delete"])
+        self.assertEqual(client_for(self.dev).post(self.url, self.payload, format="json").status_code, 400)
+        self.assertEqual(client_for(self.dev).delete(f"{self.url}{entry['id']}/").status_code, 400)
+

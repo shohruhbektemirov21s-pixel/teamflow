@@ -56,7 +56,8 @@ class TaskDetailSerializer(TaskListSerializer):
         return [
             {"id": entry.pk, "author": user_brief(entry.author), "work_date": entry.work_date,
              "hours": str(entry.hours), "note": entry.note,
-             "can_delete": obj.archived_at is None and (user.is_manager or entry.author_id == user.pk)}
+             "can_delete": obj.archived_at is None and obj.status != Task.Status.DONE
+             and (user.is_manager or entry.author_id == user.pk)}
             for entry in obj.worklogs.all()
         ]
 
@@ -103,16 +104,17 @@ class TaskDetailSerializer(TaskListSerializer):
             "start": worker and Task.Status.IN_PROGRESS in targets and obj.status == Task.Status.CONTROL,
             "submit": worker and Task.Status.IN_REVIEW in targets,
             "review": Task.Status.DONE in targets,
-            "edit": user.is_manager,
+            "edit": user.is_manager and obj.status != Task.Status.DONE,
             "delete": user.is_manager,
             "add_files": worker and obj.status != Task.Status.DONE,
-            "log_work": worker,
+            "log_work": worker and obj.status != Task.Status.DONE,
             "manage_subtasks": can_manage_subtasks(user, obj) and obj.status != Task.Status.DONE,
             "manage_assignees": can_manage_assignees(user, obj) and obj.status != Task.Status.DONE,
         }
 
 
 class SubTaskInput(serializers.Serializer):
+    id = serializers.IntegerField(min_value=1, required=False)
     title = serializers.CharField(max_length=255, allow_blank=True)
     assignee_ids = serializers.ListField(child=serializers.IntegerField(min_value=1), required=False, default=list)
     is_done = serializers.BooleanField(required=False, default=False)

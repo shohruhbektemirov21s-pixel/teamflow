@@ -2,7 +2,7 @@
 
 Jamoa ishini boshqarish tizimi. Boshqarmalar buyurtma (TZ) yuboradi, loyiha menejeri uni tasdiqlab loyihaga aylantiradi, dasturchilarga vazifa beradi va bajarilgan ishni tekshiradi. Boshliq hamma narsani kuzatadi va boshqaradi.
 
-> **Holat (2026-10-02):** loyiha to'liq qurilgan va ishchi holatda. Backend va frontend testlari o'tadi.
+> **Holat (2026-10-05):** arxitektura ko'rigi, regressiya tuzatishlari va xizmat safari funksiyasi tekshirildi: 184 backend testi, 63 frontend testi, TypeScript tur tekshiruvi va frontend build o'tdi. Ishchi muhitdagi joylashtirish alohida tekshirilmagan.
 > Bu fayl — loyihaning **yagona haqiqat manbai**. Agentlar uchun qoidalar: `CLAUDE.md`, `GEMINI.md`. Flow va modal reestri: `docs/FLOWS_MODALS.md`. Arxitektura, ma'lumotlar modeli va API: `docs/ARCHITECTURE.md`.
 
 ## Mundarija
@@ -59,6 +59,7 @@ Barcha ma'lumotlar bazadan olinadi. Butun interfeys bitta Design System (ranglar
 | Buyurtmani tasdiqlaydi / rad etadi | ✅ | ✅ | — | — |
 | Loyiha yaratadi | ✅ | ✅ | ❌ | ❌ |
 | Vazifa beradi | ✅ | ✅ | O'zi yaratgan vazifaga boshqa dasturchini qo'shadi | ❌ |
+| Xizmat safarini belgilaydi/tugatadi | ✅ | ❌ | ❌ | ❌ |
 | Vazifa holatini o'zgartiradi | ✅ | ✅ | Faqat o'zinikini (Jarayonda, Tekshiruvga yuborish) | — |
 | Ishni tekshiradi (qabul / qaytarish) | ✅ | ✅ | — | — |
 | Izoh yozadi (ko'ra oladigan joyiga) | ✅ | ✅ | ✅ | ✅ |
@@ -174,14 +175,14 @@ Menyu guruhlarga bo'lingan: *Asosiy ish* | *Muloqot* | *Kuzatuv* (Kuzatuv faqat 
 
 | Rol | Asosiy ish | Muloqot | Kuzatuv |
 |---|---|---|---|
-| **Dasturchi** | Bosh panel · Vazifalar · Mening ishim · Taqvim | Xabarlar · Bildirishnomalar · Takliflar | — |
-| **PM va Boshliq** | Bosh panel · Loyihalar · Buyurtmalar (TZ) · Vazifalar · Taqvim | Xodimlar · Xabarlar · Bildirishnomalar · Tekshiruv navbati · Takliflar | Qilingan ishlar |
-| **Boshqarma** | Bosh panel · Buyurtmalarim | Xabarlar · Bildirishnomalar · Takliflar | — |
+| **Dasturchi** | Bosh panel · Vazifalar · Mening ishim · Taqvim | Xabarlar · Takliflar | — |
+| **PM va Boshliq** | Bosh panel · Loyihalar · Buyurtmalar (TZ) · Vazifalar · Taqvim | Xodimlar · Xabarlar · Tekshiruv navbati · Takliflar | Qilingan ishlar |
+| **Boshqarma** | Bosh panel · Buyurtmalarim | Xabarlar · Takliflar | — |
 
 - Menyu pastida foydalanuvchi kartasi (ism, rol; bosilsa Profil ochiladi) va "Chiqish".
-- Yuqorida: qidiruv (`Ctrl K`, kodlar bilan ham), tungi/kunduzgi rejim, bildirishnomalar.
+- Yuqorida: qidiruv (`Ctrl K`, kodlar bilan ham), tungi/kunduzgi rejim, bildirishnomalar (qo'ng'iroq ikonkasi — o'z soni bilan; bosilsa modal ochiladi, chap menyuda alohida band yo'q, barcha rolda shu yerdan ochiladi).
 - Yon panel (drawer) **ishlatilmaydi**: ko'rish, yaratish, tahrirlash — faqat modalda.
-- Manzillar: `/`, `/vazifalar`, `/mening-ishim`, `/taqvim`, `/loyihalar`, `/buyurtmalar`, `/xodimlar`, `/tekshiruv`, `/xabarlar`, `/bildirishnomalar`, `/takliflar`, `/qilingan-ishlar`, `/profil`. Rolga tegishli bo'lmagan sahifa ochilmaydi.
+- Manzillar: `/`, `/vazifalar`, `/mening-ishim`, `/taqvim`, `/loyihalar`, `/buyurtmalar`, `/xodimlar`, `/tekshiruv`, `/xabarlar`, `/takliflar`, `/qilingan-ishlar`, `/profil`. Rolga tegishli bo'lmagan sahifa ochilmaydi. (Bildirishnomalar alohida sahifa emas — qo'ng'iroq ikonkasi modal ochadi, 9-bo'lim.)
 
 ### Bosh panel — PM va Boshliq
 - Tepada salomlashish va asosiy amallar: Xodimlar, (yangi buyurtma bo'lsa) Buyurtmalar, Yangi loyiha, **Yangi vazifa**.
@@ -231,6 +232,7 @@ Menyu guruhlarga bo'lingan: *Asosiy ish* | *Muloqot* | *Kuzatuv* (Kuzatuv faqat 
 - Bo'sh (vazifasi yo'q yoki yuklamasi kam) xodimga to'g'ridan-to'g'ri vazifa berish tugmasi.
 - Vazifa topshiriqlarga ajratilib, ularga boshqa xodimlar biriktiriladi.
 - Xodim bosilsa, xodim oynasi ochiladi: profil sarlavhasi, statistika, joriy ishlari, vazifa berish.
+- Boshliq o'z profilidagi **Xizmat safarlari** bo'limida faol PM yoki dasturchining qaytish sanasini belgilaydi yoki safarni muddatidan oldin tugatadi. Safar darhol boshlanadi; qaytish kuni yangi vazifa berish avtomatik qayta ochiladi. Safardagi dasturchiga yangi vazifa/topshiriq biriktirilmaydi; avvaldan biriktirilgan ishlar saqlanadi. Bu qoida serverda ham tekshiriladi.
 
 ### Tekshiruv navbati (`/tekshiruv`, PM, Boshliq)
 - Tekshiruvga yuborilgan vazifalar ro'yxati, kim yuborgani bilan. "Ko'rib chiqish" vazifa oynasini ochadi, qabul qilish yoki qaytarish shu yerda. Menyuda kutayotganlar soni ko'rinadi.
@@ -239,7 +241,8 @@ Menyu guruhlarga bo'lingan: *Asosiy ish* | *Muloqot* | *Kuzatuv* (Kuzatuv faqat 
 - Foydalanuvchilar orasida shaxsiy yozishma. Chapda suhbatlar ro'yxati va ism bo'yicha qidiruv, o'ngda suhbat. Telefonga moslangan.
 - Rolsiz akkaunt ro'yxatda chiqmaydi, suhbatda oxirgi 200 xabar ko'rsatiladi.
 
-### Bildirishnomalar (`/bildirishnomalar`)
+### Bildirishnomalar (modal — qo'ng'iroq ikonkasi, 9-bo'lim)
+- Alohida sahifa/menyu bandi emas — tepadagi qo'ng'iroq ikonkasi bosilganda modal ochiladi (2026-10-05).
 - Kun bo'yicha guruhlangan (Bugun, Kecha, sana), har bir turning o'z rangli ikonkasi bor, o'qilmaganlar ajratib ko'rsatiladi.
 - Sarlavha ostida o'qilmaganlar soni, "Hammasi / O'qilmagan" filtri, "Hammasini o'qildi deb belgilash". Bosilsa tegishli oyna ochiladi.
 - Turlari: yangi buyurtma, buyurtma tasdiqlandi, buyurtma rad etildi, yangi TZ versiyasi, vazifa berildi, tekshiruvga yuborildi, vazifa qabul qilindi, vazifa qaytarildi, yangi izoh, loyihani yakunlashni tasdiqlash so'raldi, loyihani yakunlash tasdiqlandi, loyihani yakunlash rad etildi.
@@ -274,7 +277,7 @@ Menyu guruhlarga bo'lingan: *Asosiy ish* | *Muloqot* | *Kuzatuv* (Kuzatuv faqat 
 - Bot (`runbot`) server bilan birga avtomatik ishga tushadi (`backend/start_server.bat`, log: `backend/bot.log`). Logga token yozilmaydi.
 - Bitta token bilan faqat **bitta** bot jarayoni ishlashi mumkin: boshqa joyda ham ishlasa, logda "409" chiqadi va `/start` xabarlari o'sha joyga ketadi.
 
-## 9. Modallar (amalda: 11 ta)
+## 9. Modallar (amalda: 12 ta)
 
 Ko'rish, yaratish, tahrirlash — hammasi modalda. Batafsil: `docs/FLOWS_MODALS.md`.
 
@@ -285,7 +288,7 @@ Ko'rish, yaratish, tahrirlash — hammasi modalda. Batafsil: `docs/FLOWS_MODALS.
 | 3 | Loyiha yaratish (3 qadam) | 9 | Taklif ko'rish |
 | 4 | Loyiha ko'rish / tahrirlash | 10 | Taqvim kuni |
 | 5 | Vazifa yaratish / tahrirlash (ommaviy yaratish ham) | 11 | Rasm ko'rish |
-| 6 | Vazifa ko'rish (tekshiruv shu yerda) | | |
+| 6 | Vazifa ko'rish (tekshiruv shu yerda) | 12 | Bildirishnomalar (qo'ng'iroq ikonkasi) |
 
 Word ko'rish alohida modal emas — joriy modal ichini almashtiradi ("← Orqaga").
 

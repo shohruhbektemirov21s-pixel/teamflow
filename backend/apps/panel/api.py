@@ -111,6 +111,7 @@ def _people_rows(qs):
             "id": u.pk, "full_name": u.full_name, "role": u.role, "role_label": u.get_role_display(),
             "specialty": u.specialty.name if u.specialty else "", "department_name": u.department_name,
             "avatar": avatar_url(u), "active_tasks": u.active_tasks, "overdue_tasks": u.overdue_tasks,
+            "business_trip_return_date": u.business_trip_return_date, "is_on_business_trip": u.is_on_business_trip,
             "review_tasks": u.review_tasks, "done_tasks": u.done_tasks,
             "doing": doing.get(u.pk, [])[:3],
         }
@@ -304,7 +305,10 @@ def workdone(request):
 def person_profile(request, pk):
     """Bitta xodim (xodim oynasi) — ro'yxatdagi bilan bir xil shakl. Faqat menejerlar ko'radi."""
     require_manager(request.user)
-    rows = _people_rows(User.objects.filter(pk=pk, is_active=True).exclude(role=""))
+    qs = User.objects.filter(pk=pk, is_active=True).exclude(role="")
+    if not request.user.is_boss:
+        qs = qs.filter(role=Role.DEVELOPER)
+    rows = _people_rows(qs)
     if not rows:
         raise Http404
     return Response(rows[0])

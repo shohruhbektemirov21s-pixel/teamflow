@@ -128,6 +128,25 @@ class ProjectFromOrderTests(TestCase):
         self.assertEqual(client_for(self.dev).get(url).status_code, 200)
         self.assertEqual(Project.objects.count(), 1)
 
+    def test_create_from_order_with_done_requests_department_approval(self):
+        pm = client_for(self.pm)
+        pm.post(f"/api/orders/{self.order_id}/approve/", dates(14), format="json")
+        response = pm.post("/api/projects/", {
+            "code": "ORD-DONE", "order": self.order_id, "stage": "done",
+        }, format="json")
+        self.assertEqual(response.status_code, 201, response.data)
+        self.assertEqual(response.data["stage"], Project.Stage.PENDING_APPROVAL)
+        self.assertEqual(Project.objects.get(pk=response.data["id"]).stage, Project.Stage.PENDING_APPROVAL)
+        self.assertEqual(client_for(self.dept).get(f"/api/orders/{self.order_id}/").data["project"]["stage"],
+                         Project.Stage.PENDING_APPROVAL)
+
+    def test_pending_approval_cannot_be_selected_on_create(self):
+        response = client_for(self.pm).post("/api/projects/", {
+            "code": "ORD-PENDING", "name": "Portal", **dates(), "stage": Project.Stage.PENDING_APPROVAL,
+        }, format="json")
+        self.assertEqual(response.status_code, 400)
+        self.assertFalse(Project.objects.exists())
+
 
 class ProjectCompletionTests(TestCase):
     """Buyurtmadan yaratilgan loyihani yakunlash — boshqarma tasdig'i kerak."""

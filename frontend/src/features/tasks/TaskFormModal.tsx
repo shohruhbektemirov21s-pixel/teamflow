@@ -14,6 +14,7 @@ import type { Priority, ProjectDetail, TaskDetail } from "@/shared/types";
 import { Avatar, Button, Callout, Field, FilePicker, Modal, Segmented, Skeleton, useToast } from "@/shared/ui";
 
 interface SubtaskDraft {
+  id?: number;
   title: string;
   assignee_ids: number[];
   is_done?: boolean;
@@ -57,7 +58,7 @@ export default function TaskFormModal({ projectId, editId, assigneeId }: { proje
     setStartsAt(toLocalInput(t.starts_at));
     setDueAt(toLocalInput(t.due_at));
     setAssignees(t.assignees.map((a) => a.id));
-    setSubtasks(t.subtasks.map((s) => ({ title: s.title, assignee_ids: s.assignees.map((u) => u.id), is_done: s.is_done })));
+    setSubtasks(t.subtasks.map((s) => ({ id: s.id, title: s.title, assignee_ids: s.assignees.map((u) => u.id), is_done: s.is_done })));
   }, [existing.data]);
 
   // Bitta loyiha bo'lsa — avtomatik tanlanadi
@@ -131,7 +132,9 @@ export default function TaskFormModal({ projectId, editId, assigneeId }: { proje
   const fe = (k: string) => error?.field(k);
   const members = team.data ?? [];
   const dirty = touched;
-  const canSave = Boolean(project) && title.trim().length > 0 && (!manager || assignees.length > 0);
+  const existingAssignees = new Set(existing.data?.assignees.map((a) => a.id) ?? []);
+  const tripSelected = members.some((m) => m.is_on_business_trip && assignees.includes(m.id) && !existingAssignees.has(m.id));
+  const canSave = Boolean(project) && title.trim().length > 0 && (!manager || assignees.length > 0) && !tripSelected;
   const projectOptions = useMemo(() => projects.data ?? [], [projects.data]);
 
   if (editId && !existing.data)
@@ -212,15 +215,19 @@ export default function TaskFormModal({ projectId, editId, assigneeId }: { proje
                       type="button"
                       className="chip"
                       aria-pressed={on}
+                      disabled={m.is_on_business_trip && !on}
+                      title={m.is_on_business_trip ? T.people.tripBlocked : undefined}
                       onClick={() => (setAssignees((xs) => (on ? xs.filter((x) => x !== m.id) : [...xs, m.id])), setTouched(true))}
                     >
                       <Avatar user={m} size="sm" />
                       {m.full_name}
+                      {m.is_on_business_trip && <span className="small muted">· {T.people.onBusinessTrip}</span>}
                     </button>
                   );
                 })}
               </div>
             )}
+            {tripSelected && <span className="field-error">{T.people.tripBlocked}</span>}
             {manager && Boolean(project) && Boolean(assigneeId) && team.data && !team.data.some((m) => m.id === assigneeId) && (
               <div style={{ marginTop: 8 }}>
                 <Callout tone="info">

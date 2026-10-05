@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import { api } from "@/shared/api";
 import { T } from "@/shared/text";
-import { JASUR, MALIKA } from "@/test/fixtures";
+import { JASUR, MALIKA, META } from "@/test/fixtures";
 import { mockGet, renderApp } from "@/test/render";
 
 import ProjectWizard from "./ProjectWizard";
@@ -13,7 +13,22 @@ const DEVS = [
   { id: MALIKA.id, full_name: MALIKA.full_name, specialty: "Frontend" },
 ];
 
+const STAGES = [
+  { value: "planned", label: "Rejalashtirilgan" },
+  { value: "started", label: "Boshlangan" },
+  { value: "needs_fix", label: "Tuzatish kerak" },
+  { value: "pending_approval", label: "Tasdiqlash kutilmoqda" },
+  { value: "done", label: "Yakunlangan" },
+];
+
 describe("ProjectWizard — xodimlarga alohida vazifa", () => {
+  it("yaratishda ichki tasdiqlash holatini tanlashga qo'ymaydi", async () => {
+    mockGet({ "/meta/": { ...META, project_stages: STAGES }, "/developers/": DEVS });
+    renderApp(<ProjectWizard />);
+    expect(await screen.findByText(T.projects.stage)).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Tasdiqlash kutilmoqda" })).toBeNull();
+  });
+
   it("har bir xodimga vazifa (sana, fayl) bilan loyihani bitta so'rovda yaratadi", async () => {
     mockGet({ "/developers/": DEVS });
     vi.mocked(api.post).mockResolvedValue({ id: 7, code: "200000007" });

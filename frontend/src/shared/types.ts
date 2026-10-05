@@ -29,6 +29,8 @@ export interface UserBrief {
   role: Role;
   department_name: string;
   avatar?: string | null;
+  business_trip_return_date?: string | null;
+  is_on_business_trip?: boolean;
 }
 
 export interface ChatMessage {
@@ -183,6 +185,8 @@ export interface Person {
   specialty: string;
   department_name: string;
   avatar?: string | null;
+  business_trip_return_date?: string | null;
+  is_on_business_trip?: boolean;
   active_tasks: number;
   overdue_tasks: number;
   review_tasks: number;
@@ -195,6 +199,8 @@ export interface Developer {
   full_name: string;
   specialty: string;
   avatar?: string | null;
+  business_trip_return_date?: string | null;
+  is_on_business_trip?: boolean;
 }
 
 export type Bucket = "active" | "overdue" | "done" | "late" | "review";

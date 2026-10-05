@@ -144,6 +144,24 @@ class TaskFlowTests(TestCase):
         self.assertEqual(client_for(self.dev1).delete(f"/api/tasks/{tid}/").status_code, 403)
         self.assertEqual(client_for(self.pm).delete(f"/api/tasks/{tid}/").status_code, 204)
 
+    def test_completed_task_cannot_be_edited(self):
+        tid = self.create(assignee_ids=[self.dev1.pk], subtasks=[]).data["id"]
+        task = Task.objects.get(pk=tid)
+        task.status = Task.Status.DONE
+        task.completed_at = timezone.now()
+        task.save(update_fields=["status", "completed_at"])
+        pm = client_for(self.pm)
+        response = pm.patch(f"/api/tasks/{tid}/", {
+            "title": "Changed", "assignee_ids": [self.dev2.pk],
+            "subtasks": [{"title": "Changed step", "assignee_ids": [self.dev2.pk]}],
+        }, format="json")
+        self.assertEqual(response.status_code, 400)
+        task.refresh_from_db()
+        self.assertEqual(task.title, "Login sahifasi")
+        self.assertEqual(list(task.assignees.values_list("pk", flat=True)), [self.dev1.pk])
+        self.assertFalse(task.subtasks.exists())
+        self.assertFalse(pm.get(f"/api/tasks/{tid}/").data["actions"]["edit"])
+
     def test_delete_archives_task_without_losing_work_history(self):
         tid = self.create().data["id"]
         task = Task.objects.get(pk=tid)

@@ -353,7 +353,7 @@ export default function ProjectModal({ id }: { id: number }) {
                       {d.specialty && <span className="small muted"> · {d.specialty}</span>}
                     </span>
                     {savedIds.has(d.id) ? (
-                      <Button size="sm" icon={<Plus />} disabled={teamDirty} onClick={() => open({ new: "task", project: p.id, assignee: d.id })}>
+                      <Button size="sm" icon={<Plus />} disabled={teamDirty || d.is_on_business_trip} title={d.is_on_business_trip ? T.people.tripBlocked : undefined} onClick={() => open({ new: "task", project: p.id, assignee: d.id })}>
                         {T.projects.giveTask}
                       </Button>
                     ) : (

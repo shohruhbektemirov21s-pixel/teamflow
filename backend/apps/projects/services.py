@@ -47,6 +47,8 @@ def create_project(user, *, code, name="", description="", start_date=None, end_
     buyurtmadan olinmaydi, chunki buyurtmada bunday raqam yo'q.
     """
     _require_manager(user)
+    if stage == S.PENDING_APPROVAL:
+        raise ServiceError("Bu daraja to'g'ridan-to'g'ri tanlanmaydi.", "stage")
     if order is not None:
         order = Order.objects.select_for_update().get(pk=order.pk)
         check_order_transition(order.status, Order.Status.PROJECT_CREATED, user.role)
@@ -64,7 +66,8 @@ def create_project(user, *, code, name="", description="", start_date=None, end_
 
     project = Project.objects.create(
         code=code, name=name.strip(), description=description, start_date=start_date, end_date=end_date,
-        stage=stage, order=order, created_by=user,
+        stage=S.PLANNED if order is not None and stage == S.DONE else stage,
+        order=order, created_by=user,
     )
     ProjectMember.objects.bulk_create(ProjectMember(project=project, developer=d) for d in _developers(member_ids))
 
@@ -80,6 +83,10 @@ def create_project(user, *, code, name="", description="", start_date=None, end_
 
     for f in files or []:
         ProjectFile.objects.create(project=project, file=f, original_name=f.name[:255], uploaded_by=user)
+
+    if order is not None and stage == S.DONE:
+        _apply_stage(project, user, stage)
+        project.save(update_fields=["stage", "updated_at"])
 
     log(user, "project_created", f"{user.full_name} loyiha yaratdi: {project.name}", project)
     return project

@@ -165,7 +165,11 @@ export default function ProjectWizard({ orderId }: { orderId?: number }) {
             </div>
             <div className="field">
               <span className="field-label">{T.projects.stage}</span>
-              <Segmented<ProjectStage> value={stage} onChange={setStage} options={meta.options<ProjectStage>("project_stages")} />
+              <Segmented<ProjectStage>
+                value={stage}
+                onChange={setStage}
+                options={meta.options<ProjectStage>("project_stages").filter((option) => option.value !== "pending_approval")}
+              />
             </div>
           </>
         )}
@@ -229,9 +233,10 @@ export default function ProjectWizard({ orderId }: { orderId?: number }) {
                             <b style={{ fontWeight: 600 }}>{d.full_name}</b>
                             {d.specialty && <span className="small muted"> · {d.specialty}</span>}
                           </span>
-                          <Button size="sm" icon={<Plus />} onClick={() => addTask(d.id)}>
+                          <Button size="sm" icon={<Plus />} disabled={d.is_on_business_trip} title={d.is_on_business_trip ? T.people.tripBlocked : undefined} onClick={() => addTask(d.id)}>
                             {T.projects.quickTaskAdd}
                           </Button>
+                          {d.is_on_business_trip && <span className="small muted">{T.people.onBusinessTrip}</span>}
                         </div>
                         {!own.length && <span className="small muted">{T.projects.memberNoTasks}</span>}
                         {own.map((t) => (

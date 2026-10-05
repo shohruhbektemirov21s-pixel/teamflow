@@ -77,3 +77,11 @@ class ProfileMatchesPersonTests(TestCase):
             (stats["active"], stats["overdue"], stats["in_review"], stats["done"]),
             (row["active_tasks"], row["overdue_tasks"], row["review_tasks"], row["done_tasks"]),
         )
+
+    def test_pm_person_detail_uses_same_scope_as_people_list(self):
+        pm = make_user(Role.PM)
+        boss = make_user(Role.BOSS)
+        dev = make_user(Role.DEVELOPER)
+        self.assertEqual(client_for(pm).get(f"/api/people/{boss.pk}/").status_code, 404)
+        self.assertEqual(client_for(pm).get(f"/api/people/{dev.pk}/").status_code, 200)
+        self.assertEqual(client_for(boss).get(f"/api/people/{pm.pk}/").status_code, 200)

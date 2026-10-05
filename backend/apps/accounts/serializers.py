@@ -1,4 +1,5 @@
 from django.contrib.auth import password_validation
+from django.utils import timezone
 from rest_framework import serializers
 
 from apps.core.api_utils import avatar_url
@@ -156,4 +157,13 @@ class ChangePasswordSerializer(serializers.Serializer):
             password_validation.validate_password(value, self.context["request"].user)
         except Exception as exc:
             raise serializers.ValidationError(list(exc.messages))
+        return value
+
+
+class BusinessTripSerializer(serializers.Serializer):
+    return_date = serializers.DateField()
+
+    def validate_return_date(self, value):
+        if value <= timezone.localdate():
+            raise serializers.ValidationError("Qaytish sanasi bugundan keyin bo'lishi kerak.")
         return value

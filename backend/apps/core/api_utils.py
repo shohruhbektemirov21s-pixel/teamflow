@@ -102,6 +102,8 @@ def user_brief(user):
         "role": user.role,
         "department_name": user.department_name,
         "avatar": avatar_url(user),
+        "business_trip_return_date": user.business_trip_return_date,
+        "is_on_business_trip": user.is_on_business_trip,
     }
 
 

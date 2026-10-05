@@ -46,7 +46,7 @@ export default function TaskBulkModal({ projectId }: { projectId?: number }) {
   });
 
   const members = team.data ?? [];
-  const canSave = Boolean(project) && rows.every((row) => row.title.trim() && row.assignee_ids.length > 0);
+  const canSave = Boolean(project) && rows.every((row) => row.title.trim() && row.assignee_ids.length > 0 && !members.some((member) => member.is_on_business_trip && row.assignee_ids.includes(member.id)));
   const update = (index: number, patch: Partial<Draft>) => setRows((items) => items.map((item, i) => i === index ? { ...item, ...patch } : item));
 
   return (
@@ -78,7 +78,7 @@ export default function TaskBulkModal({ projectId }: { projectId?: number }) {
                 <div className="chips" role="group" aria-label={T.tasks.assignees}>
                   {members.map((member) => {
                     const selected = row.assignee_ids.includes(member.id);
-                    return <button key={member.id} type="button" className="chip" aria-pressed={selected} onClick={() => update(index, { assignee_ids: selected ? row.assignee_ids.filter((id) => id !== member.id) : [...row.assignee_ids, member.id] })}><Avatar user={member} size="sm" /> {member.full_name}</button>;
+                    return <button key={member.id} type="button" className="chip" aria-pressed={selected} disabled={member.is_on_business_trip && !selected} title={member.is_on_business_trip ? T.people.tripBlocked : undefined} onClick={() => update(index, { assignee_ids: selected ? row.assignee_ids.filter((id) => id !== member.id) : [...row.assignee_ids, member.id] })}><Avatar user={member} size="sm" /> {member.full_name} {member.is_on_business_trip && `· ${T.people.onBusinessTrip}`}</button>;
                   })}
                 </div>
               </section>

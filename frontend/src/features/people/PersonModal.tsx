@@ -6,6 +6,7 @@ import { useMe } from "@/app/auth";
 import { useModal } from "@/app/modals";
 import { TaskTable } from "@/features/tasks/TaskTable";
 import { api, qs } from "@/shared/api";
+import { fmtDate } from "@/shared/format";
 import { T } from "@/shared/text";
 import type { Person, Task } from "@/shared/types";
 import { Button, Modal, Skeleton, Tabs } from "@/shared/ui";
@@ -59,6 +60,7 @@ export default function PersonModal({ id }: { id: number }) {
                 : null
             }
           />
+          {person.is_on_business_trip && <div className="card card-pad small">{T.people.onBusinessTrip}. {T.people.tripUntil(fmtDate(person.business_trip_return_date!))}. {T.people.tripBlocked}.</div>}
           {isMgr && person.role === "developer" && (
             <div
               className="card card-pad"
@@ -80,6 +82,8 @@ export default function PersonModal({ id }: { id: number }) {
                   size="sm"
                   variant="primary"
                   icon={<Plus size={14} />}
+                  disabled={person.is_on_business_trip}
+                  title={person.is_on_business_trip ? T.people.tripBlocked : undefined}
                   onClick={() => open({ new: "task", assignee: person.id })}
                 >
                   {T.people.giveTask}

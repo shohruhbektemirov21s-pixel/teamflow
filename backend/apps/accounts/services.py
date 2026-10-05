@@ -2,9 +2,14 @@
 import io
 
 from django.core.files.base import ContentFile
+from django.db import transaction
+from django.utils import timezone
 from PIL import Image, ImageOps, UnidentifiedImageError
 
 from apps.core.api_utils import ServiceError
+from apps.core.services import log
+
+from .models import Role
 
 AVATAR_MAX_MB = 5
 AVATAR_SIZE = 1024  # px, eng uzun tomoni — katta ko'rinishda (rasm oynasi) ham tiniq
@@ -42,3 +47,30 @@ def remove_avatar(user):
         user.avatar.delete(save=False)
         user.save(update_fields=["avatar"])
     return user
+
+
+@transaction.atomic
+def set_business_trip(actor, employee, return_date):
+    if not actor.is_boss:
+        raise ServiceError("Xizmat safarini faqat boshliq belgilaydi.")
+    if not employee.is_active or employee.role not in (Role.PM, Role.DEVELOPER):
+        raise ServiceError("Faqat faol xodimni xizmat safariga chiqarish mumkin.")
+    if return_date <= timezone.localdate():
+        raise ServiceError("Qaytish sanasi bugundan keyin bo'lishi kerak.", "return_date")
+    employee = type(employee).objects.select_for_update().get(pk=employee.pk)
+    employee.business_trip_return_date = return_date
+    employee.save(update_fields=["business_trip_return_date"])
+    log(actor, "business_trip_set", f"{actor.full_name} {employee.full_name}ni {return_date} gacha xizmat safariga chiqardi", employee)
+    return employee
+
+
+@transaction.atomic
+def end_business_trip(actor, employee):
+    if not actor.is_boss:
+        raise ServiceError("Xizmat safarini faqat boshliq tugatadi.")
+    employee = type(employee).objects.select_for_update().get(pk=employee.pk)
+    if employee.business_trip_return_date is not None:
+        employee.business_trip_return_date = None
+        employee.save(update_fields=["business_trip_return_date"])
+        log(actor, "business_trip_ended", f"{actor.full_name} {employee.full_name}ning xizmat safarini tugatdi", employee)
+    return employee

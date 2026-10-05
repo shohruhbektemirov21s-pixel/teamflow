@@ -12,6 +12,7 @@ import type { Profile, Task } from "@/shared/types";
 import { Button, ErrorBox, Field, SkeletonRows, useToast } from "@/shared/ui";
 
 import { ProfileHeader } from "./ProfileHeader";
+import { BusinessTripPanel } from "./BusinessTripPanel";
 
 const fieldError = (err: unknown, name: string) => (err instanceof ApiError ? err.field(name) : undefined);
 /** Maydonga bog'lanmagan xato bo'lsa — toast bilan ko'rsatiladi (maydon xatolari maydon yonida). */
@@ -171,6 +172,8 @@ export default function ProfilePage() {
           </form>
         )}
       </div>
+
+      {me.role === "boss" && <BusinessTripPanel />}
 
       {developer && (
         <section className="card" aria-label={T.profile.myTasks}>

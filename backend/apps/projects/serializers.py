@@ -73,7 +73,11 @@ class ProjectCreateSerializer(serializers.Serializer):
     description = serializers.CharField(required=False, allow_blank=True, default="")
     start_date = serializers.DateField(required=False, allow_null=True)
     end_date = serializers.DateField(required=False, allow_null=True)
-    stage = serializers.ChoiceField(choices=Project.Stage.choices, default=Project.Stage.PLANNED)
+    stage = serializers.ChoiceField(
+        choices=[(value, label) for value, label in Project.Stage.choices
+                 if value != Project.Stage.PENDING_APPROVAL],
+        default=Project.Stage.PLANNED,
+    )
     member_ids = JSONListField(child=serializers.IntegerField(), required=False, default=list)
     files = serializers.ListField(child=serializers.FileField(validators=[validate_upload]), required=False, default=list)
 
