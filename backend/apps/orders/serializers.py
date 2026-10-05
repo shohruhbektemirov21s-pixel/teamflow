@@ -34,11 +34,12 @@ class OrderListSerializer(serializers.ModelSerializer):
     status_label = serializers.CharField(source="get_status_display")
     priority_label = serializers.CharField(source="get_priority_display")
     version = serializers.SerializerMethodField()
+    project = serializers.SerializerMethodField()
 
     class Meta:
         model = Order
         fields = ["id", "title", "description", "priority", "priority_label", "status", "status_label",
-                  "requested_due_date", "start_date", "end_date", "submitted_by", "version", "created_at"]
+                  "requested_due_date", "start_date", "end_date", "submitted_by", "version", "project", "created_at"]
 
     def get_submitted_by(self, obj):
         return user_brief(obj.submitted_by)
@@ -48,26 +49,26 @@ class OrderListSerializer(serializers.ModelSerializer):
         versions = list(obj.versions.all())
         return versions[-1].number if versions else None
 
-
-class OrderDetailSerializer(OrderListSerializer):
-    approved_by = serializers.SerializerMethodField()
-    versions = OrderVersionSerializer(many=True, read_only=True)
-    project = serializers.SerializerMethodField()
-    actions = serializers.SerializerMethodField()
-
-    class Meta(OrderListSerializer.Meta):
-        fields = OrderListSerializer.Meta.fields + [
-            "approved_by", "pm_note", "decided_at", "versions", "project", "actions",
-        ]
-
-    def get_approved_by(self, obj):
-        return user_brief(obj.approved_by)
-
     def get_project(self, obj):
+        # `project` select_related qilingan — qo'shimcha so'rov yo'q. Loyiha yaratilgach buyurtma
+        # holati "project_created"da qotib qoladi — ro'yxatda loyihaning haqiqiy darajasini (masalan
+        # "Tasdiqlash kutilmoqda") ko'rsatish uchun kerak.
         project = getattr(obj, "project", None)
         if not project:
             return None
         return {"id": project.pk, "stage": project.stage, "stage_label": project.get_stage_display()}
+
+
+class OrderDetailSerializer(OrderListSerializer):
+    approved_by = serializers.SerializerMethodField()
+    versions = OrderVersionSerializer(many=True, read_only=True)
+    actions = serializers.SerializerMethodField()
+
+    class Meta(OrderListSerializer.Meta):
+        fields = OrderListSerializer.Meta.fields + ["approved_by", "pm_note", "decided_at", "versions", "actions"]
+
+    def get_approved_by(self, obj):
+        return user_brief(obj.approved_by)
 
     def get_actions(self, obj):
         """UI qaysi tugmalarni ko'rsatishini server aytadi (tekshiruv baribir serverda)."""

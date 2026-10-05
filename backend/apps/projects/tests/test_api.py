@@ -198,6 +198,17 @@ class ProjectCompletionTests(TestCase):
         self.assertEqual(r.data["project"]["stage"], "pending_approval")
         self.assertTrue(r.data["actions"]["decide_completion"])
 
+    def test_order_list_also_exposes_project_stage(self):
+        """Buyurtma ro'yxatida `status` loyiha yaratilgach "project_created"da qotib qoladi — boshqarma
+        ro'yxatda ham loyihaning haqiqiy darajasini (masalan "Tasdiqlash kutilmoqda") ko'ra olishi kerak,
+        faqat buyurtmani ochib ko'rganda emas (review 2026-10-05)."""
+        self.finish()
+        order_id = Project.objects.get(pk=self.pid).order_id
+        results = client_for(self.dept).get("/api/orders/").data["results"]
+        row = next(o for o in results if o["id"] == order_id)
+        self.assertEqual(row["status"], "project_created")
+        self.assertEqual(row["project"]["stage"], "pending_approval")
+
     def test_pending_approval_is_not_a_direct_choice(self):
         """`pending_approval` faqat "done" so'ralganda ichki hosil bo'ladi — PM/Boshliq uni to'g'ridan-to'g'ri
         tanlay olmaydi (aks holda buyurtmasiz loyihada 500 xato berardi — review 2026-10-02)."""

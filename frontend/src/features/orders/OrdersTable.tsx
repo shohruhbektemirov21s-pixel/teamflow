@@ -6,7 +6,7 @@ import { useMeta } from "@/shared/meta";
 import type { Tone } from "@/shared/status";
 import { T } from "@/shared/text";
 import type { DepartmentDashboard, Order, OrderStatus } from "@/shared/types";
-import { OrderStatusBadge, PriorityBadge } from "@/shared/ui";
+import { OrderStatusBadge, PriorityBadge, StageBadge } from "@/shared/ui";
 
 /**
  * Boshqarma holat kartalari (bosh panel va "Buyurtmalarim" — bir xil). Bosilsa ro'yxat `/orders/?status=` bo'yicha filtrlanadi.
@@ -70,7 +70,11 @@ export function OrdersTable({ orders, showDepartment }: { orders: Order[]; showD
                 </td>
               )}
               <td>
-                <OrderStatusBadge status={o.status} />
+                {o.status === "project_created" && o.project ? (
+                  <StageBadge stage={o.project.stage} />
+                ) : (
+                  <OrderStatusBadge status={o.status} />
+                )}
               </td>
               <td>
                 <PriorityBadge priority={o.priority} />

@@ -137,6 +137,7 @@ export interface Order {
   end_date: string | null;
   submitted_by: UserBrief;
   version: number | null;
+  project: { id: number; stage: ProjectStage; stage_label: string } | null;
   created_at: string;
 }
 
@@ -145,7 +146,6 @@ export interface OrderDetail extends Order {
   pm_note: string;
   decided_at: string | null;
   versions: OrderVersion[];
-  project: { id: number; stage: ProjectStage; stage_label: string } | null;
   actions: {
     approve: boolean; reject: boolean; new_version: boolean; create_project: boolean; edit_dates: boolean;
     view_project: boolean; decide_completion: boolean;

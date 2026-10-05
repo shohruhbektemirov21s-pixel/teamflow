@@ -24,9 +24,9 @@ class OrderViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.Crea
     """Buyurtmalar. O'chirish va tahrirlash yo'q (boshqarma yuborgach o'zgartira olmaydi)."""
 
     def get_queryset(self):
-        qs = visible_orders(self.request.user).prefetch_related("versions")
+        qs = visible_orders(self.request.user).select_related("project").prefetch_related("versions")
         if self.action == "retrieve":
-            qs = qs.select_related("project").prefetch_related("versions__decided_by")
+            qs = qs.prefetch_related("versions__decided_by")
         params = self.request.query_params
         qs = filter_orders(qs, params)
         if params.get("status"):
