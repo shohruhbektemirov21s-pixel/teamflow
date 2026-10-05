@@ -2,7 +2,7 @@
 
 Jamoa ishini boshqarish tizimi. Boshqarmalar buyurtma (TZ) yuboradi, loyiha menejeri uni tasdiqlab loyihaga aylantiradi, dasturchilarga vazifa beradi va bajarilgan ishni tekshiradi. Boshliq hamma narsani kuzatadi va boshqaradi.
 
-> **Holat (2026-10-05):** arxitektura ko'rigi, regressiya tuzatishlari, xizmat safari va GitHub'dagi loyiha tasdiqlash funksiyasi birga tekshirildi: 194 backend testi, 63 frontend testi, TypeScript tur tekshiruvi va frontend build o'tdi. Ishchi muhitdagi joylashtirish alohida tekshirilmagan.
+> **Holat (2026-10-05):** arxitektura ko'rigi, regressiya tuzatishlari, xizmat safari, loyiha tasdiqlash va vazifani tekshiruvga yuborish ruxsati birga tekshirildi: 195 backend testi, 64 frontend testi, TypeScript tur tekshiruvi va frontend build o'tdi. Ishchi muhitdagi joylashtirish alohida tekshirilmagan.
 > Bu fayl — loyihaning **yagona haqiqat manbai**. Agentlar uchun qoidalar: `CLAUDE.md`, `GEMINI.md`. Flow va modal reestri: `docs/FLOWS_MODALS.md`. Arxitektura, ma'lumotlar modeli va API: `docs/ARCHITECTURE.md`.
 
 ## Mundarija
@@ -60,7 +60,7 @@ Barcha ma'lumotlar bazadan olinadi. Butun interfeys bitta Design System (ranglar
 | Loyiha yaratadi | ✅ | ✅ | ❌ | ❌ |
 | Vazifa beradi | ✅ | ✅ | O'zi yaratgan vazifaga boshqa dasturchini qo'shadi | ❌ |
 | Xizmat safarini belgilaydi/tugatadi | ✅ | ❌ | ❌ | ❌ |
-| Vazifa holatini o'zgartiradi | ✅ | ✅ | Faqat o'zinikini (Jarayonda, Tekshiruvga yuborish) | — |
+| Vazifa holatini o'zgartiradi | Boshlaydi va tekshiradi | Boshlaydi va tekshiradi | Faqat o'ziga biriktirilgan vazifani tekshiruvga yuboradi | — |
 | Ishni tekshiradi (qabul / qaytarish) | ✅ | ✅ | — | — |
 | Izoh yozadi (ko'ra oladigan joyiga) | ✅ | ✅ | ✅ | ✅ |
 | Taklif bo'yicha qaror | ✅ | — | — | — |

@@ -9,6 +9,14 @@ import { T } from "@/shared/text";
 import TaskModal from "./TaskModal";
 
 describe("TaskModal", () => {
+  it("ruxsatsiz submit havolasi formani ochmaydi", async () => {
+    mockGet({ "/tasks/1/": taskDetail({ actions: { ...taskDetail().actions, submit: false } }) });
+    renderApp(<TaskModal id={1} submitMode />);
+
+    await screen.findByText(T.tasks.info);
+    expect(screen.queryByText(T.tasks.submitTitle)).toBeNull();
+  });
+
   it("ish jurnali yozuvi muallif bilan chiqadi (avval `wl.user` tufayli modal sinardi)", async () => {
     mockGet({
       "/tasks/1/": taskDetail({

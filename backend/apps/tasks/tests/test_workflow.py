@@ -23,6 +23,8 @@ class TaskWorkflowTests(SimpleTestCase):
         for role in (Role.PM, Role.BOSS):
             check_task_transition(S.IN_REVIEW, S.DONE, role)
             check_task_transition(S.IN_REVIEW, S.IN_PROGRESS, role)
+            with self.assertRaises(TransitionError):
+                check_task_transition(S.IN_PROGRESS, S.IN_REVIEW, role)
 
     def test_department_has_no_task_transitions(self):
         for source in S.values:

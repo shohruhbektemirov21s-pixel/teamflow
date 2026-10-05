@@ -13,11 +13,11 @@ from .models import Task
 
 S = Task.Status
 MANAGERS = {Role.PM, Role.BOSS}
-WORKERS = {Role.DEVELOPER, Role.PM, Role.BOSS}
+STARTERS = {Role.DEVELOPER, Role.PM, Role.BOSS}
 
 TRANSITIONS = {
-    (S.CONTROL, S.IN_PROGRESS): WORKERS,
-    (S.IN_PROGRESS, S.IN_REVIEW): WORKERS,  # submit orqali
+    (S.CONTROL, S.IN_PROGRESS): STARTERS,
+    (S.IN_PROGRESS, S.IN_REVIEW): {Role.DEVELOPER},  # faqat biriktirilgan dasturchi submit qiladi
     (S.IN_REVIEW, S.DONE): MANAGERS,  # tekshiruv: qabul
     (S.IN_REVIEW, S.IN_PROGRESS): MANAGERS,  # tekshiruv: qaytarish
 }

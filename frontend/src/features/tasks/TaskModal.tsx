@@ -194,7 +194,7 @@ export default function TaskModal({ id, submitMode }: { id: number; submitMode?:
 
   const footer = (() => {
     const a = task.actions;
-    if (panel === "submit" || panel === "return") {
+    if ((panel === "submit" && a.submit) || panel === "return") {
       const isSubmit = panel === "submit";
       return (
         <div className="inline-panel">

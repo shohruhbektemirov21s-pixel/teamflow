@@ -3,6 +3,7 @@ from django.contrib.auth import get_user_model
 from django.db import transaction
 from django.db.models import Max
 from django.utils import timezone
+from rest_framework.exceptions import PermissionDenied
 
 from apps.accounts.models import Role
 from apps.core.api_utils import ServiceError
@@ -228,8 +229,8 @@ def start_task(task, user):
 def submit_task(task, user, *, note, files=None):
     """Jarayonda → Tekshiruvda. Dasturchi nima qilganini yozadi."""
     task = Task.objects.select_for_update().select_related("project__created_by", "created_by").get(pk=task.pk)
-    if not can_work_on(user, task):
-        raise ServiceError("Bu vazifa sizga biriktirilmagan.")
+    if not user.is_developer or not is_assignee(user, task):
+        raise PermissionDenied("Tekshiruvga faqat vazifaning ijrochisi yubora oladi.")
     check_task_transition(task.status, S.IN_REVIEW, user.role)
     if not note.strip():
         raise ServiceError("Nima qilganingizni qisqacha yozing.", "note")
@@ -364,7 +365,6 @@ def log_work(task, user, **data):
 
 @transaction.atomic
 def delete_worklog(entry, user):
-    from rest_framework.exceptions import PermissionDenied
     if not (user.is_manager or entry.author_id == user.pk):
         raise PermissionDenied("Faqat o'zingizning yozuvingizni o'chira olasiz.")
     if entry.task.status == S.DONE:

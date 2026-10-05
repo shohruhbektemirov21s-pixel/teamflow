@@ -19,3 +19,4 @@ class MetaTests(TestCase):
         self.assertNotIn({"from": "in_review", "to": "done"}, dev)
         pm = client_for(make_user(Role.PM)).get("/api/meta/").data["task_moves"]
         self.assertIn({"from": "in_review", "to": "done"}, pm)
+        self.assertNotIn({"from": "in_progress", "to": "in_review"}, pm)

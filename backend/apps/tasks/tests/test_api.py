@@ -102,6 +102,22 @@ class TaskFlowTests(TestCase):
         tid = self.create(assignee_ids=[self.dev1.pk], subtasks=[{"title": "Test", "assignee_ids": [self.dev2.pk]}]).data["id"]
         # dev2 sub-vazifa orqali ko'radi, lekin vazifani boshlay olmaydi
         self.assertEqual(client_for(self.dev2).post(f"/api/tasks/{tid}/start/").status_code, 400)
+        self.assertEqual(client_for(self.dev1).post(f"/api/tasks/{tid}/start/").status_code, 200)
+        dev2 = client_for(self.dev2)
+        self.assertFalse(dev2.get(f"/api/tasks/{tid}/").data["actions"]["submit"])
+        self.assertEqual(dev2.post(f"/api/tasks/{tid}/submit/", {"note": "Tayyor"}).status_code, 403)
+
+    def test_managers_cannot_submit_on_behalf_of_developer(self):
+        tid = self.create(assignee_ids=[self.dev1.pk], subtasks=[]).data["id"]
+        self.assertEqual(client_for(self.pm).post(f"/api/tasks/{tid}/start/").status_code, 200)
+        for manager in (self.pm, self.boss):
+            with self.subTest(role=manager.role):
+                client = client_for(manager)
+                self.assertFalse(client.get(f"/api/tasks/{tid}/").data["actions"]["submit"])
+                self.assertEqual(client.post(f"/api/tasks/{tid}/submit/", {"note": "Tayyor"}).status_code, 403)
+        self.assertEqual(Task.objects.get(pk=tid).status, Task.Status.IN_PROGRESS)
+        self.assertFalse(Submission.objects.filter(task_id=tid).exists())
+        self.assertEqual(client_for(self.dev1).post(f"/api/tasks/{tid}/submit/", {"note": "Tayyor"}).status_code, 200)
 
     def test_subtask_create_validates_input(self):
         tid = self.create(assignee_ids=[self.dev1.pk], subtasks=[]).data["id"]
