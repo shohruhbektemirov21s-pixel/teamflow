@@ -77,9 +77,8 @@ export function navFor(role: Role): NavGroup[] {
   }
 }
 
-/** Menyuda yo'q, lekin sarlavhasi bor sahifalar (profil foydalanuvchi kartasi, bildirishnoma — qo'ng'iroq
- * ikonkasi orqali ochiladi). */
-const EXTRA_TITLES: Record<string, string> = { "/profil": T.nav.profile, "/bildirishnomalar": T.nav.notifications };
+/** Menyuda yo'q, lekin sarlavhasi bor sahifalar (profil foydalanuvchi kartasi orqali ochiladi). */
+const EXTRA_TITLES: Record<string, string> = { "/profil": T.nav.profile };
 
 export function pageTitle(pathname: string, role: Role): string {
   for (const g of navFor(role)) for (const i of g.items) if (i.to === pathname) return i.label;

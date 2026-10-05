@@ -8,7 +8,7 @@ import { T } from "@/shared/text";
 import { Avatar } from "@/shared/ui";
 
 import { useAuth, useMe } from "./auth";
-import { ModalHost } from "./modals";
+import { ModalHost, useModal } from "./modals";
 import { navFor, pageTitle } from "./nav";
 import { useCounters } from "./queries";
 
@@ -36,6 +36,7 @@ function useTheme() {
 export default function Layout() {
   const me = useMe();
   const { logout } = useAuth();
+  const { open } = useModal();
   const counters = useCounters(me);
   const meta = useMeta();
   const location = useLocation();
@@ -129,10 +130,10 @@ export default function Layout() {
           <button className="icon-btn" onClick={toggleTheme} title={T.nav.theme} aria-label={T.nav.theme}>
             {theme === "dark" ? <Sun /> : <Moon />}
           </button>
-          <Link to="/bildirishnomalar" className="icon-btn" aria-label={T.nav.notifications} title={T.nav.notifications}>
+          <button className="icon-btn" onClick={() => open({ notifications: true })} aria-label={T.nav.notifications} title={T.nav.notifications}>
             <Bell />
             {counters.notifications > 0 && <span className="bell-dot">{counters.notifications}</span>}
-          </Link>
+          </button>
         </header>
         <main className="page">
           <Outlet />
