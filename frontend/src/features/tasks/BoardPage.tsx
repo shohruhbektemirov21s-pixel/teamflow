@@ -266,7 +266,6 @@ function Card({ task, overlay, dragging, onClick, menu }: { task: Task; overlay?
       <div style={{ fontWeight: 650 }}>
         <CodeTag code={task.code} /> {task.title}
       </div>
-      {task.description && <div className="small muted clamp-2">{task.description}</div>}
       {task.subtasks_progress.total > 0 && (
         <div className="stack-sm" style={{ gap: 4 }}>
           <div className="progress">

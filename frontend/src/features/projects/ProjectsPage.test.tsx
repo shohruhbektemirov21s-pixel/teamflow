@@ -25,4 +25,18 @@ describe("ProjectsPage", () => {
     fireEvent.change(screen.getByRole("textbox", { name: "Qidirish" }), { target: { value: "portal" } });
     await waitFor(() => expect(api.get).toHaveBeenCalledWith("/projects/?q=portal"));
   });
+
+  it("ro'yxatda loyiha nomi ostida izoh ko'rinmaydi", async () => {
+    mockGet({
+      "/projects/": { count: 1, next: null, previous: null, results: [
+        { id: 1, code: "PRJ-1", name: "Portal", description: "Uzun loyiha izohi", stage: "started",
+          start_date: "2026-09-01", end_date: "2026-11-01", order_id: null, members: [],
+          progress: { total: 0, done: 0 }, created_at: "2026-09-01T10:00:00Z" },
+      ] },
+    });
+    renderApp(<ProjectsPage />);
+
+    expect(await screen.findByText("Portal")).toBeTruthy();
+    expect(screen.queryByText("Uzun loyiha izohi")).toBeNull();
+  });
 });

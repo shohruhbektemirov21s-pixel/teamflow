@@ -207,7 +207,7 @@ Menyu guruhlarga bo'lingan: *Asosiy ish* | *Muloqot* | *Kuzatuv* (Kuzatuv faqat 
 
 ### Mening ishim (`/mening-ishim`, Dasturchi)
 - "+ Yangi vazifa" tugmasi, filtrlar: loyiha, muddat (Bugun / Shu hafta / Hammasi).
-- Doska ustunlari — holatlar: **Nazoratda | Jarayonda | Tekshiruvda | Bajarildi**.
+- Doska ustunlari — holatlar: **Nazoratda | Jarayonda | Tekshiruvda | Bajarildi**. Kartada vazifa izohi ko'rsatilmaydi (izoh vazifa oynasida).
 - Vazifani **sichqoncha bilan sudrab** ustunlar orasida o'tkazish mumkin.
 - **Tekshiruvda** ustuniga tashlanganda (yoki vazifa oynasida "Tekshiruvga yuborish" bosilganda) **"Tekshiruvga yuborish" oynasi** ochiladi — vazifa oynasi ustida qora fonli alohida modal bo'lib ochiladi (vazifa oynasi orqada ko'rinib turadi): "Nima qildingiz?" (majburiy, 1000 belgigacha, hisoblagich bilan), katta drag&drop fayl zonasi va "Fayl tanlash" tugmasi (Word, PDF yoki rasm, 20 MB gacha — mos kelmagan fayl brauzerning o'zida rad etiladi), "Biriktirilgan fayllar (N)" ro'yxati. Matn bo'sh bo'lsa yuborilmaydi, xato maydon yonida chiqadi. "Bekor qilish", ✕ yoki `Esc` vazifa oynasiga qaytaradi. PM'ning "Qaytarish" oynasi ham xuddi shu ko'rinishda (faylsiz).
 - **Bajarildi** ustuniga dasturchi tashlay olmaydi, uni faqat PM tasdiqlaydi.
@@ -221,7 +221,7 @@ Menyu guruhlarga bo'lingan: *Asosiy ish* | *Muloqot* | *Kuzatuv* (Kuzatuv faqat 
 - Kundagi vazifa/loyiha belgisini to'g'ridan-to'g'ri bossa ham o'z oynasi ochiladi; "yana N ta" kun ro'yxatini ochadi.
 
 ### Loyihalar (`/loyihalar`, PM, Boshliq)
-- Loyihalar ro'yxati: qidiruv, daraja filtri, har birida jarayon ("5 / 12 vazifa bajarildi") va "Buyurtmadan" belgisi. Eng yangisi tepada.
+- Loyihalar ro'yxati: qidiruv, daraja filtri, har birida jarayon ("5 / 12 vazifa bajarildi") va "Buyurtmadan" belgisi. Eng yangisi tepada. Ro'yxatda loyiha izohi ko'rsatilmaydi (izoh loyiha oynasida).
 - "Yangi loyiha" — 3 qadamli yaratish oynasi (5-bo'lim). Loyiha bosilsa loyiha oynasi ochiladi.
 
 ### Buyurtmalar (`/buyurtmalar`)
