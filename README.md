@@ -2,7 +2,7 @@
 
 Jamoa ishini boshqarish tizimi. Boshqarmalar buyurtma (TZ) yuboradi, loyiha menejeri uni tasdiqlab loyihaga aylantiradi, dasturchilarga vazifa beradi va bajarilgan ishni tekshiradi. Boshliq hamma narsani kuzatadi va boshqaradi.
 
-> **Holat (2026-10-06):** senior-review tuzatishlari va yangi "Tekshiruvga yuborish" oynasi bilan birga tekshirildi: 224 backend testi, 73 frontend testi (3 marta ketma-ket barqaror), TypeScript tur tekshiruvi va frontend build o'tdi. Ishchi muhitdagi joylashtirish alohida tekshirilmagan.
+> **Holat (2026-10-06):** senior-review tuzatishlari va yangi "Tekshiruvga yuborish" oynasi bilan birga tekshirildi: 224 backend testi, 74 frontend testi (3 marta ketma-ket barqaror), TypeScript tur tekshiruvi va frontend build o'tdi. Ishchi muhitdagi joylashtirish alohida tekshirilmagan.
 > Bu fayl — loyihaning **yagona haqiqat manbai**. Agentlar uchun qoidalar: `CLAUDE.md`, `GEMINI.md`. Flow va modal reestri: `docs/FLOWS_MODALS.md`. Arxitektura, ma'lumotlar modeli va API: `docs/ARCHITECTURE.md`.
 
 ## Mundarija
@@ -207,7 +207,7 @@ Menyu guruhlarga bo'lingan: *Asosiy ish* | *Muloqot* | *Kuzatuv* (Kuzatuv faqat 
 
 ### Mening ishim (`/mening-ishim`, Dasturchi)
 - "+ Yangi vazifa" tugmasi, filtrlar: loyiha, muddat (Bugun / Shu hafta / Hammasi).
-- Doska ustunlari — holatlar: **Nazoratda | Jarayonda | Tekshiruvda | Bajarildi**.
+- Doska ustunlari — holatlar: **Nazoratda | Jarayonda | Tekshiruvda | Bajarildi**. Kartada vazifa izohi ko'rsatilmaydi (izoh vazifa oynasida).
 - Vazifani **sichqoncha bilan sudrab** ustunlar orasida o'tkazish mumkin.
 - **Tekshiruvda** ustuniga tashlanganda (yoki vazifa oynasida "Tekshiruvga yuborish" bosilganda) **"Tekshiruvga yuborish" oynasi** ochiladi — vazifa oynasi ustida qora fonli alohida modal bo'lib ochiladi (vazifa oynasi orqada ko'rinib turadi): "Nima qildingiz?" (majburiy, 1000 belgigacha, hisoblagich bilan), katta drag&drop fayl zonasi va "Fayl tanlash" tugmasi (Word, PDF yoki rasm, 20 MB gacha — mos kelmagan fayl brauzerning o'zida rad etiladi), "Biriktirilgan fayllar (N)" ro'yxati. Matn bo'sh bo'lsa yuborilmaydi, xato maydon yonida chiqadi. "Bekor qilish", ✕ yoki `Esc` vazifa oynasiga qaytaradi. PM'ning "Qaytarish" oynasi ham xuddi shu ko'rinishda (faylsiz).
 - **Bajarildi** ustuniga dasturchi tashlay olmaydi, uni faqat PM tasdiqlaydi.
@@ -221,7 +221,7 @@ Menyu guruhlarga bo'lingan: *Asosiy ish* | *Muloqot* | *Kuzatuv* (Kuzatuv faqat 
 - Kundagi vazifa/loyiha belgisini to'g'ridan-to'g'ri bossa ham o'z oynasi ochiladi; "yana N ta" kun ro'yxatini ochadi.
 
 ### Loyihalar (`/loyihalar`, PM, Boshliq)
-- Loyihalar ro'yxati: qidiruv, daraja filtri, har birida jarayon ("5 / 12 vazifa bajarildi") va "Buyurtmadan" belgisi. Eng yangisi tepada.
+- Loyihalar ro'yxati: qidiruv, daraja filtri, har birida jarayon ("5 / 12 vazifa bajarildi") va "Buyurtmadan" belgisi. Eng yangisi tepada. Ro'yxatda loyiha izohi ko'rsatilmaydi (izoh loyiha oynasida).
 - "Yangi loyiha" — 3 qadamli yaratish oynasi (5-bo'lim). Loyiha bosilsa loyiha oynasi ochiladi.
 
 ### Buyurtmalar (`/buyurtmalar`)
@@ -475,7 +475,6 @@ Batafsil qoidalar: `CLAUDE.md` 4-bo'lim. Dizayn oldingi loyiha skrinshotlaridan 
 
 ## 16. Ish qoidalari
 
-- "Boshla" degunicha kod yozilmaydi.
 - Faqat foydalanuvchi aytgan narsa qilinadi, o'zboshimchalik yo'q. Taklif bo'lsa, avval aytiladi.
 - Yangi talablar `CLAUDE.md` / `GEMINI.md` 13-bo'limiga sana bilan va shu `README.md` ga qo'shiladi. Noaniq narsa "Ochiq savollar" ga yoziladi.
 - Yangi flow yoki modal `docs/FLOWS_MODALS.md` ga yoziladi, cheklov haqida foydalanuvchiga aytiladi.

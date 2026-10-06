@@ -92,12 +92,9 @@ export default function ProjectsPage() {
                   </Badge>
                 )}
               </div>
-              <div>
-                <h3>
-                  <CodeTag code={p.code} /> {p.name}
-                </h3>
-                {p.description && <p className="small muted clamp-2" style={{ marginTop: 4 }}>{p.description}</p>}
-              </div>
+              <h3>
+                <CodeTag code={p.code} /> {p.name}
+              </h3>
               <div className="stack-sm" style={{ gap: 4 }}>
                 <div className="progress">
                   <span style={{ width: `${pct}%` }} />

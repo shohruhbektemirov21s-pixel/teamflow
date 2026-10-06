@@ -5,12 +5,11 @@
 
 ## 0. ENG MUHIM QOIDALAR (foydalanuvchi talabi)
 
-1. **"Boshla" degunicha kod yozma.** Foydalanuvchi aniq "boshla" demaguncha faqat muhokama, reja va hujjat. Fayl yaratish faqat hujjatlar uchun ruxsat etilgan.
-2. **O'zboshimchalik qilma.** Faqat foydalanuvchi aytgan narsani qil. Aytilmagan funksiya, sahifa, maydon, kutubxona, papka, refaktoring qo'shma. Taklif bo'lsa — avval ayt, javobini kut, keyin qil.
-3. **Ishni boshlashdan oldin loyihani ko'rib chiq.** Har sessiya boshida: `README.md`, shu fayl, `docs/FLOWS_MODALS.md` ni o'qi va kod bo'lsa mavjud tuzilmani ko'r. Bor narsani qayta yaratma.
-4. **Foydalanuvchi yangi qoida yoki talab aytsa** — uni shu faylning **13-bo'limiga** (Foydalanuvchi qo'shimchalari) sana bilan yoz, `GEMINI.md` ga ham xuddi shuni ko'chir. Talab `README.md` dagi loyiha tavsifiga tegsa, u yerni ham yangila.
-5. **Hech narsa qolib ketmasin.** Foydalanuvchi aytgan har bir talab `README.md` da bor bo'lishi kerak. Yangi talab kelsa, qo'sh. Bajarilmagan yoki noaniq narsa `README.md` "Ochiq savollar" bo'limida turadi.
-6. **Noaniq bo'lsa so'ra.** Taxmin bilan ish qilma. Bitta aniq savol ber.
+1. **O'zboshimchalik qilma.** Faqat foydalanuvchi aytgan narsani qil. Aytilmagan funksiya, sahifa, maydon, kutubxona, papka, refaktoring qo'shma. Taklif bo'lsa — avval ayt, javobini kut, keyin qil.
+2. **Ishni boshlashdan oldin loyihani ko'rib chiq.** Har sessiya boshida: `README.md`, shu fayl, `docs/FLOWS_MODALS.md` ni o'qi va kod bo'lsa mavjud tuzilmani ko'r. Bor narsani qayta yaratma.
+3. **Foydalanuvchi yangi qoida yoki talab aytsa** — uni shu faylning **13-bo'limiga** (Foydalanuvchi qo'shimchalari) sana bilan yoz, `GEMINI.md` ga ham xuddi shuni ko'chir. Talab `README.md` dagi loyiha tavsifiga tegsa, u yerni ham yangila.
+4. **Hech narsa qolib ketmasin.** Foydalanuvchi aytgan har bir talab `README.md` da bor bo'lishi kerak. Yangi talab kelsa, qo'sh. Bajarilmagan yoki noaniq narsa `README.md` "Ochiq savollar" bo'limida turadi.
+5. **Noaniq bo'lsa so'ra.** Taxmin bilan ish qilma. Bitta aniq savol ber.
 
 ## 1. Rollarda ishlash
 
@@ -65,7 +64,7 @@ Yagona manba: `D:\ObsidianVault\shared-rules.md` (nusxalanmaydi, faqat havola). 
 5. Sessiya oxirida `obsidian-log` skillini ishlat (xulosa `00-Sessions\` ga).
 6. Har bir muhim qaror sababi bilan (**Nima uchun**) yoziladi.
 
-## 7. Ish tartibi (foydalanuvchi "boshla" degach)
+## 7. Ish tartibi
 
 Bosqichma-bosqich, har bosqich oxirida to'xtab foydalanuvchiga ko'rsat:
 1. Django loyiha skeleti, ma'lumotlar modellari (DB), Django admin.
@@ -101,7 +100,7 @@ Frontend (`frontend/` papkasida):
 npm install               # bog'liqliklar
 npx vite                  # dev-server: http://127.0.0.1:5173/ (8020 ga proksi qiladi)
 npx tsc --noEmit -p .     # TypeScript tur tekshiruvi
-npx vitest run            # testlar (73 ta, jsdom + @testing-library/react)
+npx vitest run            # testlar (74 ta, jsdom + @testing-library/react)
 npx vite build            # prod build: dist/ (Django orqali beriladi)
 ```
 
@@ -131,7 +130,6 @@ Har bir app ichidagi qatlamlar (`models`, `workflow`, `services`, `permissions`,
 
 > Foydalanuvchi aytgan yangi qoidalar shu yerga sana bilan qo'shiladi.
 
-- 2026-09-28: "Boshla" degunicha kod yozilmaydi.
 - 2026-09-28: Flow'lar bitta bo'limda 3–4 ta, istisnoda 5 ta.
 - 2026-09-28: Word fayllar loyihaning o'zida modal shaklida ochiladi.
 - 2026-09-28: Vaultdagi `01-Projects\TeamFlow\` papkasidagi eski yozuvlarga e'tibor berilmaydi.
@@ -196,3 +194,5 @@ Har bir app ichidagi qatlamlar (`models`, `workflow`, `services`, `permissions`,
 - 2026-10-06: To'liq senior-review (`D:\ObsidianVault\01-Projects\TeamFlow\reviews\2026-10-06-toliq-4-rolli-review.md`) topilmalari foydalanuvchi so'rovi bilan tuzatildi: (1) `apps/ai/api.py` yupqalashtirildi — biznes mantiq `apps/ai/services/web_agent.py` (`start_web_agent`, `refresh_run`) ga ko'chdi; (2) frontend testlari beqarorligi (sahifalash testlari to'liq svitda vaqti tugardi) — `src/test/setup.ts`da `asyncUtilTimeout: 5000`; (3) `apps/core/tests/` yozildi (workflow, kod kolliziyasida qayta urinish, fayl validatsiyasi chegaralari, `UploadTo`, davrlar) — backend 205 → 224 test; (4) `docs/ARCHITECTURE.md`: `notifications` faqat `accounts.Role`ni import qilishi va `ai` app'i yozildi. `panel/api.py` va katta `services.py`larni bo'lish — faqat kuzatish tavsiyasi, qilinmadi.
 - 2026-10-06: Foydalanuvchi talabi bilan **"modal ustida modal yo'q" qoidasidan istisno**: vazifa oynasidagi "Tekshiruvga yuborish" / "Qaytarish" va buyurtma oynasidagi "Tasdiqlash" / "Rad etish" (shuningdek "Sanani o'zgartirish", "Yangi TZ", "Kamchilik bor") — asosiy oyna ichini almashtirmaydi, uning **ustida alohida, qora fonli modal** bo'lib ochiladi ("Tekshiruvga yuborish" oynasi uslubida: ikonkali sarlavha, izoh, pastda Bekor qilish + asosiy tugma). Asosiy oyna orqada ko'rinib turadi, lekin bosilmaydi (`inert`). `Esc`/✕/fon/Bekor qilish faqat ustdagi oynani yopadi. Yuborish oynasi ixchamlashtirildi (720px, pastroq matn maydoni va fayl zonasi). Kod: `shared/ui/Modal.tsx` (`stacked`, `covered`, ochiq oynalar steki — Esc/Tab faqat ustdagisiga), `styles.css` (`--overlay-strong`, `.overlay-stacked`), `TaskModal.tsx`, `OrderModal.tsx`. Modallar soni 12 → **14** (`docs/FLOWS_MODALS.md`).
 - 2026-10-06: Buyurtmalar ro'yxatida (Buyurtmalar (TZ) / Buyurtmalarim sahifasi va Boshqarma bosh sahifasidagi jadval — umumiy `OrdersTable`) buyurtma nomi ostidagi kulrang izoh qatori olib tashlandi (foydalanuvchi: "pastidagi izohlar kerak emas"). Izoh buyurtma oynasida (Umumiy tab) ko'rinishda qoladi.
+- 2026-10-06: Foydalanuvchi talabi bilan **"'Boshla' degunicha kod yozilmaydi" qoidasi olib tashlandi** (0-bo'limdagi 1-qoida, 7-bo'lim sarlavhasi va 2026-09-28 dagi yozuv). Endi kod yozish uchun alohida "boshla" so'zi kutilmaydi; "o'zboshimchalik qilma" va "noaniq bo'lsa so'ra" qoidalari o'z kuchida.
+- 2026-10-06: "Mening ishim" doskasidagi vazifa kartalari va Loyihalar ro'yxatida ham nom ostidagi izoh qatori olib tashlandi (buyurtmalar ro'yxatidagi kabi). Izoh vazifa va loyiha oynasida qoladi.
