@@ -38,6 +38,7 @@ CSRF_TRUSTED_ORIGINS = [
 ]
 
 INSTALLED_APPS = [
+    "daphne",  # `runserver` ASGI (HTTP + WebSocket) bo'lib ishlaydi — dev va Windows server uchun
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -45,6 +46,7 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "rest_framework",
+    "channels",
     "apps.core",
     "apps.accounts",
     "apps.orders",
@@ -84,16 +86,87 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = "config.wsgi.application"
+WSGI_APPLICATION = "config.wsgi.application"  # prod HTTP: gunicorn
+ASGI_APPLICATION = "config.asgi.application"  # WebSocket (prod: daphne), dev: runserver ikkalasini ham
 
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
+# Baza: `POSTGRES_DB` berilsa PostgreSQL (prod, Docker), aks holda SQLite (dev, Windows server).
+if os.environ.get("POSTGRES_DB"):
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.postgresql",
+            "NAME": os.environ["POSTGRES_DB"],
+            "USER": os.environ.get("POSTGRES_USER", "teamflow"),
+            "PASSWORD": os.environ.get("POSTGRES_PASSWORD", ""),
+            "HOST": os.environ.get("POSTGRES_HOST", "postgres"),
+            "PORT": os.environ.get("POSTGRES_PORT", "5432"),
+            # Puldan olingan ulanish tekshiriladi — PostgreSQL qayta ishga tushsa eskisi tashlanadi
+            "CONN_HEALTH_CHECKS": True,
+            "OPTIONS": {
+                "connect_timeout": 5,
+                # Har jarayonda kichik ulanishlar puli (psycopg_pool): har so'rovda yangi ulanish ochilmaydi,
+                # jami ulanishlar soni = jarayonlar × max_size — PostgreSQL'ning `max_connections` dan oshmasin.
+                "pool": {
+                    "min_size": 1,
+                    "max_size": int(os.environ.get("DJANGO_DB_POOL_MAX", "8")),
+                    "timeout": 10,
+                },
+            },
+        }
     }
-}
+else:
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": BASE_DIR / "db.sqlite3",
+            "OPTIONS": {
+                # WAL: o'qish yozishni kutmaydi; IMMEDIATE + timeout: "database is locked" o'rniga navbat kutadi.
+                "init_command": "PRAGMA journal_mode=WAL; PRAGMA synchronous=NORMAL;",
+                "transaction_mode": "IMMEDIATE",
+                "timeout": 20,
+            },
+        }
+    }
+
+# Redis: kesh, sessiyalar, throttling hisoblagichlari va WebSocket kanallari — barcha jarayonlar uchun umumiy.
+# Berilmasa (dev) — jarayon ichidagi xotira.
+REDIS_URL = os.environ.get("REDIS_URL", "")
+if REDIS_URL:
+    CACHES = {
+        "default": {
+            "BACKEND": "django.core.cache.backends.redis.RedisCache",
+            "LOCATION": REDIS_URL,
+            "KEY_PREFIX": "tf",
+            "TIMEOUT": 300,
+        }
+    }
+    # Sessiya Redis'dan o'qiladi (har so'rovda bazaga tushmaydi), bazada ham saqlanadi (Redis tozalansa chiqib ketmaydi).
+    # WebSocket servisi (`ws`) `backends.db` ishlatadi (docker-compose): u yerda sessiya ulanishda bir marta o'qiladi,
+    # Django keshi esa async kontekst bo'yicha har WebSocket'ga alohida Redis ulanishi ochib, yopmaydi.
+    SESSION_ENGINE = os.environ.get("DJANGO_SESSION_ENGINE", "django.contrib.sessions.backends.cached_db")
+
+# WebSocket kanallari — alohida Redis (Docker: `redis-channels`): kanallardagi muammo kesh/sessiyani, ya'ni
+# butun saytni yiqitmasin. Pub/Sub qatlami: ulanishlar soni jarayonlar soniga bog'liq, ochiq WebSocket'lar soniga
+# emas. (Yuk testida `core.RedisChannelLayer` ~10 000 WebSocket'da Redis ulanish chegarasini to'ldirgan edi.)
+CHANNEL_REDIS_URL = os.environ.get("CHANNEL_REDIS_URL", REDIS_URL)
+if CHANNEL_REDIS_URL:
+    CHANNEL_LAYERS = {
+        "default": {
+            "BACKEND": "channels_redis.pubsub.RedisPubSubChannelLayer",
+            "CONFIG": {"hosts": [CHANNEL_REDIS_URL]},
+        }
+    }
+else:
+    CHANNEL_LAYERS = {"default": {"BACKEND": "channels.layers.InMemoryChannelLayer"}}
 
 AUTH_USER_MODEL = "accounts.User"
+
+# Yangi parollar — Argon2id (apps/accounts/hashers.py). PBKDF2 eski xeshlarni tekshirish uchun qoladi;
+# xodim keyingi kirishda avtomatik Argon2id'ga o'tkaziladi.
+PASSWORD_HASHERS = [
+    "apps.accounts.hashers.Argon2idHasher",
+    "django.contrib.auth.hashers.PBKDF2PasswordHasher",
+    "django.contrib.auth.hashers.PBKDF2SHA1PasswordHasher",
+]
 
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
@@ -146,20 +219,47 @@ REST_FRAMEWORK = {
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
     "PAGE_SIZE": 50,
     "EXCEPTION_HANDLER": "apps.core.api_utils.api_exception_handler",
-    "DEFAULT_THROTTLE_RATES": {"auth": "20/min", "ai_web_agent": "5/hour"},
+    # Kirgan foydalanuvchi — user id bo'yicha (IP emas: ofisda hamma bitta NAT IP orqali chiqadi).
+    "DEFAULT_THROTTLE_CLASSES": ["apps.core.throttling.UserThrottle"],
+    "DEFAULT_THROTTLE_RATES": {
+        "user": os.environ.get("DJANGO_THROTTLE_USER", "600/min"),
+        # Ro'yxatdan o'tish — IP bo'yicha. Login: har bir login nomiga tor chegara (parol tanlash) va
+        # IP bo'yicha faqat xato urinishlar (to'g'ri loginlar sanalmaydi — NAT ortidagi ofis bloklanmaydi).
+        "auth": os.environ.get("DJANGO_THROTTLE_AUTH_IP", "60/min"),
+        "login": os.environ.get("DJANGO_THROTTLE_LOGIN", "10/min"),
+        "login_failures_ip": os.environ.get("DJANGO_THROTTLE_LOGIN_FAILURES_IP", "1000/hour"),
+        "ai_web_agent": "5/hour",
+    },
 }
+# Mijoz IP'si: 0 — ulanish manzili (REMOTE_ADDR), soxta X-Forwarded-For'ga ishonilmaydi. Docker'da Nginx
+# orqasida 1 (tashqi load balancer ham bo'lsa 2) — throttling haqiqiy IP bo'yicha ishlaydi.
+REST_FRAMEWORK["NUM_PROXIES"] = int(os.environ.get("DJANGO_NUM_PROXIES", "0"))
+if "test" in sys.argv:
+    # Testlar bitta jarayonda minglab so'rov yuboradi — umumiy chegara alohida testlarda tekshiriladi.
+    REST_FRAMEWORK["DEFAULT_THROTTLE_CLASSES"] = []
 
 SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SAMESITE = "Lax"
 CSRF_COOKIE_SAMESITE = "Lax"
-if not DEBUG:
+# Prod HTTPS orqasida (DJANGO_HTTPS=1, standart). Faqat ichki tarmoqdagi HTTP sinov uchun 0 qilinadi.
+HTTPS = not DEBUG and os.environ.get("DJANGO_HTTPS", "1") == "1"
+if HTTPS:
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
-    # HTTPS faqat ishlab chiqarishda majburiy. Reverse-proxy TLS ni tugatsa ham Django
-    # unga ishonishi uchun deploy muhitida `SECURE_PROXY_SSL_HEADER` ni sozlang.
+    # TLS'ni Nginx tugatadi: Django `X-Forwarded-Proto` ga ishonadi (Nginx uni o'zi qo'yadi).
+    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
     SECURE_SSL_REDIRECT = os.environ.get("DJANGO_SECURE_SSL_REDIRECT", "1") == "1"
     SECURE_HSTS_SECONDS = int(os.environ.get("DJANGO_HSTS_SECONDS", "31536000"))
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+if not DEBUG:
     SECURE_CONTENT_TYPE_NOSNIFF = True
     SECURE_REFERRER_POLICY = "same-origin"
     X_FRAME_OPTIONS = "DENY"
+
+# Loglar konsolga (Docker ularni yig'adi); so'rov logi yozilmaydi — Nginx access log bor.
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "handlers": {"console": {"class": "logging.StreamHandler"}},
+    "root": {"handlers": ["console"], "level": os.environ.get("DJANGO_LOG_LEVEL", "WARNING")},
+}

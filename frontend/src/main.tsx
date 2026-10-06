@@ -7,6 +7,7 @@ import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 
 import { AuthProvider, isManager, useAuth } from "./app/auth";
 import Layout from "./app/Layout";
+import { LiveProvider } from "./app/live";
 import { LoginPage, RegisterPage } from "./features/auth/AuthPages";
 import LandingPage from "./features/auth/LandingPage";
 import { ApiError } from "./shared/api";
@@ -67,7 +68,7 @@ function AppRoutes() {
         </Routes>
       ) : (
         <Routes>
-          <Route element={<Layout />}>
+          <Route element={<LiveProvider><Layout /></LiveProvider>}>
             <Route index element={page(dept ? <DepartmentHome /> : <Dashboard />)} />
             {!dept && <Route path="vazifalar" element={page(<TasksPage />)} />}
             {!dept && <Route path="taqvim" element={page(<CalendarPage />)} />}

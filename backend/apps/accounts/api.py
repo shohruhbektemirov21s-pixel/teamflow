@@ -7,9 +7,9 @@ from rest_framework.decorators import api_view, permission_classes, throttle_cla
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
-from rest_framework.throttling import AnonRateThrottle
 
 from apps.core.api_utils import ServiceError, avatar_url
+from apps.core.throttling import AuthIpThrottle, FailedLoginIpThrottle, LoginThrottle
 
 from . import services
 from .models import Role, Specialty, User
@@ -17,10 +17,6 @@ from .serializers import (
     LoginSerializer, MeSerializer, RegisterSerializer, SpecialtySerializer,
     ProfileSerializer, ProfileUpdateSerializer, ChangePasswordSerializer, BusinessTripSerializer, ResponsibilitiesSerializer
 )
-
-
-class AuthThrottle(AnonRateThrottle):
-    scope = "auth"
 
 
 @api_view(["GET"])
@@ -39,7 +35,7 @@ def specialties(request):
 
 @api_view(["POST"])
 @permission_classes([AllowAny])
-@throttle_classes([AuthThrottle])
+@throttle_classes([AuthIpThrottle])
 def register(request):
     serializer = RegisterSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
@@ -52,7 +48,7 @@ def register(request):
 
 @api_view(["POST"])
 @permission_classes([AllowAny])
-@throttle_classes([AuthThrottle])
+@throttle_classes([FailedLoginIpThrottle, LoginThrottle])
 @csrf_protect
 def login_view(request):
     serializer = LoginSerializer(data=request.data)
@@ -68,6 +64,7 @@ def login_view(request):
                 {"detail": "Akkauntingiz hali tasdiqlanmagan. Administrator tasdiqlashini kuting.", "code": "not_approved"},
                 status=status.HTTP_403_FORBIDDEN,
             )
+        FailedLoginIpThrottle.record_failure(request)
         return Response({"detail": "Login yoki parol noto'g'ri."}, status=status.HTTP_400_BAD_REQUEST)
     if not user.role:
         return Response(

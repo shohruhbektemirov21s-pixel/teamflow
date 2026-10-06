@@ -7,24 +7,28 @@
 
 ```
  Brauzer (React + TS SPA, dev: 127.0.0.1:5173)
-        │  /api/*, /admin/*  (Vite proksi orqali yoki to'g'ridan-to'g'ri)
+        │  /api/*, /admin/*, /ws/* (Vite proksi orqali yoki to'g'ridan-to'g'ri)
         ▼
  Django + DRF (127.0.0.1:8020) ── apps: accounts · orders · projects · tasks · notifications · core · panel
-        │
-        ├── SQLite (db.sqlite3)
+        │                          `runserver` = daphne (ASGI): HTTP + WebSocket bitta jarayonda
+        ├── SQLite (db.sqlite3, WAL)
         └── media/ (yuklangan fayllar: TZ .docx, rasm, PDF — faqat /api/files/... orqali)
  Django admin (/admin/) ── foydalanuvchini tasdiqlash, Boshliq yaratish, ma'lumotnomalar
 ```
 
 Portlar: Django `127.0.0.1:8020` (8000-port boshqa dastur bilan band). Vite dev `127.0.0.1:5173`.
-Deployment: bitta Django jarayoni (`127.0.0.1:8020`). Frontend build (`frontend/dist`) Django orqali beriladi (`http://127.0.0.1:8020/`), shuning uchun serverda Node kerak emas. Ishlab chiqishda Vite dev-server `/api` va `/admin` ni 8020-portga proksi qiladi.
+**Ishlab chiqish / Windows server:** bitta Django jarayoni (`127.0.0.1:8020`), frontend build (`frontend/dist`) Django orqali beriladi, Node kerak emas.
+**Prod (10 000+ foydalanuvchi):** Linux + Docker — Nginx, gunicorn, daphne, PostgreSQL 17, Redis (`deploy/`, 14-bo'lim).
 
 ## 2. Texnologiya qarorlari
 
 | Qaror | Tanlov | Nima uchun |
 |---|---|---|
 | Backend | Python 3.14, Django 5.2, DRF 3.17 | Talab. Django admin tayyor tasdiqlash paneli beradi. |
-| DB | SQLite | Talab ("Django'nikidan"). Hamma so'rov ORM orqali, keyin PostgreSQL'ga o'tish oson. |
+| DB | Dev: SQLite (WAL). Prod: PostgreSQL 17 (`POSTGRES_DB` muhit o'zgaruvchisi bilan) | SQLite bir vaqtda faqat bitta yozuvga ruxsat beradi — 10 000 foydalanuvchida "database is locked". Kod faqat ORM orqali, shuning uchun ikkalasida bir xil ishlaydi (testlar ikkalasida o'tadi). |
+| Real vaqt | Django Channels + daphne, `/ws/events/`; kanallar Redis'da | Polling o'rniga: bo'sh turgan tab serverga so'rov yubormaydi (14-bo'lim). |
+| WebSocket kanallari | Alohida Redis (`redis-channels`), `RedisPubSubChannelLayer` | Yuk testida `core.RedisChannelLayer` har ochiq WebSocket uchun Redis ulanishi to'pladi (~10 000 da `max number of clients reached`) va umumiy Redis orqali kesh/sessiyani — butun saytni — yiqitdi. Pub/Sub'da ulanishlar jarayonlar soniga bog'liq; alohida Redis kanal muammosini saytdan ajratadi. |
+| Kesh, sessiya | Redis (prod), jarayon xotirasi (dev) | Sessiya har so'rovda bazadan o'qilmaydi; throttling hisoblagichlari barcha jarayonlar uchun umumiy. |
 | Auth | **Sessiya + CSRF** (DRF `SessionAuthentication`) | Bir origin (SPA Django orqali beriladi). Token `localStorage`da saqlanmaydi, XSS xavfi kam. Qo'shimcha kutubxona kerak emas. |
 | Foydalanuvchi | `AbstractUser` kengaytmasi, `role` maydoni | Rollar 4 ta, qat'iy. Alohida Role/Permission jadvali ortiqcha. |
 | Frontend | React + TypeScript + Vite | Kelishilgan. Node faqat build uchun. |
@@ -130,6 +134,8 @@ Hisoblanadigan (saqlanmaydi): `is_overdue` = muddat o'tgan, `done` va arxivda em
 | `Comment` | author, text, target (GenericFK: Order/Project/Task), created_at |
 | `ActivityLog` | actor, verb, message, target (GenericFK), created_at — "Umumiy tarix" |
 | `Notification` | recipient, kind, message, target (GenericFK), is_read, created_at |
+
+`Notification`, `ActivityLog` va `ChatMessage` PostgreSQL'da **oylarga bo'lingan** (14-bo'lim) — Django uchun oddiy model.
 
 ### chat
 | Model | Maydonlar |
@@ -250,10 +256,11 @@ frontend/src/
 
 ## 9. Xavfsizlik
 
-- Parollar Django hesh mexanizmi (PBKDF2). Ro'yxatdan o'tganlar tasdiqlanmaguncha `is_active=False`.
+- Parollar **Argon2id** (OWASP: m=19 MiB, t=2, p=1 — `apps/accounts/hashers.py`). Eski PBKDF2 xeshlar tekshiriladi va keyingi kirishda avtomatik Argon2id'ga yangilanadi. Ro'yxatdan o'tganlar tasdiqlanmaguncha `is_active=False`.
 - CSRF himoyasi yoqilgan (sessiya). Cookie: `HttpOnly`, `SameSite=Lax`. `CSRF_TRUSTED_ORIGINS` 5173 va 8020 portlar uchun sozlangan.
 - Fayl: kengaytma ro'yxati (`.docx .pdf .png .jpg`), hajm chegarasi (20 MB), fayl nomi tozalanadi, `MEDIA` faqat autentifikatsiyalangan foydalanuvchiga `/api/files/...` orqali ruxsat tekshiruvi bilan beriladi (to'g'ridan-to'g'ri URL bilan emas).
-- Brute-force: login urinishlariga throttle.
+- Brute-force: login nomi bo'yicha daqiqasiga 10 urinish; IP bo'yicha faqat **xato** urinishlar (soatiga 1000) — to'g'ri loginlar sanalmaydi, NAT ortidagi ofis bloklanmaydi. Kirgan foydalanuvchiga umumiy chegara user id bo'yicha (`apps/core/throttling.py`).
+- WebSocket: faqat sessiyasi bor faol foydalanuvchi, Origin `ALLOWED_HOSTS` bilan tekshiriladi; hodisada ma'lumot yo'q (faqat "nima o'zgardi"), ma'lumot REST orqali ruxsat tekshiruvi bilan olinadi.
 - Har bir API'da rol va egalik tekshiruvi; xato xabarlarida ma'lumot sizib chiqmaydi.
 - Sirlar (`SECRET_KEY`) muhit o'zgaruvchisida, `DEBUG` prod'da o'chiq.
 
@@ -299,3 +306,33 @@ frontend/src/
 | P1 — tashqi tarmoqqa chiqarishdan oldin | `validate_upload()` fayl kengaytmasi va hajmini tekshiradi | Yuklangan fayl mazmunini tekshirish va inline ko'rsatish siyosatini tahdid modeliga ko'ra qayta ko'rish kerak. `DEBUG=False` bilan `check --deploy` o'tkazildi; HSTS preload bo'yicha bitta ogohlantirish qoldi. Lokal HTTP rejimi uchun uni avtomatik yoqmaslik kerak. |
 
 Bu baho mahalliy kod va avtomatik testlarga asoslangan; real foydalanuvchi yuklamasi hamda ishlab chiqarish joylashtirishi tekshirilmagan.
+
+## 14. Masshtab: 10 000+ bir vaqtdagi foydalanuvchi (2026-10-06)
+
+Foydalanuvchi talabi: 10 000+ kishi bir vaqtda kirganda tizim qulamasin, resurs kam sarflansin, ma'lumot qancha o'ssa ham baza tez ishlasin (oylarga bo'linsin). Windows ishlab chiqish rejimi saqlanadi, prod uchun Linux/Docker konfiguratsiyasi.
+
+```
+Brauzer ──► nginx ──┬─ /static, SPA ────────────► fayldan
+                    ├─ /api, /admin ──► web  (gunicorn gthread) ──┬──► PostgreSQL 17 (oylik partitsiyalar)
+                    └─ /ws ──────────► ws   (daphne, Channels) ───┼──► Redis (kesh, sessiya, throttling)
+                                                                   └──► redis-channels (WebSocket hodisalari, pub/sub)
+                                       scheduler (kunlik: partitsiyalar, eski sessiyalar)
+```
+
+| Qaror | Tanlov | Nima uchun |
+|---|---|---|
+| HTTP server | gunicorn, `gthread` (4 jarayon × 8 oqim) | Sinxron Django/DRF uchun eng kam xotira bilan parallel so'rov. ASGI orqali HTTP berilmaydi: Django sinxron view'larni ASGI'da bitta oqimda navbatga qo'yadi. |
+| WebSocket | Alohida `ws` servisi (daphne), faqat `/ws/` | Minglab ochiq ulanish asyncio'da arzon; HTTP worker'larini band qilmaydi. |
+| Polling o'rniga hodisa | `apps/core/realtime.py` → `publish(user_ids, {"type": ...})` `on_commit` dan keyin; frontend `LiveProvider` (`src/app/live.tsx`) | Avval har tab 30/60 s da bildirishnoma va bosh panelni, chatda 5/15 s da so'rardi — 10 000 tabda soniyasiga 500+ so'rov hech kim hech narsa qilmasa ham. Endi ulangan tab faqat hodisa kelganda yangilanadi; uzilsa avvalgi oraliqlar zaxira bo'ladi. Hodisalar 1 s ichida jamlanadi. Qayta ulanish — tasodifiy kechikish (to'liq jitter, ≤30 s), server qayta ishga tushganda bir soniyada urilmasin. |
+| Hodisada ma'lumot yo'q | Faqat `notification` / `chat` + `partner` id | Ruxsat qoidalari bitta joyda (REST) qoladi, WebSocket orqali begona ma'lumot chiqmaydi. |
+| PostgreSQL ulanishlari | Django 5.2 o'z puli (`psycopg_pool`, jarayon boshiga ≤8) | PgBouncer konteyneri kerak emas — kam resurs. Ko'p server nusxasida PgBouncer qo'shiladi. |
+| Sessiya | `cached_db` (Redis + baza); `ws` servisida `db` | Har so'rovda bazaga tushmaydi; Redis tozalansa ham hech kim chiqib ketmaydi. `ws` da kesh ishlatilmaydi: Django keshi async kontekstda har WebSocket'ga alohida Redis ulanishi ochib, yopmaydi (yuk testi). |
+| Oylik partitsiyalar | `Notification`, `ChatMessage`, `ActivityLog` — `created_at` bo'yicha RANGE, har oy alohida jadval + DEFAULT (`apps/core/partitions.py`, migratsiyalar `core.0002`, `chat.0003`, `notifications.0005`) | Eng tez o'sadigan jadvallar. Indekslar oy bo'yicha kichik, eski oyni arxivlash bitta `DETACH`. Asosiy kalit `(id, created_at)` — PostgreSQL talabi. `ensure_partitions` (kunlik `scheduler`) keyingi 3 oyni oldindan yaratadi va DEFAULT'ga tushgan qatorlarni (masalan, SQLite'dan ko'chirilgan tarix) o'z oyiga ko'chiradi. |
+| Bo'linmaydigan jadvallar | `Task`, `Project`, `Order` | Ularga FK bilan bog'langan jadvallar ko'p; partitsiyali jadvalga FK uchun kalit `(id, created_at)` bo'lishi kerak — bog'lanishlar buziladi, tezlik oshmaydi. Ular uchun indekslar va to'g'ri so'rovlar. |
+| Dasturchi vazifalari so'rovi | `id IN (biriktirilgan UNION topshiriq)` (`tasks/permissions.py`) | Avvalgi `JOIN … OR JOIN … DISTINCT` har so'rovda butun vazifalar jadvalini o'qirdi (50 000 vazifada 36 ms, chiziqli o'sadi). Endi faqat indekslar: 0,9 ms, jami vazifalar soniga bog'liq emas. |
+| Parol xeshi | Argon2id, m=19 MiB, t=2, p=1 (OWASP) | Login to'lqini CPU'ga bog'liq: PBKDF2 (1 000 000 iteratsiya) ~675 ms, Argon2id ~47 ms CPU/login. Django standarti (100 MiB, p=8) bir vaqtdagi loginlarda RAM'ni to'ldiradi. Xotiraga bog'liq algoritm — GPU bilan buzish PBKDF2'dan qimmat. |
+| Login cheklovi | Login nomi bo'yicha + IP bo'yicha faqat xato urinishlar | Ofisda hamma bitta NAT IP'dan chiqadi — eski "IP bo'yicha 20/min" ertalab 21-xodimdan boshlab hammani bloklardi. |
+| Statik fayllar | Nginx (hash'li fayllar 1 yil kesh, gzip); SPA `index.html` ham Nginx'dan | Python jarayonlari faqat API bilan band. |
+| Xizmat ishlari | `scheduler`: `ensure_partitions`, `clearsessions` | Partitsiyalar oldindan tayyor, eskirgan sessiyalar baza hajmini o'stirmaydi. |
+
+Yuk testi (Locust, `deploy/loadtest/`): 10 000 foydalanuvchi, 339 668 so'rov, 0,004% xato; tor joy — Python CPU (1 `web` yadrosi ≈ 55–60 so'rov/s). Natijalar va server o'lchami: `deploy/loadtest/README.md`.

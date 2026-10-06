@@ -23,7 +23,7 @@ Loyihada sen quyidagi senior mutaxassislar sifatida fikr yuritasan:
 
 ## 2. Stack
 
-- Backend: **Python + Django + Django REST Framework**. Ma'lumotlar bazasi: Django standart **SQLite**.
+- Backend: **Python + Django + Django REST Framework**. Ma'lumotlar bazasi: ishlab chiqishda (Windows) **SQLite**, prod'da (10 000+ foydalanuvchi, 2026-10-06) **PostgreSQL 17** + Redis — `POSTGRES_DB`/`REDIS_URL` muhit o'zgaruvchilari bilan, Docker: `deploy/`.
 - Admin panel: **Django admin** (foydalanuvchini tasdiqlash, Boshliq yaratish). Alohida admin panel yozilmaydi.
 - Frontend: **React + TypeScript**.
 - Word (.docx) ko'rsatish: brauzerda, modal ichida (`docx-preview`).
@@ -91,9 +91,16 @@ Backend (`backend/` papkasida, virtual muhit `backend/.venv`):
 .venv/Scripts/python manage.py createsuperuser            # admin (Boshliqni adminda yaratish uchun)
 .venv/Scripts/python manage.py seed_demo                  # demo ma'lumotlar
 .venv/Scripts/python manage.py runserver 127.0.0.1:8020   # http://127.0.0.1:8020/ (8020-port)
-.venv/Scripts/python manage.py test                       # testlar (224 ta test)
+.venv/Scripts/python manage.py test                       # testlar (262 ta; 3 tasi faqat PostgreSQL'da ishlaydi)
 .venv/Scripts/python manage.py runbot                     # Telegram bot (TELEGRAM_BOT_TOKEN muhit o'zgaruvchisi bilan)
 .venv/Scripts/python manage.py makemigrations --check --dry-run   # sxema mosligi
+.venv/Scripts/python manage.py ensure_partitions                 # oylik partitsiyalar (faqat PostgreSQL)
+```
+
+Prod (Linux + Docker, `deploy/README.md`):
+```
+docker compose -f deploy/docker-compose.yml up -d --build        # nginx, web, ws, postgres, redis, scheduler
+docker compose -f deploy/docker-compose.yml run --rm web python manage.py test   # testlar PostgreSQL'da
 ```
 
 Frontend (`frontend/` papkasida):
@@ -101,7 +108,7 @@ Frontend (`frontend/` papkasida):
 npm install               # bog'liqliklar
 npx vite                  # dev-server: http://127.0.0.1:5173/ (8020 ga proksi qiladi)
 npx tsc --noEmit -p .     # TypeScript tur tekshiruvi
-npx vitest run            # testlar (74 ta, jsdom + @testing-library/react)
+npx vitest run            # testlar (106 ta, jsdom + @testing-library/react)
 npx vite build            # prod build: dist/ (Django orqali beriladi)
 ```
 
@@ -111,6 +118,7 @@ npx vite build            # prod build: dist/ (Django orqali beriladi)
 backend/   Django: config/ (settings, urls), apps/ (core, accounts, orders, projects, tasks, notifications)
 frontend/  React + TS (4-bosqichda)
 docs/      ARCHITECTURE.md, FLOWS_MODALS.md
+deploy/    Prod: Dockerfile, docker-compose.yml, nginx.conf, .env.example, README.md; loadtest/ (Locust)
 ```
 Har bir app ichidagi qatlamlar (`models`, `workflow`, `services`, `permissions`, `serializers`, `api`, `admin`, `tests`) va bog'liqlik yo'nalishi — `docs/ARCHITECTURE.md` 3-bo'lim. Holat o'tishlari faqat `apps/*/workflow.py` jadvallarida.
 
@@ -122,7 +130,7 @@ Har bir app ichidagi qatlamlar (`models`, `workflow`, `services`, `permissions`,
 
 ## 12. Xavfsizlik
 
-- Parollar Django parol hesh mexanizmi bilan saqlanadi.
+- Parollar **Argon2id** bilan saqlanadi (`apps/accounts/hashers.py`, OWASP parametrlari); eski PBKDF2 xeshlar keyingi kirishda avtomatik yangilanadi.
 - Fayl yuklashda tur va hajm tekshiriladi (.docx, rasm, PDF).
 - Har bir API so'rovda rol va egalik serverda tekshiriladi (boshqarma faqat o'z buyurtmasini ko'radi, dasturchi faqat o'z vazifasini).
 - Buyurtma yuborilgach boshqarma uni tahrirlay ham, o'chira ham olmaydi.
@@ -212,3 +220,9 @@ Har bir app ichidagi qatlamlar (`models`, `workflow`, `services`, `permissions`,
 - **2026-10-06 (foydalanuvchi talabi):** Tizim UX/UI to'liq ko'rib chiqilsin, tugmalar o'z joyida bo'lsin. Boshqarma buyurtmalar sahifasida yakunlash tasdig'i kutilayotganlar birinchi, yangi buyurtmalar teparoqda, to'liq yakunlanganlar pastda tursin.
 - **2026-10-06 (yakunlash tartibi yangilandi):** Dasturchilarga "Loyihani yakunlashga rozimisiz?" savoli, "Ha, roziman" va "Yo'q" tugmalari chiqadi. Hamma rozi bo'lgach PMga xabar keladi va "Yakunlash" ochiladi; loyiha avtomatik yakunlanmaydi. PM yakunlaydi, buyurtmali loyiha keyin boshqarma tasdig'iga yuboriladi. Oldingi yakunlash izohi va fayllari saqlanadi.
 - **2026-10-06 (tezlik va resurs sarfi):** Bosh panel hisoblari bitta agregat SQL orqali olinadi; loyiha vazifalari va dasturchilar faqat tegishli tab ochilganda yuklanadi. Bildirishnomani o'qish va izoh yozish barcha ro'yxatlarni qayta yuklamaydi. Kesh 60 soniya, dasturchilar ma'lumotnomasi 5 daqiqa; mutatsiyadan keyin tegishli kesh yangilanadi. Chat so'rovlari xabarlar uchun 5 soniya, suhbatlar uchun 15 soniya; yashirin tabda polling o'chirilgan. Fon blur effektlari olib tashlangan, modal orqasidagi loyiha ko'rinib turadi.
+
+- **2026-10-06 (foydalanuvchi talabi — 10 000+ foydalanuvchi):** 10 000+ kishi bir vaqtda kirganda tizim qulamasin, resurs kam sarflansin, ma'lumot qancha o'ssa ham baza tez ishlasin — baza oylarga bo'linsin. Foydalanuvchi tanlovi: Windows ishlab chiqish rejimi qoladi + prod uchun Linux/Docker; barcha bosqichlar (infratuzilma, keshlash/cheklov, WebSocket, yuk testi). Amalga oshirildi (`docs/ARCHITECTURE.md` 14-bo'lim, `deploy/README.md`): prod — Nginx + gunicorn + daphne (WebSocket) + PostgreSQL 17 + Redis (`deploy/docker-compose.yml`); dev'da SQLite (WAL) va jarayon xotirasi. Polling o'rniga real vaqt hodisalari (`apps/core/realtime.py`, `frontend/src/app/live.tsx`; uzilsa avvalgi oraliqlar zaxira). **Oylik partitsiyalar faqat tez o'sadigan jadvallarga**: bildirishnomalar, chat, tarix (`apps/core/partitions.py`, kunlik `ensure_partitions`); vazifa/loyiha/buyurtma bo'linmaydi — FK bog'lanishlari buziladi, tezlik oshmaydi. Login cheklovi IP emas, login nomi bo'yicha + IP bo'yicha faqat xato urinishlar (NAT ortidagi ofis bloklanmasin). Dasturchi vazifalari so'rovi butun jadvalni o'qimaydi (`tasks/permissions.py`, 36 ms → 0,9 ms). Yuk testi: `deploy/loadtest/` (natijalar README'da). Yangi flow/modal yo'q.
+
+- **2026-10-06 (foydalanuvchi talabi — Argon2id):** Parol xeshi PBKDF2'dan **Argon2id**'ga o'tkazildi (OWASP: m=19 MiB, t=2, p=1; `apps/accounts/hashers.py`, `argon2-cffi`). Sabab: yuk testida login to'lqini (soniyasiga 25 login) serverning asosiy CPU sarfi bo'ldi — PBKDF2 ~675 ms, Argon2id ~47 ms CPU/login. PBKDF2 `PASSWORD_HASHERS` da qoladi: mavjud xodimlar paroli ishlaydi va keyingi kirishda avtomatik Argon2id'ga yangilanadi (parolni almashtirish shart emas). Django standarti (100 MiB, 8 oqim) emas — bir vaqtdagi loginlarda RAM tejaladi.
+
+- **2026-10-06 (yuk testi yakuni — 10 000 foydalanuvchi):** 4 marta 10 000 virtual foydalanuvchi bilan sinaldi (`deploy/loadtest/README.md`). Topilib tuzatildi: Nginx ulanishlarni bitta worker'ga yig'ib uzardi (`reuseport`); WebSocket kanallari Redis ulanish chegarasini to'ldirib butun saytni yiqitdi → `RedisPubSubChannelLayer` + alohida `redis-channels` servisi; `ws` sessiyani keshdan o'qib har WebSocket'ga Redis ulanishi qoldirardi → `ws` da `DJANGO_SESSION_ENGINE=backends.db`. Yakuniy natija: 339 668 so'rov, 15 xato (0,004%), 10 000 login va WebSocket xatosiz; tor joy faqat Python CPU (1 `web` yadrosi ≈ 55–60 so'rov/s). gunicorn standarti 4 jarayon × 4 oqim. Server o'lchami jadvali: `deploy/loadtest/README.md`.

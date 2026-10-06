@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/shared/api";
 import type { Dashboard, Developer, Me, Paged, Project } from "@/shared/types";
 
+import { useFallbackInterval } from "./live";
 import type { Counter } from "./nav";
 
 /** O'zgargan bo'limlarning keshini yangilash; domains berilmasa barcha ma'lumotlar yangilanadi. */
@@ -16,7 +17,7 @@ export function useUnreadCount() {
   return useQuery({
     queryKey: ["notifications", "unread"],
     queryFn: () => api.get<{ count: number }>("/notifications/unread_count/"),
-    refetchInterval: 30_000,
+    refetchInterval: useFallbackInterval(30_000),
     select: (d) => d.count,
   });
 }
@@ -28,7 +29,7 @@ export function useCounters(me: Me): Record<Counter, number> {
     queryKey: ["dashboard"],
     queryFn: () => api.get<Dashboard>("/dashboard/"),
     enabled: me.role !== "department",
-    refetchInterval: 60_000,
+    refetchInterval: useFallbackInterval(60_000),
   });
   return {
     notifications: notif.data ?? 0,

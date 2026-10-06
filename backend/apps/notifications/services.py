@@ -4,6 +4,7 @@ from django.contrib.auth import get_user_model
 from django.db import transaction
 
 from apps.accounts.models import Role
+from apps.core.realtime import publish
 
 from . import telegram
 from .models import Notification
@@ -23,6 +24,8 @@ def notify(recipients, kind, message, target=None, exclude=None):
         seen.add(user.pk)
         items.append(Notification(recipient=user, kind=kind, message=message[:255], target=target))
     Notification.objects.bulk_create(items)
+    # Ochiq tablar polling o'rniga shu hodisa bilan qo'ng'iroq soni va bosh panelni yangilaydi
+    publish(seen, {"type": "notification"})
 
     pairs = [(item.recipient.telegram_chat_id, item.message) for item in items if item.recipient.telegram_chat_id]
     if pairs and telegram.enabled():

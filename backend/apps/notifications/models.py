@@ -35,7 +35,11 @@ class Notification(models.Model):
 
     class Meta:
         ordering = ["-created_at"]
-        indexes = [models.Index(fields=["recipient", "is_read"])]
+        indexes = [
+            models.Index(fields=["recipient", "is_read"]),
+            # Ro'yxat: o'z bildirishnomalari yangisidan eskisiga (sahifalash) — saralashsiz indeksdan o'qiladi
+            models.Index(fields=["recipient", "-created_at"], name="notif_recipient_created_idx"),
+        ]
         verbose_name = "Bildirishnoma"
         verbose_name_plural = "Bildirishnomalar"
 

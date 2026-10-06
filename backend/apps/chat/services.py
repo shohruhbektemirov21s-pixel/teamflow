@@ -1,6 +1,7 @@
 from django.db.models import Count, Max, Q
 
 from apps.core.api_utils import user_brief
+from apps.core.realtime import publish
 
 from .models import ChatMessage
 
@@ -51,9 +52,15 @@ def messages_with_partner(user, partner):
         ChatMessage.objects.filter(Q(author=user, recipient=partner) | Q(author=partner, recipient=user))
         .order_by("-created_at", "-id")[:MESSAGE_LIMIT]
     )
-    ChatMessage.objects.filter(author=partner, recipient=user, is_read=False).update(is_read=True)
+    # Faqat o'qilmagan bo'lsa yoziladi — har ochilishda bo'sh UPDATE (yozuv qulfi) bo'lmasin
+    if any(m.author_id == partner.pk and not m.is_read for m in latest):
+        ChatMessage.objects.filter(author=partner, recipient=user, is_read=False).update(is_read=True)
     return latest[::-1]
 
 
 def send_message(author, partner, text):
-    return ChatMessage.objects.create(author=author, recipient=partner, text=text)
+    message = ChatMessage.objects.create(author=author, recipient=partner, text=text)
+    # Ikkala tomonga: suhbat ro'yxati va ochiq yozishma yangilanadi (boshqa tabda ham)
+    publish([partner.pk], {"type": "chat", "partner": author.pk})
+    publish([author.pk], {"type": "chat", "partner": partner.pk})
+    return message
