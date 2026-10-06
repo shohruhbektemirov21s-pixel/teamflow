@@ -18,12 +18,6 @@ export default function ReviewPage() {
 
   return (
     <>
-      <div className="page-head">
-        <div className="grow">
-          <h1>{T.review.title}</h1>
-          {query.data && <p>{T.common.count(query.data.length)}</p>}
-        </div>
-      </div>
       <div className="card">
         {query.error && (
           <div className="card-pad">

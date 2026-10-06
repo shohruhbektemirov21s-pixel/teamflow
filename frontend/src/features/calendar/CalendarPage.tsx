@@ -69,13 +69,11 @@ export default function CalendarPage() {
 
   return (
     <>
-      <div className="page-head">
-        <div className="grow">
-          <h1>
-            {T.calendar.months[month.getMonth()]} {month.getFullYear()}
-          </h1>
-          <p>{T.calendar.hint}</p>
-        </div>
+      <div className="page-toolbar">
+        <span className="page-toolbar-title" aria-live="polite">
+          {T.calendar.months[month.getMonth()]} {month.getFullYear()}
+        </span>
+        <span className="spacer" />
         <button className="icon-btn" onClick={() => shift(-1)} aria-label="←">
           <ChevronLeft />
         </button>

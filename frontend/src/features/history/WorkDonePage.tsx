@@ -41,10 +41,7 @@ export default function WorkDonePage() {
 
   return (
     <>
-      <div className="page-head">
-        <div className="grow">
-          <h1>{T.workDone.title}</h1>
-        </div>
+      <div className="page-toolbar">
         <div className="row-wrap">
           <label className="row" style={{ gap: 6, cursor: "pointer" }}>
             <input type="checkbox" checked={mine} onChange={(e) => (setMine(e.target.checked), setPage(1))} />

@@ -116,7 +116,6 @@ export const T = {
   },
 
   dashboard: {
-    hello: (name: string) => `Salom, ${name}!`,
     managerSummary: (review: number, orders: number) =>
       review || orders
         ? `Sizni kutmoqda: ${review} ta tekshiruv, ${orders} ta yangi buyurtma.`
@@ -130,7 +129,6 @@ export const T = {
     weeklyTotal: (n: number) => `Jami: ${n} ta`,
     weekActive: "Hafta boshidan — Faol",
     team: "Jamoa",
-    teamHint: "Vazifasi yo'qlar birinchi turadi",
     everyone: "Hamma xodimlar",
     free: "Bo'sh",
     active: "Faol",
@@ -173,7 +171,6 @@ export const T = {
   },
 
   tasks: {
-    title: "Vazifalar",
     new: "Yangi vazifa",
     empty: "Vazifa topilmadi",
     emptyHint: "Filtrlarni tozalab ko'ring yoki yangi vazifa yarating.",
@@ -256,8 +253,6 @@ export const T = {
   },
 
   board: {
-    title: "Mening ishim",
-    hint: "Kartani sichqoncha bilan keyingi ustunga sudrang",
     emptyCol: "Bu yerga karta sudrang",
     emptyDone: "Menejer qabul qilgan vazifalar shu yerda",
     locked: "Faqat menejer qabul qiladi",
@@ -267,7 +262,6 @@ export const T = {
   },
 
   review: {
-    title: "Tekshiruv navbati",
     empty: "Tekshiruvni kutayotgan vazifa yo'q",
     emptyHint: "Dasturchi ishni yuborganda shu yerda paydo bo'ladi.",
     sentBy: "Yubordi",
@@ -275,8 +269,6 @@ export const T = {
   },
 
   orders: {
-    title: "Buyurtmalar (TZ)",
-    myTitle: "Buyurtmalarim",
     new: "Yangi buyurtma",
     empty: "Buyurtma yo'q",
     emptyDept: "Birinchi buyurtmangizni yuboring — TZ faylini biriktiring va muddatni belgilang.",
@@ -342,7 +334,6 @@ export const T = {
   },
 
   projects: {
-    title: "Loyihalar",
     new: "Yangi loyiha",
     empty: "Loyiha yo'q",
     emptyHint: "Loyiha yarating yoki tasdiqlangan buyurtmadan loyiha oching.",
@@ -408,7 +399,6 @@ export const T = {
     weekdays: ["Du", "Se", "Ch", "Pa", "Ju", "Sh", "Ya"],
     months: ["Yanvar", "Fevral", "Mart", "Aprel", "May", "Iyun", "Iyul", "Avgust", "Sentyabr", "Oktyabr", "Noyabr", "Dekabr"],
     more: (n: number) => `yana ${n} ta`,
-    hint: "Vazifalar va loyihalar tugash sanasi bo'yicha. Kunni bosing — o'sha kun ro'yxati ochiladi",
     openDay: (date: string) => `${date} — kun ro'yxatini ochish`,
     projectEnds: (name: string) => `${name} — loyiha tugaydi`,
     dayProjects: "Shu kuni tugaydigan loyihalar",
@@ -550,7 +540,6 @@ export const T = {
   },
 
   workDone: {
-    title: "Qilingan ishlar",
     tabs: { tasks: "Vazifalar", reviews: "Tekshiruvlar", history: "Tarix" } as Record<string, string>,
     mine: "Faqat men",
     days: "Kun",

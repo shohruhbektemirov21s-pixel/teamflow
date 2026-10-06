@@ -42,11 +42,7 @@ export default function TasksPage() {
 
   return (
     <>
-      <div className="page-head">
-        <div className="grow">
-          <h1>{T.tasks.title}</h1>
-          {query.data && <p>{T.common.count(query.data.count)}</p>}
-        </div>
+      <div className="page-toolbar">
         {assignee && (
           <span className="chip" aria-pressed="true">
             {assigneeLabel}
@@ -55,6 +51,7 @@ export default function TasksPage() {
             </button>
           </span>
         )}
+        <span className="spacer" />
         <Button variant="primary" icon={<Plus />} onClick={() => open({ new: "task" })}>
           {T.tasks.new}
         </Button>

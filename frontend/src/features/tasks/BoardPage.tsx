@@ -90,21 +90,7 @@ export default function BoardPage() {
   const tasks = query.data ?? [];
   return (
     <>
-      <div className="page-head">
-        <div className="grow">
-          <h1>{T.board.title}</h1>
-          <p>{T.board.hint}</p>
-        </div>
-        <div className="row">
-          <Button variant="default" icon={<Plus />} onClick={() => open({ bulk: "task", project: project ? Number(project) : undefined })}>
-            {T.tasks.bulkNew}
-          </Button>
-          <Button variant="primary" icon={<Plus />} onClick={() => open({ new: "task", project: project ? Number(project) : undefined })}>
-            {T.tasks.new}
-          </Button>
-        </div>
-      </div>
-      <div className="card card-pad row-wrap" style={{ gap: 16 }}>
+      <div className="card card-pad row-wrap" style={{ gap: 16, alignItems: "flex-end" }}>
         <label className="field" style={{ minWidth: 220 }}>
           <span className="field-label">{T.filters.project}</span>
           <select className="select" value={project} onChange={(e) => setProject(e.target.value)}>
@@ -128,6 +114,14 @@ export default function BoardPage() {
               { value: "week", label: T.filters.dueWeek },
             ]}
           />
+        </div>
+        <div className="page-actions">
+          <Button variant="default" icon={<Plus />} onClick={() => open({ bulk: "task", project: project ? Number(project) : undefined })}>
+            {T.tasks.bulkNew}
+          </Button>
+          <Button variant="primary" icon={<Plus />} onClick={() => open({ new: "task", project: project ? Number(project) : undefined })}>
+            {T.tasks.new}
+          </Button>
         </div>
       </div>
 

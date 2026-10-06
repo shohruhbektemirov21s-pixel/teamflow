@@ -3,7 +3,6 @@ import { FileText, Plus } from "lucide-react";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 
-import { useMe } from "@/app/auth";
 import { useModal } from "@/app/modals";
 import { OrdersTable, OrderStatusCards } from "@/features/orders/OrdersTable";
 import { api, qs } from "@/shared/api";
@@ -32,7 +31,6 @@ interface Selection {
  * va o'z buyurtmalari ro'yxati (server faqat o'zinikini beradi). Karta bosilsa ro'yxat filtrlanadi.
  */
 export default function DepartmentHome() {
-  const me = useMe();
   const { open } = useModal();
   const meta = useMeta();
   const [selected, setSelected] = useState<Selection | null>(null);
@@ -55,17 +53,15 @@ export default function DepartmentHome() {
 
   return (
     <>
-      <div className="hero">
-        <div className="grow">
-          <h1>{T.dashboard.hello(me.first_name || me.full_name)}</h1>
-          {me.department_name && <p className="muted">{me.department_name}</p>}
+      <div className="page-toolbar">
+        <div className="page-actions">
+          <Link to="/buyurtmalar" className="btn">
+            <FileText size={16} /> {T.nav.myOrders}
+          </Link>
+          <Button variant="primary" icon={<Plus />} onClick={newOrder}>
+            {T.orders.new}
+          </Button>
         </div>
-        <Link to="/buyurtmalar" className="btn">
-          <FileText size={16} /> {T.nav.myOrders}
-        </Link>
-        <Button variant="primary" icon={<Plus />} onClick={newOrder}>
-          {T.orders.new}
-        </Button>
       </div>
 
       {summary.error && <ErrorBox error={summary.error} onRetry={() => summary.refetch()} />}
