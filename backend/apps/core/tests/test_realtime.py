@@ -1,6 +1,6 @@
 from unittest import mock
 
-from asgiref.sync import async_to_sync
+from asgiref.sync import async_to_sync, sync_to_async
 from channels.layers import get_channel_layer
 from channels.testing import WebsocketCommunicator
 from django.contrib.auth.models import AnonymousUser
@@ -17,29 +17,30 @@ from apps.panel.tests.factories import make_user
 from config.asgi import application
 
 
-def _listen(user_id):
-    """Foydalanuvchi guruhiga ulangan kanal (ochiq WebSocket o'rnida)."""
-    layer = get_channel_layer()
-    channel = async_to_sync(layer.new_channel)()
-    async_to_sync(layer.group_add)(realtime.user_group(user_id), channel)
-    return layer, channel
-
-
-def _received(layer, channel):
-    return async_to_sync(layer.receive)(channel)["payload"]
-
-
 class PublishTests(TestCase):
     def setUp(self):
         self.dev = make_user(Role.DEVELOPER)
         self.pm = make_user(Role.PM)
 
     def test_sent_to_each_user_group_after_commit(self):
-        layer, channel = _listen(self.dev.pk)
-        with self.captureOnCommitCallbacks(execute=True) as callbacks:
-            realtime.publish([self.dev.pk, self.dev.pk, None], {"type": "notification"})
+        # Hammasi bitta event loop'da: Redis pub/sub qatlami kanalni faqat o'z loop'ida taniydi
+        def publish_and_commit():
+            with self.captureOnCommitCallbacks(execute=True) as callbacks:
+                realtime.publish([self.dev.pk, self.dev.pk, None], {"type": "notification"})
+            return callbacks
+
+        async def scenario():
+            layer = get_channel_layer()
+            channel = await layer.new_channel()  # ochiq WebSocket o'rnida
+            await layer.group_add(realtime.user_group(self.dev.pk), channel)
+            callbacks = await sync_to_async(publish_and_commit)()
+            message = await layer.receive(channel)
+            await layer.group_discard(realtime.user_group(self.dev.pk), channel)
+            return callbacks, message["payload"]
+
+        callbacks, payload = async_to_sync(scenario)()
         self.assertEqual(len(callbacks), 1)
-        self.assertEqual(_received(layer, channel), {"type": "notification"})
+        self.assertEqual(payload, {"type": "notification"})
 
     def test_rolled_back_transaction_sends_nothing(self):
         with self.captureOnCommitCallbacks(execute=False) as callbacks:

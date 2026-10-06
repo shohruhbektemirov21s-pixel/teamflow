@@ -4,9 +4,9 @@
 #   docker compose -f deploy/docker-compose.yml up -d --build
 #
 # Brauzer ──► nginx ──┬─ /static, SPA  (fayldan)
-#                     ├─ /api, /admin ──► web (gunicorn, WSGI) ──┐
-#                     └─ /ws ──────────► ws  (daphne, ASGI)  ───┼──► postgres (oylik partitsiyalar)
-#                                                                └──► redis (kesh, sessiya, WebSocket kanallari)
+#                     ├─ /api, /admin ──► web (gunicorn, WSGI) ──┬──► postgres (oylik partitsiyalar)
+#                     └─ /ws ──────────► ws  (daphne, ASGI)  ───┼──► redis (kesh, sessiya, throttling)
+#                                                                └──► redis-channels (WebSocket hodisalari)
 name: teamflow
 
 x-django: &django
@@ -22,6 +22,7 @@ x-django: &django
     POSTGRES_DB: ${POSTGRES_DB:-teamflow}
     POSTGRES_USER: ${POSTGRES_USER:-teamflow}
     REDIS_URL: redis://redis:6379/0
+    CHANNEL_REDIS_URL: redis://redis-channels:6379/0
     DJANGO_NUM_PROXIES: ${DJANGO_NUM_PROXIES:-1}  # Nginx; oldida tashqi load balancer bo'lsa — 2
   volumes:
     - media:/app/backend/media
@@ -29,6 +30,7 @@ x-django: &django
   depends_on:
     postgres: { condition: service_healthy }
     redis: { condition: service_healthy }
+    redis-channels: { condition: service_healthy }
     migrate: { condition: service_completed_successfully }
 
 services:
@@ -71,6 +73,17 @@ services:
       retries: 20
     restart: unless-stopped
 
+  # WebSocket kanallari (pub/sub) — alohida: bu yerdagi muammo kesh va sessiyalarga (butun saytga) ta'sir qilmaydi.
+  redis-channels:
+    image: redis:7-alpine
+    command: redis-server --save "" --appendonly no --maxmemory 64mb --maxmemory-policy noeviction
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
   # Bir martalik: migratsiyalar va oylik partitsiyalar. web/ws shu tugagach ishga tushadi.
   migrate:
     <<: *django
@@ -88,17 +101,22 @@ services:
       --bind 0.0.0.0:8000
       --worker-class gthread
       --workers ${WEB_WORKERS:-4}
-      --threads ${WEB_THREADS:-8}
+      --threads ${WEB_THREADS:-4}
       --max-requests 5000 --max-requests-jitter 500
       --timeout 60 --graceful-timeout 30 --keep-alive 5
     environment:
       <<: *django-env
-      DJANGO_DB_POOL_MAX: ${WEB_THREADS:-8}
+      DJANGO_DB_POOL_MAX: ${WEB_THREADS:-4}
 
   ws:
     <<: *django
     # Faqat WebSocket (/ws/). Bitta jarayon minglab ochiq ulanishni ushlaydi (asyncio).
     command: daphne --bind 0.0.0.0 --port 8001 --proxy-headers config.asgi:application
+    environment:
+      <<: *django-env
+      # Sessiya ulanishda bir marta bazadan o'qiladi. Kesh orqali bo'lsa, Django har WebSocket uchun alohida
+      # Redis ulanishi ochib yopmaydi (yuk testida ~10 000 ulanish — Redis chegarasi).
+      DJANGO_SESSION_ENGINE: django.contrib.sessions.backends.db
     ulimits:
       nofile: { soft: 65535, hard: 65535 }
 

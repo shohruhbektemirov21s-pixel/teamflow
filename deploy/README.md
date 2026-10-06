@@ -6,16 +6,18 @@ Bu papka — 10 000+ bir vaqtdagi foydalanuvchi uchun prod stack. Arxitektura va
 
 ```
 Brauzer ──► nginx ──┬─ /static, SPA ────────────► fayldan (Django'ga tushmaydi)
-                    ├─ /api, /admin ──► web  (gunicorn, 4×8 oqim) ──┬──► postgres 17 (oylik partitsiyalar)
-                    └─ /ws ──────────► ws   (daphne, WebSocket)  ───┴──► redis (kesh, sessiya, kanallar)
+                    ├─ /api, /admin ──► web  (gunicorn) ─────────────┬──► postgres 17 (oylik partitsiyalar)
+                    └─ /ws ──────────► ws   (daphne, WebSocket)  ───┼──► redis (kesh, sessiya, throttling)
+                                                                     └──► redis-channels (WebSocket hodisalari)
                                        scheduler (kunlik: partitsiyalar, eski sessiyalar)
 ```
 
 ## 1. Talablar
 
 - Linux server, Docker Engine 24+ va Docker Compose v2.
-- Minimal: **2 CPU, 4 GB RAM** (standart sozlamalar shunga). 10 000 faol foydalanuvchi uchun: 4–8 CPU, 8 GB RAM
-  (yuk testi natijasi: `deploy/loadtest/README.md`).
+- Minimal: **2 CPU, 4 GB RAM** (standart sozlamalar shunga, ~1 000 faol foydalanuvchi).
+- 10 000 bir vaqtda **faol** foydalanuvchi uchun: ~16 CPU, 8–16 GB RAM (yoki 2 server × 8 CPU). Ochiq, lekin
+  harakatsiz tablar deyarli resurs olmaydi. O'lchov va jadval: `deploy/loadtest/README.md`.
 - Domen va HTTPS sertifikati (TLS tashqi load balancer'da yoki Nginx'da — 5-bo'lim).
 
 ## 2. Birinchi ishga tushirish
@@ -74,8 +76,8 @@ docker compose -f deploy/docker-compose.yml cp backend/media/. web:/app/backend/
 
 | O'zgaruvchi | Standart | Qachon oshirish |
 |---|---|---|
-| `WEB_WORKERS` | 4 | CPU ko'p bo'lsa: ≈ yadrolar × 2 |
-| `WEB_THREADS` | 8 | Odatda o'zgarmaydi (bazaga ulanishlar puli shunga teng) |
+| `WEB_WORKERS` | 4 | ≈ `web` uchun ajratilgan yadrolar soni (1 yadro ≈ 55–60 so'rov/s) |
+| `WEB_THREADS` | 4 | O'zgartirmang: GIL sabab ko'proq oqim foyda bermaydi; bazaga ulanishlar puli shunga teng |
 | `PG_SHARED_BUFFERS` | 256MB | ≈ server RAM'ining 25% |
 | `PG_EFFECTIVE_CACHE` | 1GB | ≈ server RAM'ining 50–75% |
 | `PG_MAX_CONNECTIONS` | 100 | `WEB_WORKERS × WEB_THREADS + 30` dan kam bo'lmasin |

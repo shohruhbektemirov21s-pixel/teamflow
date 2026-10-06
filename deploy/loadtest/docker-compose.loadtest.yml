@@ -10,6 +10,7 @@ services:
       POSTGRES_DB: ${POSTGRES_DB:-teamflow}
       POSTGRES_USER: ${POSTGRES_USER:-teamflow}
       REDIS_URL: redis://redis:6379/0
+      CHANNEL_REDIS_URL: redis://redis-channels:6379/0
       TEAMFLOW_LOADTEST: "1"
       LT_USERS: ${LT_USERS:-10000}
     volumes:

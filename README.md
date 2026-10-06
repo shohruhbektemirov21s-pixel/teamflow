@@ -350,7 +350,7 @@ Batafsil bosqichlar: `docs/FLOWS_MODALS.md`.
 
 ## 12. Xavfsizlik
 
-- Parollar Django parol hesh mexanizmi bilan saqlanadi. Kirish so'rovlari cheklangan (throttle).
+- Parollar Argon2id bilan saqlanadi (OWASP parametrlari; eski PBKDF2 xeshlar keyingi kirishda yangilanadi). Kirish so'rovlari cheklangan (throttle).
 - Har bir API so'rovda rol va egalik **serverda** tekshiriladi: boshqarma faqat o'z buyurtmasini, dasturchi faqat o'z vazifasi va loyihasini ko'radi.
 - Buyurtma yuborilgach boshqarma uni tahrirlay ham, o'chira ham olmaydi.
 - Fayl yuklashda tur va hajm tekshiriladi. Yuklangan fayllar ochiq berilmaydi — faqat `/api/files/...` orqali ruxsat tekshiruvi bilan. Profil rasmlari — `/api/avatars/<id>/`, faqat tizimga kirganlarga.
@@ -524,3 +524,4 @@ Talab: 10 000+ kishi bir vaqtda kirganda tizim qulamasin, resurs kam sarflansin,
 - **Oylarga bo'lingan jadvallar:** bildirishnomalar, chat xabarlari, harakatlar tarixi — har oy alohida jadval, keyingi 3 oy oldindan yaratiladi, eski oy bir buyruq bilan arxivlanadi. Vazifa/loyiha/buyurtma bo'linmaydi (bog'lanishlar buziladi, tezlik oshmaydi) — ular indeks bilan tez.
 - **Login:** cheklov login nomi bo'yicha; IP bo'yicha faqat xato urinishlar sanaladi — ofis bitta IP orqali chiqsa ham xodimlar bir-birini bloklamaydi.
 - **Dasturchi vazifalari so'rovi** butun jadvalni o'qimaydi: 50 000 vazifada 36 ms → 0,9 ms.
+- **Parol xeshi — Argon2id** (OWASP parametrlari): login ~14 barobar kam CPU oladi (675 → 47 ms), ertalab minglab xodim bir vaqtda kirsa ham server parol tekshirish bilan band bo'lib qolmaydi. Mavjud parollar ishlaydi va keyingi kirishda avtomatik yangilanadi.

@@ -27,6 +27,7 @@ Portlar: Django `127.0.0.1:8020` (8000-port boshqa dastur bilan band). Vite dev 
 | Backend | Python 3.14, Django 5.2, DRF 3.17 | Talab. Django admin tayyor tasdiqlash paneli beradi. |
 | DB | Dev: SQLite (WAL). Prod: PostgreSQL 17 (`POSTGRES_DB` muhit o'zgaruvchisi bilan) | SQLite bir vaqtda faqat bitta yozuvga ruxsat beradi — 10 000 foydalanuvchida "database is locked". Kod faqat ORM orqali, shuning uchun ikkalasida bir xil ishlaydi (testlar ikkalasida o'tadi). |
 | Real vaqt | Django Channels + daphne, `/ws/events/`; kanallar Redis'da | Polling o'rniga: bo'sh turgan tab serverga so'rov yubormaydi (14-bo'lim). |
+| WebSocket kanallari | Alohida Redis (`redis-channels`), `RedisPubSubChannelLayer` | Yuk testida `core.RedisChannelLayer` har ochiq WebSocket uchun Redis ulanishi to'pladi (~10 000 da `max number of clients reached`) va umumiy Redis orqali kesh/sessiyani — butun saytni — yiqitdi. Pub/Sub'da ulanishlar jarayonlar soniga bog'liq; alohida Redis kanal muammosini saytdan ajratadi. |
 | Kesh, sessiya | Redis (prod), jarayon xotirasi (dev) | Sessiya har so'rovda bazadan o'qilmaydi; throttling hisoblagichlari barcha jarayonlar uchun umumiy. |
 | Auth | **Sessiya + CSRF** (DRF `SessionAuthentication`) | Bir origin (SPA Django orqali beriladi). Token `localStorage`da saqlanmaydi, XSS xavfi kam. Qo'shimcha kutubxona kerak emas. |
 | Foydalanuvchi | `AbstractUser` kengaytmasi, `role` maydoni | Rollar 4 ta, qat'iy. Alohida Role/Permission jadvali ortiqcha. |
@@ -255,7 +256,7 @@ frontend/src/
 
 ## 9. Xavfsizlik
 
-- Parollar Django hesh mexanizmi (PBKDF2). Ro'yxatdan o'tganlar tasdiqlanmaguncha `is_active=False`.
+- Parollar **Argon2id** (OWASP: m=19 MiB, t=2, p=1 — `apps/accounts/hashers.py`). Eski PBKDF2 xeshlar tekshiriladi va keyingi kirishda avtomatik Argon2id'ga yangilanadi. Ro'yxatdan o'tganlar tasdiqlanmaguncha `is_active=False`.
 - CSRF himoyasi yoqilgan (sessiya). Cookie: `HttpOnly`, `SameSite=Lax`. `CSRF_TRUSTED_ORIGINS` 5173 va 8020 portlar uchun sozlangan.
 - Fayl: kengaytma ro'yxati (`.docx .pdf .png .jpg`), hajm chegarasi (20 MB), fayl nomi tozalanadi, `MEDIA` faqat autentifikatsiyalangan foydalanuvchiga `/api/files/...` orqali ruxsat tekshiruvi bilan beriladi (to'g'ridan-to'g'ri URL bilan emas).
 - Brute-force: login nomi bo'yicha daqiqasiga 10 urinish; IP bo'yicha faqat **xato** urinishlar (soatiga 1000) — to'g'ri loginlar sanalmaydi, NAT ortidagi ofis bloklanmaydi. Kirgan foydalanuvchiga umumiy chegara user id bo'yicha (`apps/core/throttling.py`).
@@ -313,7 +314,8 @@ Foydalanuvchi talabi: 10 000+ kishi bir vaqtda kirganda tizim qulamasin, resurs 
 ```
 Brauzer ──► nginx ──┬─ /static, SPA ────────────► fayldan
                     ├─ /api, /admin ──► web  (gunicorn gthread) ──┬──► PostgreSQL 17 (oylik partitsiyalar)
-                    └─ /ws ──────────► ws   (daphne, Channels) ───┴──► Redis (kesh, sessiya, kanallar)
+                    └─ /ws ──────────► ws   (daphne, Channels) ───┼──► Redis (kesh, sessiya, throttling)
+                                                                   └──► redis-channels (WebSocket hodisalari, pub/sub)
                                        scheduler (kunlik: partitsiyalar, eski sessiyalar)
 ```
 
@@ -324,12 +326,13 @@ Brauzer ──► nginx ──┬─ /static, SPA ──────────
 | Polling o'rniga hodisa | `apps/core/realtime.py` → `publish(user_ids, {"type": ...})` `on_commit` dan keyin; frontend `LiveProvider` (`src/app/live.tsx`) | Avval har tab 30/60 s da bildirishnoma va bosh panelni, chatda 5/15 s da so'rardi — 10 000 tabda soniyasiga 500+ so'rov hech kim hech narsa qilmasa ham. Endi ulangan tab faqat hodisa kelganda yangilanadi; uzilsa avvalgi oraliqlar zaxira bo'ladi. Hodisalar 1 s ichida jamlanadi. Qayta ulanish — tasodifiy kechikish (to'liq jitter, ≤30 s), server qayta ishga tushganda bir soniyada urilmasin. |
 | Hodisada ma'lumot yo'q | Faqat `notification` / `chat` + `partner` id | Ruxsat qoidalari bitta joyda (REST) qoladi, WebSocket orqali begona ma'lumot chiqmaydi. |
 | PostgreSQL ulanishlari | Django 5.2 o'z puli (`psycopg_pool`, jarayon boshiga ≤8) | PgBouncer konteyneri kerak emas — kam resurs. Ko'p server nusxasida PgBouncer qo'shiladi. |
-| Sessiya | `cached_db` (Redis + baza) | Har so'rovda bazaga tushmaydi; Redis tozalansa ham hech kim chiqib ketmaydi. |
+| Sessiya | `cached_db` (Redis + baza); `ws` servisida `db` | Har so'rovda bazaga tushmaydi; Redis tozalansa ham hech kim chiqib ketmaydi. `ws` da kesh ishlatilmaydi: Django keshi async kontekstda har WebSocket'ga alohida Redis ulanishi ochib, yopmaydi (yuk testi). |
 | Oylik partitsiyalar | `Notification`, `ChatMessage`, `ActivityLog` — `created_at` bo'yicha RANGE, har oy alohida jadval + DEFAULT (`apps/core/partitions.py`, migratsiyalar `core.0002`, `chat.0003`, `notifications.0005`) | Eng tez o'sadigan jadvallar. Indekslar oy bo'yicha kichik, eski oyni arxivlash bitta `DETACH`. Asosiy kalit `(id, created_at)` — PostgreSQL talabi. `ensure_partitions` (kunlik `scheduler`) keyingi 3 oyni oldindan yaratadi va DEFAULT'ga tushgan qatorlarni (masalan, SQLite'dan ko'chirilgan tarix) o'z oyiga ko'chiradi. |
 | Bo'linmaydigan jadvallar | `Task`, `Project`, `Order` | Ularga FK bilan bog'langan jadvallar ko'p; partitsiyali jadvalga FK uchun kalit `(id, created_at)` bo'lishi kerak — bog'lanishlar buziladi, tezlik oshmaydi. Ular uchun indekslar va to'g'ri so'rovlar. |
 | Dasturchi vazifalari so'rovi | `id IN (biriktirilgan UNION topshiriq)` (`tasks/permissions.py`) | Avvalgi `JOIN … OR JOIN … DISTINCT` har so'rovda butun vazifalar jadvalini o'qirdi (50 000 vazifada 36 ms, chiziqli o'sadi). Endi faqat indekslar: 0,9 ms, jami vazifalar soniga bog'liq emas. |
+| Parol xeshi | Argon2id, m=19 MiB, t=2, p=1 (OWASP) | Login to'lqini CPU'ga bog'liq: PBKDF2 (1 000 000 iteratsiya) ~675 ms, Argon2id ~47 ms CPU/login. Django standarti (100 MiB, p=8) bir vaqtdagi loginlarda RAM'ni to'ldiradi. Xotiraga bog'liq algoritm — GPU bilan buzish PBKDF2'dan qimmat. |
 | Login cheklovi | Login nomi bo'yicha + IP bo'yicha faqat xato urinishlar | Ofisda hamma bitta NAT IP'dan chiqadi — eski "IP bo'yicha 20/min" ertalab 21-xodimdan boshlab hammani bloklardi. |
 | Statik fayllar | Nginx (hash'li fayllar 1 yil kesh, gzip); SPA `index.html` ham Nginx'dan | Python jarayonlari faqat API bilan band. |
 | Xizmat ishlari | `scheduler`: `ensure_partitions`, `clearsessions` | Partitsiyalar oldindan tayyor, eskirgan sessiyalar baza hajmini o'stirmaydi. |
 
-Yuk testi (Locust, `deploy/loadtest/`) natijalari: `deploy/loadtest/README.md`.
+Yuk testi (Locust, `deploy/loadtest/`): 10 000 foydalanuvchi, 339 668 so'rov, 0,004% xato; tor joy — Python CPU (1 `web` yadrosi ≈ 55–60 so'rov/s). Natijalar va server o'lchami: `deploy/loadtest/README.md`.

@@ -140,17 +140,33 @@ if REDIS_URL:
         }
     }
     # Sessiya Redis'dan o'qiladi (har so'rovda bazaga tushmaydi), bazada ham saqlanadi (Redis tozalansa chiqib ketmaydi).
-    SESSION_ENGINE = "django.contrib.sessions.backends.cached_db"
+    # WebSocket servisi (`ws`) `backends.db` ishlatadi (docker-compose): u yerda sessiya ulanishda bir marta o'qiladi,
+    # Django keshi esa async kontekst bo'yicha har WebSocket'ga alohida Redis ulanishi ochib, yopmaydi.
+    SESSION_ENGINE = os.environ.get("DJANGO_SESSION_ENGINE", "django.contrib.sessions.backends.cached_db")
+
+# WebSocket kanallari — alohida Redis (Docker: `redis-channels`): kanallardagi muammo kesh/sessiyani, ya'ni
+# butun saytni yiqitmasin. Pub/Sub qatlami: ulanishlar soni jarayonlar soniga bog'liq, ochiq WebSocket'lar soniga
+# emas. (Yuk testida `core.RedisChannelLayer` ~10 000 WebSocket'da Redis ulanish chegarasini to'ldirgan edi.)
+CHANNEL_REDIS_URL = os.environ.get("CHANNEL_REDIS_URL", REDIS_URL)
+if CHANNEL_REDIS_URL:
     CHANNEL_LAYERS = {
         "default": {
-            "BACKEND": "channels_redis.core.RedisChannelLayer",
-            "CONFIG": {"hosts": [REDIS_URL], "capacity": 100, "expiry": 30},
+            "BACKEND": "channels_redis.pubsub.RedisPubSubChannelLayer",
+            "CONFIG": {"hosts": [CHANNEL_REDIS_URL]},
         }
     }
 else:
     CHANNEL_LAYERS = {"default": {"BACKEND": "channels.layers.InMemoryChannelLayer"}}
 
 AUTH_USER_MODEL = "accounts.User"
+
+# Yangi parollar — Argon2id (apps/accounts/hashers.py). PBKDF2 eski xeshlarni tekshirish uchun qoladi;
+# xodim keyingi kirishda avtomatik Argon2id'ga o'tkaziladi.
+PASSWORD_HASHERS = [
+    "apps.accounts.hashers.Argon2idHasher",
+    "django.contrib.auth.hashers.PBKDF2PasswordHasher",
+    "django.contrib.auth.hashers.PBKDF2SHA1PasswordHasher",
+]
 
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
