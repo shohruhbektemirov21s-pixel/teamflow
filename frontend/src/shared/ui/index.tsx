@@ -1,4 +1,4 @@
-import { AlertTriangle, Check, CheckCircle2, Download, Eye, FileText, Inbox, Info, Loader2, Paperclip, X } from "lucide-react";
+import { AlertTriangle, Check, CheckCircle2, Download, Eye, FileText, Inbox, Info, Loader2, Paperclip, UploadCloud, X } from "lucide-react";
 import {
   type ButtonHTMLAttributes,
   type CSSProperties,
@@ -28,7 +28,7 @@ export function CodeTag({ code }: { code: string }) {
 }
 
 // ─── Tugma ───────────────────────────────────────────────────────────────────
-type Variant = "primary" | "danger" | "success" | "ghost" | "default";
+type Variant = "primary" | "gradient" | "danger" | "success" | "ghost" | "default";
 
 export function Button({
   variant = "default",
@@ -389,6 +389,8 @@ export function FileList({ files, onOpen }: { files: FileInfo[]; onOpen?: (f: Fi
 }
 
 /** Fayl tanlash: bosish yoki sudrab tashlash. */
+const UPLOAD_MAX_MB = 20;
+
 export function FilePicker({
   files,
   onChange,
@@ -397,6 +399,7 @@ export function FilePicker({
   label = T.common.attach,
   hint = T.common.attachHint,
   invalid,
+  size = "sm",
 }: {
   files: File[];
   onChange: (files: File[]) => void;
@@ -405,18 +408,29 @@ export function FilePicker({
   label?: string;
   hint?: string;
   invalid?: boolean;
+  /** "lg" — katta, markazlashgan drag&drop zonasi (masalan tekshiruvga yuborish oynasida). */
+  size?: "sm" | "lg";
 }) {
   const input = useRef<HTMLInputElement>(null);
   const [drag, setDrag] = useState(false);
+  const [rejected, setRejected] = useState<string>();
+  const big = size === "lg";
+  const allowed = accept.split(",").map((ext) => ext.trim().toLowerCase());
+  // Server ham tekshiradi; bu yerda — drag&drop `accept`ni chetlab o'tmasligi va xato darrov ko'rinishi uchun.
+  const isValid = (f: File) => allowed.some((ext) => f.name.toLowerCase().endsWith(ext)) && f.size <= UPLOAD_MAX_MB * 1024 * 1024;
   const add = (list: FileList | null) => {
     if (!list) return;
     const incoming = Array.from(list);
-    onChange(multiple ? [...files, ...incoming] : incoming.slice(0, 1));
+    const bad = incoming.filter((f) => !isValid(f));
+    const good = incoming.filter(isValid);
+    setRejected(bad.length ? T.common.fileRejected(bad.map((f) => f.name).join(", "), hint) : undefined);
+    if (!good.length) return;
+    onChange(multiple ? [...files, ...good] : good.slice(0, 1));
   };
   return (
     <div className="stack-sm">
       <div
-        className={`dropzone ${drag ? "drag" : ""}`}
+        className={`dropzone ${big ? "dropzone-lg" : ""} ${drag ? "drag" : ""}`}
         role="button"
         tabIndex={0}
         style={invalid ? { borderColor: "var(--danger)" } : undefined}
@@ -433,15 +447,37 @@ export function FilePicker({
           add(e.dataTransfer.files);
         }}
       >
-        <span className="file-icon">
-          <Paperclip />
-        </span>
-        <div className="grow">
-          <div style={{ fontWeight: 600, color: "var(--text)" }}>{label}</div>
-          <div className="small">{hint}</div>
-        </div>
+        <span className="file-icon">{big ? <UploadCloud /> : <Paperclip />}</span>
+        {big ? (
+          <div className="stack-sm" style={{ alignItems: "center" }}>
+            <div style={{ fontWeight: 600, color: "var(--text)" }}>{T.common.dropBigTitle}</div>
+            <div className="small muted">{T.common.dropBigHint}</div>
+            <Button
+              variant="primary"
+              size="sm"
+              icon={<Paperclip />}
+              onClick={(e) => {
+                e.stopPropagation();
+                input.current?.click();
+              }}
+            >
+              {T.common.dropBigButton}
+            </Button>
+          </div>
+        ) : (
+          <div className="grow">
+            <div style={{ fontWeight: 600, color: "var(--text)" }}>{label}</div>
+            <div className="small">{hint}</div>
+          </div>
+        )}
         <input ref={input} type="file" hidden multiple={multiple} accept={accept} onChange={(e) => (add(e.target.files), (e.target.value = ""))} />
       </div>
+      {rejected && (
+        <span className="field-error" role="alert">
+          {rejected}
+        </span>
+      )}
+      {big && <div className="small muted">{T.common.attachedCount(files.length)}</div>}
       {files.map((f, i) => (
         <div key={`${f.name}-${i}`} className="file">
           <span className="file-icon">

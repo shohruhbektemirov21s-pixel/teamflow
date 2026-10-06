@@ -49,6 +49,8 @@ backend/
     chat/            ChatMessage, validatsiya va suhbat servislar (suhbatda oxirgi 200 xabar)
     suggestions/     Suggestion, SuggestionVote; holat o'tishi workflow.py, amallar services.py
     panel/           modelsiz yig'uvchi qatlam: dashboard, people, search, comments, history, files, meta
+    ai/              WebAgentRun; services/tinyfish_service.py (tashqi provayder klienti, SSRF himoyasi),
+                     services/web_agent.py (ishni boshlash va holatini yangilash); faqat core'ni import qiladi
 ```
 
 ### Qatlamlar (har bir app ichida)
@@ -69,8 +71,10 @@ tests/          workflow, permissions, services, api
 ```
 core  ←  accounts  ←  orders  ←  projects  ←  tasks
                          ↑          ↑           ↑
-                         └── notifications ─────┘   (hamma chaqiradi, o'zi hech kimni import qilmaydi)
+                         └── notifications ─────┘   (hamma chaqiradi; o'zi faqat accounts.Role'ni import qiladi)
 ```
+
+- `notifications` faqat eng pastki domen qatlami `accounts`dan `Role`ni oladi (`managers()` — faol PM/Boshliqlar). `accounts` `notifications`ni import qilmaydi, shuning uchun tsikl yo'q.
 
 - Pastdagi app yuqoridagini **import qilmaydi**. `orders` → `projects` bog'lanishi (loyiha yaratish) `projects.services` ichida bajariladi, `orders` faqat `Project.order` OneToOne orqali ko'rinadi.
 - **Nima uchun:** eski TeamFlow auditida "qatlam buzilishi" topilgan edi; shu yo'nalishni boshidanoq qat'iy qilamiz.

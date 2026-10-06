@@ -12,7 +12,8 @@ from apps.core.api_utils import IsManager
 
 from .models import WebAgentRun
 from .serializers import WebAgentRequestSerializer, WebAgentRunSerializer
-from .services.tinyfish_service import TinyFishError, TinyFishService, validate_public_url
+from .services.tinyfish_service import TinyFishError
+from .services.web_agent import refresh_run, start_web_agent
 
 logger = logging.getLogger(__name__)
 
@@ -30,44 +31,21 @@ class WebAgentView(APIView):
     def post(self, request):
         serializer = WebAgentRequestSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        task = serializer.validated_data["task"]
-        url = serializer.validated_data.get("url")
-        service = TinyFishService()
+        data = serializer.validated_data
         try:
-            if url:
-                try:
-                    url = validate_public_url(url)
-                except ValueError as exc:
-                    raise ValidationError({"url": str(exc)}) from exc
-                provider_kind = WebAgentRun.ProviderKind.AUTOMATION
-                provider_run_id = service.navigate(url, task)
-            else:
-                provider_kind = WebAgentRun.ProviderKind.RESEARCH
-                provider_run_id = service.research(task)
+            run = start_web_agent(request.user, data["task"], data.get("url"))
+        except ValueError as exc:
+            raise ValidationError({"url": str(exc)}) from exc
         except TinyFishError as exc:
             logger.warning("TinyFish ishini boshlash amalga oshmadi: %s", exc.reason or type(exc).__name__)
             return Response({"detail": exc.user_message}, status=exc.status_code)
-
-        run = WebAgentRun.objects.create(
-            created_by=request.user,
-            task=task,
-            url=url,
-            provider_kind=provider_kind,
-            provider_run_id=provider_run_id,
-        )
         return Response(WebAgentRunSerializer(run).data, status=status.HTTP_202_ACCEPTED)
 
     def get(self, request, pk):
         run = get_object_or_404(WebAgentRun, pk=pk, created_by=request.user)
-        if run.status in {WebAgentRun.Status.PENDING, WebAgentRun.Status.RUNNING}:
-            try:
-                provider_task = TinyFishService().get_task_status(run.provider_kind, run.provider_run_id)
-            except TinyFishError as exc:
-                logger.warning("TinyFish holati olinmadi: run=%s reason=%s", run.pk, exc.reason or type(exc).__name__)
-                return Response({"detail": exc.user_message}, status=exc.status_code)
-            run.status = provider_task.status
-            run.result = provider_task.result
-            run.error = provider_task.error or ""
-            run.save(update_fields=["status", "result", "error", "updated_at"])
+        try:
+            run = refresh_run(run)
+        except TinyFishError as exc:
+            logger.warning("TinyFish holati olinmadi: run=%s reason=%s", run.pk, exc.reason or type(exc).__name__)
+            return Response({"detail": exc.user_message}, status=exc.status_code)
         return Response(WebAgentRunSerializer(run).data)
-
