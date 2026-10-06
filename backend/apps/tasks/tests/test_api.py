@@ -298,6 +298,18 @@ class DashboardTests(TestCase):
         self.assertEqual(len(client_for(self.dev).get(
             f"/api/comments/?target_type=task&target_id={self.overdue.pk}").data), 1)
 
+    def test_task_list_searches_one_or_two_digit_code_fragments(self):
+        self.project.code = "DASH-12"
+        self.project.save(update_fields=["code"])
+        self.overdue.code = "123456789"
+        self.overdue.save(update_fields=["code"])
+        pm = client_for(self.pm)
+
+        # Foydalanuvchi jadval filtrida kodning qisqa bo'lagini yozganda ham
+        # vazifa va loyiha kodi bo'yicha mos vazifalarni ko'radi.
+        self.assertEqual(pm.get("/api/tasks/?q=12").data["count"], 4)
+        self.assertEqual(pm.get("/api/tasks/?q=3").data["count"], 1)
+
     def test_notifications_flow(self):
         client_for(self.pm).post("/api/comments/", {"target_type": "task", "target_id": self.overdue.pk, "text": "Hi"},
                                  format="json")
