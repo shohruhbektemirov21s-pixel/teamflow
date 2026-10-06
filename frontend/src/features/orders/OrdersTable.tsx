@@ -61,7 +61,6 @@ export function OrdersTable({ orders, showDepartment }: { orders: Order[]; showD
                 <div className="task-title">
                   {o.title} {o.version && o.version > 1 && <span className="badge tone-slate">{T.orders.version(o.version)}</span>}
                 </div>
-                {o.description && <div className="small muted ellipsis" style={{ maxWidth: 420 }}>{o.description}</div>}
               </td>
               {showDepartment && (
                 <td>

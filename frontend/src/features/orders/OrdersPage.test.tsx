@@ -21,4 +21,19 @@ describe("OrdersPage", () => {
     fireEvent.click(await screen.findByRole("button", { name: /Keyingi/ }));
     expect(await screen.findByText("Ellik birinchi buyurtma")).toBeTruthy();
   });
+
+  it("ro'yxatda buyurtma nomi ostida izoh ko'rinmaydi", async () => {
+    mockGet({
+      "/orders/": { count: 1, next: null, previous: null, results: [
+        { id: 1, title: "Portal", description: "Uzun izoh matni", priority: "medium", priority_label: "O'rtacha",
+          status: "submitted", status_label: "Yuborilgan", requested_due_date: "2026-11-01", start_date: null,
+          end_date: null, version: 1, created_at: "2026-09-29T10:00:00Z",
+          submitted_by: { id: 9, full_name: "Boshqarma", role: "department", department_name: "IT" } },
+      ] },
+    });
+    renderApp(<OrdersPage />);
+
+    expect(await screen.findByText("Portal")).toBeTruthy();
+    expect(screen.queryByText("Uzun izoh matni")).toBeNull();
+  });
 });
