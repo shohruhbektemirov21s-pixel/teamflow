@@ -49,7 +49,7 @@ def create_project(user, *, code, name="", description="", start_date=None, end_
     buyurtmadan olinmaydi, chunki buyurtmada bunday raqam yo'q.
     """
     _require_manager(user)
-    if stage == S.PENDING_APPROVAL:
+    if stage in (S.PENDING_APPROVAL, S.REJECTED):
         raise ServiceError("Bu daraja to'g'ridan-to'g'ri tanlanmaydi.", "stage")
     if order is not None:
         order = Order.objects.select_for_update().get(pk=order.pk)
@@ -100,6 +100,7 @@ def update_project(project, user, **data):
     nom/izoh/sana o'zgarishi bog'liq buyurtmaga ham ko'chadi (ikkalasi bitta TZ ma'lumotini ko'rsatadi).
     Daraja — `_apply_stage` orqali (yakunlashda boshqarma tasdig'i talab qilinishi mumkin)."""
     _require_manager(user)
+    project = Project.objects.select_for_update().get(pk=project.pk)
     stage = data.pop("stage", None)
     info_changed = any(data.get(f) is not None for f in ("name", "description", "start_date", "end_date"))
     for field in ("name", "description", "start_date", "end_date"):
@@ -135,11 +136,11 @@ def _apply_stage(project, user, stage):
     (`_request_completion_acks` / bu funksiya pastda). Hammasi tasdiqlagandan keyin: buyurtmasiz
     loyihada "Yakunlangan" to'g'ridan-to'g'ri qo'yiladi; buyurtmadan yaratilgan loyihada avval
     "Tasdiqlash kutilmoqda" ga o'tadi va buyurtmani yuborgan boshqarmaga bildirishnoma boradi —
-    faqat o'sha boshqarma uni "Yakunlangan" yoki "Tuzatish kerak" qila oladi
+    faqat o'sha boshqarma uni "Yakunlangan" yoki "Rad etildi" qila oladi
     (`confirm_completion` / `reject_completion`). Loyihada faol dasturchi bo'lmasa, dasturchi
     so'rovi o'tkazib yuboriladi.
     """
-    if stage == S.PENDING_APPROVAL:
+    if stage in (S.PENDING_APPROVAL, S.REJECTED):
         raise ServiceError("Bu daraja to'g'ridan-to'g'ri tanlanmaydi.", "stage")
     final_target = S.PENDING_APPROVAL if stage == S.DONE and project.order_id else stage
     check_project_transition(project.stage, final_target, user.role)
@@ -186,7 +187,7 @@ def ack_completion(project, user, *, confirmed, reason=""):
 
     Birortasi rad etsa, butun so'rov davri bekor qilinadi — loyiha hozirgi holatida davom etadi,
     PM/Boshliq sababni ko'radi va qayta so'raganda hammadan yangidan so'raladi. Hammasi tasdiqlasa,
-    PM/Boshliqqa xabar boradi — "Yakunlangan"ni qayta tanlaganda endi haqiqatan yakunlanadi.
+    PM/Boshliqqa xabar boradi va keyingi yakunlash bosqichi avtomatik bajariladi.
     """
     project = Project.objects.select_for_update().get(pk=project.pk)
     try:
@@ -219,12 +220,15 @@ def ack_completion(project, user, *, confirmed, reason=""):
     if not project.completion_acks.filter(developer_id__in=member_ids, confirmed__isnull=True).exists():
         notify([project.created_by], K.PROJECT_COMPLETION_ACK_DONE,
                f"Barcha dasturchilar yakunlashni tasdiqladi: {project.name}", project, exclude=user)
+        _apply_stage(project, project.created_by, S.DONE)
+        project.save(update_fields=["stage", "completion_requested_at", "updated_at"])
     return project
 
 
 @transaction.atomic
 def confirm_completion(project, user):
     """Boshqarma loyiha yakunlanishini tasdiqlaydi — faqat buyurtmani yuborgan boshqarma."""
+    project = Project.objects.select_for_update().get(pk=project.pk)
     if not (user.is_department and project.order_id and project.order.submitted_by_id == user.pk):
         raise PermissionDenied("Bu amal faqat buyurtmani yuborgan boshqarma uchun.")
     check_project_transition(project.stage, S.DONE, user.role)
@@ -239,14 +243,15 @@ def confirm_completion(project, user):
 
 @transaction.atomic
 def reject_completion(project, user, *, reason):
-    """Boshqarma kamchilik topsa rad etadi (sabab majburiy) — loyiha "Tuzatish kerak" ga qaytadi,
+    """Boshqarma kamchilik topsa rad etadi (sabab majburiy) — loyiha "Rad etildi" ga o'tadi,
     menejer sababni ko'rib tuzatib, yana yakunlashni so'rashi mumkin."""
+    project = Project.objects.select_for_update().get(pk=project.pk)
     if not (user.is_department and project.order_id and project.order.submitted_by_id == user.pk):
         raise PermissionDenied("Bu amal faqat buyurtmani yuborgan boshqarma uchun.")
     if not reason.strip():
         raise ServiceError("Sababini yozing — menejer nimani tuzatishni bilishi kerak.", "reason")
-    check_project_transition(project.stage, S.NEEDS_FIX, user.role)
-    project.stage = S.NEEDS_FIX
+    check_project_transition(project.stage, S.REJECTED, user.role)
+    project.stage = S.REJECTED
     project.save(update_fields=["stage", "updated_at"])
     notify([project.created_by], K.PROJECT_COMPLETION_REJECTED,
            f"Loyiha yakunlanishi rad etildi: {project.name} — {reason.strip()}", project, exclude=user)

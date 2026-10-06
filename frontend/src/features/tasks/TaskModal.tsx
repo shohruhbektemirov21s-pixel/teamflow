@@ -243,12 +243,12 @@ export default function TaskModal({ id, submitMode }: { id: number; submitMode?:
     return (
       <>
         {left}
+        {a.review && <Button variant="danger" icon={<RotateCcw />} onClick={() => setPanel("return")}>
+          {T.tasks.return}
+        </Button>}
         <span className="spacer" />
         {a.review && (
           <>
-            <Button variant="danger" icon={<RotateCcw />} onClick={() => setPanel("return")}>
-              {T.tasks.return}
-            </Button>
             <Button variant="success" icon={<CheckCircle2 />} loading={act.isPending} onClick={() => act.mutate("accept")}>
               {T.tasks.accept}
             </Button>
@@ -403,12 +403,14 @@ export default function TaskModal({ id, submitMode }: { id: number; submitMode?:
                           <DeveloperPicker label={T.tasks.subtaskPickPerson} value={newSubtaskPeople} onChange={setNewSubtaskPeople} />
                           <span className="field-hint">{T.tasks.picker.joinHint}</span>
                         </div>
-                        <Button type="submit" size="sm" variant="primary" loading={addSubtask.isPending}>
-                          {T.common.save}
-                        </Button>
+                        <div className="form-actions" style={{ width: "100%" }}>
                         <Button type="button" size="sm" variant="ghost" onClick={() => setIsAddingSubtask(false)}>
                           {T.common.cancel}
                         </Button>
+                        <Button type="submit" size="sm" variant="primary" loading={addSubtask.isPending}>
+                          {T.common.save}
+                        </Button>
+                        </div>
                       </form>
                     )}
                   </div>
@@ -521,7 +523,7 @@ export default function TaskModal({ id, submitMode }: { id: number; submitMode?:
                 )}
                 {task.actions.add_files && (
                   <form onSubmit={(e) => { e.preventDefault(); if (files.length) act.mutate("files"); }}>
-                    <div className="row" style={{ marginTop: 10 }}>
+                    <div className="stack" style={{ marginTop: 10 }}>
                       <FilePicker files={files} onChange={setFiles} />
                       {files.length > 0 && (
                         <Button type="submit" variant="primary" size="sm" loading={act.isPending} icon={<Upload size={14} />}>
@@ -607,12 +609,12 @@ function PeopleEditor({
       <span className="field-label">{label}</span>
       <DeveloperPicker label={label} value={value} onChange={onChange} known={known} locked={locked} />
       <span className="field-hint">{T.tasks.picker.joinHint}</span>
-      <div className="row" style={{ gap: 8 }}>
-        <Button size="sm" variant="primary" loading={saving} disabled={disabled} onClick={onSave}>
-          {T.common.save}
-        </Button>
+      <div className="form-actions">
         <Button size="sm" variant="ghost" onClick={onCancel}>
           {T.common.cancel}
+        </Button>
+        <Button size="sm" variant="primary" loading={saving} disabled={disabled} onClick={onSave}>
+          {T.common.save}
         </Button>
       </div>
     </div>

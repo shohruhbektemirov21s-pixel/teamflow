@@ -23,6 +23,20 @@ interface ModalProps {
 // Ochiq dialoglar tartibi: Esc/Tab faqat eng ustidagisiga tegishli.
 const dialogStack: { node: HTMLElement | null }[] = [];
 
+function focusableElements(node: HTMLElement) {
+  return Array.from(node.querySelectorAll<HTMLElement>(
+    'a[href], button:not(:disabled), input:not(:disabled):not([type="hidden"]), select:not(:disabled), textarea:not(:disabled), [tabindex]:not([tabindex="-1"])',
+  )).filter((element) => {
+    if (element.matches(":disabled") || element.tabIndex < 0) return false;
+    if (element.closest('[hidden], [inert], [aria-hidden="true"]')) return false;
+    for (let current: HTMLElement | null = element; current && current !== node; current = current.parentElement) {
+      const style = window.getComputedStyle(current);
+      if (style.display === "none" || style.visibility === "hidden") return false;
+    }
+    return true;
+  }).sort((left, right) => left.compareDocumentPosition(right) & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1);
+}
+
 /**
  * Dialog xatti-harakati (Modal va rasm ko'rish oynasi uchun umumiy): ochilganda fokus ichkariga, Esc yopadi,
  * Tab dialogdan chiqmaydi, orqa sahifa aylanmaydi; yopilganda fokus avvalgi joyiga qaytadi.
@@ -36,7 +50,8 @@ export function useDialogBehavior(ref: RefObject<HTMLElement | null>, onEscape: 
     const node = ref.current;
     const token = { node };
     dialogStack.push(token);
-    const first = node?.querySelector<HTMLElement>("[autofocus], input, textarea, select, button:not([data-close])");
+    const items = node ? focusableElements(node) : [];
+    const first = items.find((item) => item.hasAttribute("autofocus")) ?? items.find((item) => !item.hasAttribute("data-close")) ?? items[0];
     (first ?? node)?.focus();
     document.body.style.overflow = "hidden";
 
@@ -47,16 +62,18 @@ export function useDialogBehavior(ref: RefObject<HTMLElement | null>, onEscape: 
         escRef.current();
       }
       if (e.key === "Tab" && node) {
-        const items = node.querySelectorAll<HTMLElement>(
-          'a[href], button:not(:disabled), input:not(:disabled), select, textarea, [tabindex]:not([tabindex="-1"])',
-        );
-        if (!items.length) return;
+        const items = focusableElements(node);
+        if (!items.length) {
+          e.preventDefault();
+          node.focus();
+          return;
+        }
         const firstEl = items[0]!;
         const lastEl = items[items.length - 1]!;
-        if (e.shiftKey && document.activeElement === firstEl) {
+        if (e.shiftKey && (document.activeElement === firstEl || !items.includes(document.activeElement as HTMLElement))) {
           e.preventDefault();
           lastEl.focus();
-        } else if (!e.shiftKey && document.activeElement === lastEl) {
+        } else if (!e.shiftKey && (document.activeElement === lastEl || !items.includes(document.activeElement as HTMLElement))) {
           e.preventDefault();
           firstEl.focus();
         }
@@ -111,8 +128,8 @@ export function Modal({ title, subtitle, headerExtra, size = "md", onClose, dirt
             </div>
             {subtitle && <div className="row-wrap">{subtitle}</div>}
           </div>
-          {headerExtra}
-          <button className="icon-btn" onClick={tryClose} aria-label={T.common.close} data-close>
+          {headerExtra && <div className="modal-head-actions">{headerExtra}</div>}
+          <button type="button" className="icon-btn modal-close" onClick={tryClose} aria-label={T.common.close} data-close>
             <X />
           </button>
         </div>

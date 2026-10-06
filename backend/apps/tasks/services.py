@@ -10,6 +10,7 @@ from apps.core.api_utils import ServiceError
 from apps.core.services import log
 from apps.notifications.models import Notification
 from apps.notifications.services import managers, notify
+from apps.projects.models import Project
 from apps.projects.services import create_project, ensure_members
 
 from .models import SubTask, Submission, SubmissionFile, Task, TaskAssignment, TaskFile, WorkLog
@@ -68,6 +69,9 @@ def _reviewers(task):
 def create_task(user, project, *, title, description="", priority="medium", starts_at=None, due_at=None,
                 assignee_ids=None, subtasks=None, files=None):
     """Menejer — istalgan jamoa a'zosiga. Dasturchi — faqat o'ziga, o'z loyihasida ("Mening ishim")."""
+    project = Project.objects.select_for_update().get(pk=project.pk)
+    if project.stage in (Project.Stage.DONE, Project.Stage.PENDING_APPROVAL) or project.completion_requested_at:
+        raise ServiceError("Yakunlangan yoki yakunlash tasdig'i kutilayotgan loyihaga yangi vazifa qo'shib bo'lmaydi.", "project")
     if user.is_developer:
         if not project.memberships.filter(developer=user).exists():
             raise ServiceError("Siz bu loyiha jamoasida emassiz.")

@@ -47,11 +47,11 @@ export function OrdersTable({ orders, showDepartment }: { orders: Order[]; showD
         <thead>
           <tr>
             <th>{T.orders.name}</th>
-            {showDepartment && <th>{T.orders.department}</th>}
-            <th>{T.filters.status}</th>
-            <th>{T.orders.priority}</th>
-            <th>{T.orders.requestedDue}</th>
-            <th>{T.orders.sentAt}</th>
+            {showDepartment && <th className="hide-sm">{T.orders.department}</th>}
+            <th className="hide-sm">{T.filters.status}</th>
+            <th className="hide-sm">{T.orders.priority}</th>
+            <th className="hide-sm">{T.orders.requestedDue}</th>
+            <th className="hide-sm">{T.orders.sentAt}</th>
           </tr>
         </thead>
         <tbody>
@@ -61,25 +61,31 @@ export function OrdersTable({ orders, showDepartment }: { orders: Order[]; showD
                 <div className="task-title">
                   {o.title} {o.version && o.version > 1 && <span className="badge tone-slate">{T.orders.version(o.version)}</span>}
                 </div>
+                <div className="row-wrap show-sm" style={{ marginTop: 8 }}>
+                  {o.status === "project_created" && o.project ? <StageBadge stage={o.project.stage} /> : <OrderStatusBadge status={o.status} />}
+                  <PriorityBadge priority={o.priority} />
+                  <span className="small muted">{T.orders.requestedDue}: {fmtDate(o.requested_due_date)}</span>
+                </div>
+                {showDepartment && <div className="small muted show-sm" style={{ marginTop: 6 }}>{o.submitted_by.department_name}</div>}
               </td>
               {showDepartment && (
-                <td>
+                <td className="hide-sm">
                   <div style={{ fontWeight: 600 }}>{o.submitted_by.department_name}</div>
                   <div className="small muted">{o.submitted_by.full_name}</div>
                 </td>
               )}
-              <td>
+              <td className="hide-sm">
                 {o.status === "project_created" && o.project ? (
                   <StageBadge stage={o.project.stage} />
                 ) : (
                   <OrderStatusBadge status={o.status} />
                 )}
               </td>
-              <td>
+              <td className="hide-sm">
                 <PriorityBadge priority={o.priority} />
               </td>
-              <td className="nowrap">{fmtDate(o.requested_due_date)}</td>
-              <td className="nowrap muted">{fmtDate(o.created_at)}</td>
+              <td className="nowrap hide-sm">{fmtDate(o.requested_due_date)}</td>
+              <td className="nowrap muted hide-sm">{fmtDate(o.created_at)}</td>
             </tr>
           ))}
         </tbody>

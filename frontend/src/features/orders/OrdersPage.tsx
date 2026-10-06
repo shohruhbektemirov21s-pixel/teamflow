@@ -38,15 +38,6 @@ export default function OrdersPage() {
 
   return (
     <>
-      {dept && (
-        <div className="page-toolbar">
-          <span className="spacer" />
-          <Button variant="primary" icon={<Plus />} onClick={() => open({ new: "order" })}>
-            {T.orders.new}
-          </Button>
-        </div>
-      )}
-
       {dept && summary.data && <OrderStatusCards counts={summary.data.orders} value={status} onChange={(value) => { setStatus(value); setPage(1); }} />}
 
       <div className="card">
@@ -60,8 +51,12 @@ export default function OrdersPage() {
               ))}
             </div>
           )}
-          <span className="spacer" />
-          <input className="input" style={{ maxWidth: 280 }} placeholder={T.common.search} value={q} onChange={(e) => { setQ(e.target.value); setPage(1); }} aria-label={T.common.search} />
+          <input className="input page-search" placeholder={T.common.search} value={q} onChange={(e) => { setQ(e.target.value); setPage(1); }} aria-label={T.common.search} />
+          {dept && <div className="page-actions">
+            <Button variant="primary" icon={<Plus />} onClick={() => open({ new: "order" })}>
+              {T.orders.new}
+            </Button>
+          </div>}
         </div>
         {query.error && (
           <div className="card-pad">

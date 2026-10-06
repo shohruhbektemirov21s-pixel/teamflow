@@ -42,7 +42,7 @@ export default function TasksPage() {
 
   return (
     <>
-      <div className="page-toolbar">
+      {assignee && <div className="page-toolbar">
         {assignee && (
           <span className="chip" aria-pressed="true">
             {assigneeLabel}
@@ -51,13 +51,13 @@ export default function TasksPage() {
             </button>
           </span>
         )}
-        <span className="spacer" />
-        <Button variant="primary" icon={<Plus />} onClick={() => open({ new: "task" })}>
-          {T.tasks.new}
-        </Button>
-      </div>
+      </div>}
       <div className="card">
-        <TaskFilters value={filters} onChange={(value) => { setFilters(value); setPage(1); }} showPerson={isManager(me)} />
+        <TaskFilters value={filters} onChange={(value) => { setFilters(value); setPage(1); }} showPerson={isManager(me)} actions={
+          <Button variant="primary" icon={<Plus />} onClick={() => open({ new: "task" })}>
+            {T.tasks.new}
+          </Button>
+        } />
         {query.error ? (
           <div className="card-pad">
             <ErrorBox error={query.error} onRetry={() => query.refetch()} />

@@ -7,7 +7,7 @@ import { api, qs } from "@/shared/api";
 import { fmtDate } from "@/shared/format";
 import { T } from "@/shared/text";
 import type { HistoryItem, UserBrief } from "@/shared/types";
-import { Avatar, Badge, Button, Empty, ErrorBox, SkeletonRows } from "@/shared/ui";
+import { Avatar, Badge, Button, Empty, ErrorBox, SkeletonRows, Tabs } from "@/shared/ui";
 
 interface WorkDoneData {
   page: number;
@@ -47,11 +47,11 @@ export default function WorkDonePage() {
             <input type="checkbox" checked={mine} onChange={(e) => (setMine(e.target.checked), setPage(1))} />
             {T.workDone.mine}
           </label>
-          <select className="input" value={project} onChange={(e) => (setProject(e.target.value), setPage(1))} style={{ width: 220 }}>
+          <select className="select" aria-label={T.filters.project} value={project} onChange={(e) => (setProject(e.target.value), setPage(1))} style={{ width: 220 }}>
             <option value="">{T.filters.allProjects}</option>
             {projects.data?.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
           </select>
-          <select className="input" value={days} onChange={(e) => setDays(e.target.value)} style={{ width: 120 }}>
+          <select className="select" aria-label={T.filters.dateRange} value={days} onChange={(e) => { setDays(e.target.value); setPage(1); }} style={{ width: 120 }}>
             <option value="1">1 {T.workDone.days}</option>
             <option value="7">7 {T.workDone.days}</option>
             <option value="30">30 {T.workDone.days}</option>
@@ -60,20 +60,9 @@ export default function WorkDonePage() {
       </div>
 
       <div className="card" style={{ marginBottom: 16 }}>
-        <div className="tabs">
-          <button className={`tab ${tab === "tasks" ? "active" : ""}`} onClick={() => setTab("tasks")}>
-            {T.workDone.tabs.tasks}
-            {data && <span className="badge tone-slate" style={{ marginLeft: 6 }}>{data.counts.tasks}</span>}
-          </button>
-          <button className={`tab ${tab === "reviews" ? "active" : ""}`} onClick={() => setTab("reviews")}>
-            {T.workDone.tabs.reviews}
-            {data && <span className="badge tone-slate" style={{ marginLeft: 6 }}>{data.counts.reviews}</span>}
-          </button>
-          <button className={`tab ${tab === "history" ? "active" : ""}`} onClick={() => setTab("history")}>
-            {T.workDone.tabs.history}
-            {data && <span className="badge tone-slate" style={{ marginLeft: 6 }}>{data.counts.history}</span>}
-          </button>
-        </div>
+        <Tabs value={tab} onChange={(next) => { setTab(next); setPage(1); }} tabs={
+          (["tasks", "reviews", "history"] as const).map((key) => ({ key, label: <>{T.workDone.tabs[key]} {data && <span className="count-pill soft">{data.counts[key]}</span>}</> }))
+        } />
       </div>
 
       {query.isLoading && (

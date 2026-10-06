@@ -62,7 +62,7 @@ class ProjectDetailSerializer(ProjectListSerializer):
             "edit_info": manager,  # buyurtmadan bo'lsa ham nomi/izohi tahrirlanadi, buyurtmaga ham ko'chadi
             "members": manager,
             "files": manager,
-            "add_task": manager,
+            "add_task": manager and obj.stage not in (S.DONE, S.PENDING_APPROVAL) and not obj.completion_requested_at,
         }
 
     def _completion_acks(self, obj):
@@ -74,7 +74,7 @@ class ProjectDetailSerializer(ProjectListSerializer):
     def get_stage_targets(self, obj):
         """PM/Boshliq uchun daraja tanlovi shu ro'yxat bilan cheklanadi (masalan "Tasdiqlash kutilmoqda"
         paytida bo'sh — qaror endi boshqarmaga tegishli). Dasturchi tasdig'i hali kutilayotgan paytda
-        "Yakunlangan" qayta tanlanmaydi; hammasi tasdiqlagach qaytadan tanlanadi (PM yana bosib yakunlaydi)."""
+        "Yakunlangan" qayta tanlanmaydi; hammasi tasdiqlagach keyingi bosqich avtomatik bajariladi."""
         targets = list(project_targets(obj.stage, self.context["request"].user.role))
         if self._completion_acks(obj):  # bo'sh ro'yxat ([]) — hammasi tasdiqlagan, "done" qaytadi
             targets = [t for t in targets if t != S.DONE]
@@ -82,8 +82,7 @@ class ProjectDetailSerializer(ProjectListSerializer):
 
     def get_completion(self, obj):
         """Yakunlash uchun dasturchi tasdig'i hali kutilayotgan bo'lsa — kim tasdiqladi, kim kutilmoqda.
-        Hammasi tasdiqlagach `None` (ko'rsatadigan narsa qolmadi, PM "Yakunlangan"ni qayta tanlashi mumkin —
-        shuni allaqachon alohida bildirishnoma orqali bilgan)."""
+        Hammasi tasdiqlagach `None`: loyiha keyingi yakunlash bosqichiga o'tgan bo'ladi."""
         acks = self._completion_acks(obj)
         if not acks:
             return None

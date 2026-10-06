@@ -65,12 +65,12 @@ export default function SuggestionModal({ id }: { id: number }) {
           <Trash2 size={16} /> {T.common.delete}
         </ConfirmButton>
       )}
+      {s.actions.decide && <Button variant="danger" icon={<X />} loading={decideM.isPending && decideM.variables === "rejected"} disabled={decideM.isPending} onClick={() => decideM.mutate("rejected")}>
+        {T.suggestions.reject}
+      </Button>}
       <div className="spacer" />
       {s.actions.decide && (
         <>
-          <Button variant="danger" icon={<X />} loading={decideM.isPending && decideM.variables === "rejected"} disabled={decideM.isPending} onClick={() => decideM.mutate("rejected")}>
-            {T.suggestions.reject}
-          </Button>
           <Button variant="primary" icon={<Check />} loading={decideM.isPending && decideM.variables === "accepted"} disabled={decideM.isPending} onClick={() => decideM.mutate("accepted")}>
             {T.suggestions.accept}
           </Button>

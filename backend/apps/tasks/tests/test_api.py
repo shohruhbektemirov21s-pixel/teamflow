@@ -45,6 +45,17 @@ class TaskFlowTests(TestCase):
         self.assertEqual(self.create(assignee_ids=[self.outsider.pk]).status_code, 400)
         self.assertEqual(self.create(assignee_ids=[]).status_code, 400)
 
+    def test_cannot_add_tasks_during_or_after_completion(self):
+        for stage, requested in (("done", None), ("pending_approval", None), ("planned", timezone.now())):
+            Project.objects.filter(pk=self.project.pk).update(stage=stage, completion_requested_at=requested)
+            for user in (self.pm, self.boss, self.dev1):
+                with self.subTest(stage=stage, role=user.role):
+                    response = self.create(user)
+                    self.assertEqual(response.status_code, 400, response.data)
+            detail = client_for(self.pm).get(f"/api/projects/{self.project.pk}/").data
+            self.assertFalse(detail["actions"]["add_task"])
+        self.assertFalse(Task.objects.exists())
+
     def test_due_before_start(self):
         now = timezone.now()
         r = self.create(starts_at=now.isoformat(), due_at=(now - timedelta(days=1)).isoformat())

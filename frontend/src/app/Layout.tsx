@@ -120,7 +120,7 @@ export default function Layout() {
             {pageTitle(location.pathname, me.role)}
           </h1>
           <div className="spacer" />
-          <button className="search-trigger" onClick={() => setSearchOpen(true)}>
+          <button type="button" className="search-trigger" aria-label={T.nav.searchPlaceholder} onClick={() => setSearchOpen(true)}>
             <Search />
             <span className="grow ellipsis hide-sm" style={{ textAlign: "left" }}>
               {T.nav.searchPlaceholder}

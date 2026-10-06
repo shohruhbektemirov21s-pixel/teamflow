@@ -3,7 +3,7 @@
 planned/started/needs_fix o'rtasida PM/Boshliq erkin almashtiradi.
 Yakunlash: buyurtmasiz loyiha to'g'ridan-to'g'ri "done" bo'ladi; buyurtmadan yaratilgan loyiha
 avval "pending_approval" ga o'tadi (services.set_stage hal qiladi) va faqat BUYURTMANI YUBORGAN
-boshqarma uni "done" (tasdiqlash) yoki "needs_fix" (rad etish, sabab bilan) qila oladi.
+boshqarma uni "done" (tasdiqlash) yoki "rejected" (rad etish, sabab bilan) qila oladi.
 Bajarilgan ("done") loyiha holati boshqa holatga o'zgarmaydi.
 """
 from apps.accounts.models import Role
@@ -22,6 +22,11 @@ TRANSITIONS = {
     (S.STARTED, S.NEEDS_FIX): MANAGERS,
     (S.NEEDS_FIX, S.PLANNED): MANAGERS,
     (S.NEEDS_FIX, S.STARTED): MANAGERS,
+    (S.REJECTED, S.PLANNED): MANAGERS,
+    (S.REJECTED, S.STARTED): MANAGERS,
+    (S.REJECTED, S.NEEDS_FIX): MANAGERS,
+    (S.REJECTED, S.DONE): MANAGERS,
+    (S.REJECTED, S.PENDING_APPROVAL): MANAGERS,
     # Yakunlashni so'rash — target aniq "stage" qiymati services.set_stage da hal qilinadi:
     # buyurtmasiz loyihada bevosita DONE, buyurtmali loyihada PENDING_APPROVAL.
     (S.PLANNED, S.DONE): MANAGERS,
@@ -32,7 +37,7 @@ TRANSITIONS = {
     (S.NEEDS_FIX, S.PENDING_APPROVAL): MANAGERS,
     # Boshqarmaning qarori (faqat buyurtmani yuborgan boshqarma — services tekshiradi)
     (S.PENDING_APPROVAL, S.DONE): DEPARTMENT,
-    (S.PENDING_APPROVAL, S.NEEDS_FIX): DEPARTMENT,
+    (S.PENDING_APPROVAL, S.REJECTED): DEPARTMENT,
 }
 
 
@@ -43,7 +48,7 @@ def check_project_transition(current, target, role):
 def project_targets(current, role):
     """UI uchun tanlanadigan daraja ro'yxati. `PENDING_APPROVAL` bunga kirmaydi — u foydalanuvchi
     tanlovi emas, `services._apply_stage` "done" so'ralganda hosil qiladigan ichki oraliq holat."""
-    return [t for t in allowed_targets(TRANSITIONS, current, role) if t != S.PENDING_APPROVAL]
+    return [t for t in allowed_targets(TRANSITIONS, current, role) if t not in (S.PENDING_APPROVAL, S.REJECTED)]
 
 
 def active_members(project):

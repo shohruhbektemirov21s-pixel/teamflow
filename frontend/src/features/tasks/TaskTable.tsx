@@ -1,5 +1,5 @@
 import { ListChecks, SlidersHorizontal, X } from "lucide-react";
-import { useState } from "react";
+import { type ReactNode, useState } from "react";
 
 import { useModal } from "@/app/modals";
 import { fmtDateTime } from "@/shared/format";
@@ -31,11 +31,13 @@ export function TaskFilters({
   onChange,
   showPerson,
   showStatus = true,
+  actions,
 }: {
   value: TaskFilterState;
   onChange: (v: TaskFilterState) => void;
   showPerson: boolean;
   showStatus?: boolean;
+  actions?: ReactNode;
 }) {
   const meta = useMeta();
   const set = <K extends keyof TaskFilterState>(k: K) => (e: { target: { value: string } }) => onChange({ ...value, [k]: e.target.value });
@@ -57,6 +59,7 @@ export function TaskFilters({
         <div className="input" style={{ display: "flex", gap: 8, alignItems: "center", padding: "0 8px" }}>
           <input
             type="date"
+            aria-label={T.filters.dateFrom}
             style={{ border: "none", background: "transparent", outline: "none", flex: 1, padding: 0 }}
             value={value.date_from}
             onChange={set("date_from")}
@@ -64,6 +67,7 @@ export function TaskFilters({
           <span className="muted" style={{ fontWeight: 600 }}>—</span>
           <input
             type="date"
+            aria-label={T.filters.dateTo}
             style={{ border: "none", background: "transparent", outline: "none", flex: 1, padding: 0 }}
             value={value.date_to}
             onChange={set("date_to")}
@@ -95,6 +99,7 @@ export function TaskFilters({
         </Button>
       )}
       </div>
+      {actions && <div className="page-actions">{actions}</div>}
     </div>
   );
 }

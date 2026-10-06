@@ -168,7 +168,7 @@ export default function ProjectWizard({ orderId }: { orderId?: number }) {
               <Segmented<ProjectStage>
                 value={stage}
                 onChange={setStage}
-                options={meta.options<ProjectStage>("project_stages").filter((option) => option.value !== "pending_approval")}
+                options={meta.options<ProjectStage>("project_stages").filter((option) => option.value !== "pending_approval" && option.value !== "rejected")}
               />
             </div>
           </>

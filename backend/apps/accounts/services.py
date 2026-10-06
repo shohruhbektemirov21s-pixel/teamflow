@@ -15,6 +15,23 @@ AVATAR_MAX_MB = 5
 AVATAR_SIZE = 1024  # px, eng uzun tomoni — katta ko'rinishda (rasm oynasi) ham tiniq
 
 
+@transaction.atomic
+def set_responsibilities(actor, employee, text):
+    if not actor.is_manager:
+        raise ServiceError("Mas'uliyatlarni faqat Boshliq yoki PM tahrirlaydi.")
+    employee = type(employee).objects.select_for_update().get(pk=employee.pk)
+    if not employee.is_active or not employee.role or (not actor.is_boss and not employee.is_developer):
+        raise ServiceError("Bu xodimni tahrirlashga ruxsat yo'q.")
+    text = text.strip()
+    if len(text) > 2000:
+        raise ServiceError("Mas'uliyatlar 2000 belgidan oshmasligi kerak.", "responsibilities")
+    if employee.responsibilities != text:
+        employee.responsibilities = text
+        employee.save(update_fields=["responsibilities"])
+        log(actor, "responsibilities_updated", f"{actor.full_name} {employee.full_name}ning mas'uliyatlarini yangiladi", employee)
+    return employee
+
+
 def set_avatar(user, upload):
     """Rasm Pillow bilan ochiladi (kengaytmaga ishonilmaydi), 1024px gacha kichraytiriladi va JPEG qilib qayta saqlanadi —
     EXIF (joylashuv va h.k.) o'chadi, rasm bo'lmagan fayl o'tmaydi. Eski rasm o'chiriladi."""

@@ -26,6 +26,7 @@ import {
   PriorityBadge,
   Skeleton,
   Stepper,
+  StageBadge,
   Tabs,
   useToast,
 } from "@/shared/ui";
@@ -272,7 +273,7 @@ export default function OrderModal({ id }: { id: number }) {
       title={order.title}
       subtitle={
         <>
-          <OrderStatusBadge status={order.status} />
+          {order.status === "project_created" && order.project ? <StageBadge stage={order.project.stage} /> : <OrderStatusBadge status={order.status} />}
           <PriorityBadge priority={order.priority} />
           {latest && <Badge tone="slate" dot={false}>TZ {T.orders.version(latest.number)}</Badge>}
         </>

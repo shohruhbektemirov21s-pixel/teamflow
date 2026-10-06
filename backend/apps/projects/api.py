@@ -129,7 +129,7 @@ class ProjectViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.
 
     @action(detail=True, methods=["post"], url_path="reject-completion")
     def reject_completion(self, request, pk=None):
-        """Boshqarma kamchilik topsa rad etadi (sabab bilan) — loyiha "Tuzatish kerak" ga qaytadi."""
+        """Boshqarma kamchilik topsa rad etadi (sabab bilan) — loyiha "Rad etildi" ga o'tadi."""
         project = self._by_order_project(pk)
         s = RejectCompletionSerializer(data=request.data)
         s.is_valid(raise_exception=True)

@@ -9,7 +9,7 @@ export function Pagination({ data, page, onPageChange }: {
 }) {
   if (!data || (!data.next && !data.previous)) return null;
   return (
-    <nav className="row" aria-label={T.common.pages} style={{ justifyContent: "end", gap: 12, marginTop: 16 }}>
+    <nav className="row-wrap pagination" aria-label={T.common.pages}>
       <Button size="sm" disabled={!data.previous} onClick={() => onPageChange(page - 1)}>{T.workDone.prev}</Button>
       <span className="small muted">{T.workDone.page(page)}</span>
       <Button size="sm" disabled={!data.next} onClick={() => onPageChange(page + 1)}>{T.workDone.next}</Button>

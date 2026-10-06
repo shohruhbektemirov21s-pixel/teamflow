@@ -15,7 +15,7 @@ from . import services
 from .models import Role, Specialty, User
 from .serializers import (
     LoginSerializer, MeSerializer, RegisterSerializer, SpecialtySerializer,
-    ProfileSerializer, ProfileUpdateSerializer, ChangePasswordSerializer, BusinessTripSerializer
+    ProfileSerializer, ProfileUpdateSerializer, ChangePasswordSerializer, BusinessTripSerializer, ResponsibilitiesSerializer
 )
 
 
@@ -107,6 +107,21 @@ def developers(request):
             for u in qs.order_by("first_name", "last_name")
         ]
     )
+
+
+@api_view(["PATCH"])
+@permission_classes([IsAuthenticated])
+def responsibilities(request, pk):
+    if not request.user.is_manager:
+        raise PermissionDenied("Mas'uliyatlarni faqat Boshliq yoki PM tahrirlaydi.")
+    employees = User.objects.filter(is_active=True).exclude(role="")
+    if not request.user.is_boss:
+        employees = employees.filter(role=Role.DEVELOPER)
+    employee = get_object_or_404(employees, pk=pk)
+    serializer = ResponsibilitiesSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+    employee = services.set_responsibilities(request.user, employee, serializer.validated_data["responsibilities"])
+    return Response({"id": employee.pk, "responsibilities": employee.responsibilities})
 
 
 @api_view(["PUT", "DELETE"])

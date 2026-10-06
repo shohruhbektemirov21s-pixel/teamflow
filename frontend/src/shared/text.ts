@@ -253,6 +253,7 @@ export const T = {
   },
 
   board: {
+    dragTask: "Vazifani sudrab o'tkazish",
     emptyCol: "Bu yerga karta sudrang",
     emptyDone: "Menejer qabul qilgan vazifalar shu yerda",
     locked: "Faqat menejer qabul qiladi",
@@ -330,7 +331,7 @@ export const T = {
     rejectCompletionTitle: "Nima kamchilik bor?",
     rejectCompletionPh: "Loyiha menejeri nimani tuzatishi kerakligini yozing",
     completionConfirmedToast: "Loyiha yakunlanishi tasdiqlandi",
-    completionRejectedToast: "Loyiha menejerga qaytarildi",
+    completionRejectedToast: "Loyiha yakunlanishi rad etildi",
   },
 
   projects: {
@@ -394,6 +395,8 @@ export const T = {
   },
 
   calendar: {
+    previousMonth: "Oldingi oy",
+    nextMonth: "Keyingi oy",
     title: "Taqvim",
     today: "Bugun",
     weekdays: ["Du", "Se", "Ch", "Pa", "Ju", "Sh", "Ya"],
@@ -491,6 +494,21 @@ export const T = {
   },
 
   people: {
+    responsibilities: "Mas'uliyatlar",
+    responsibilitiesHint: "Xodim qaysi ishlar va yo'nalishlarga mas'ul ekanini yozing.",
+    responsibilitiesPlaceholder: "Masalan: backend API, serverlar va ma'lumotlar bazasiga mas'ul.",
+    responsibilitiesEmpty: "Mas'uliyatlar hali kiritilmagan",
+    responsibilitiesAdd: "Mas'uliyat kiritish",
+    responsibilitiesEdit: "Mas'uliyatlarni tahrirlash",
+    responsibilitiesSaved: "Mas'uliyatlar saqlandi",
+    profileOpen: "Profilni ko'rish",
+    workTitle: "Biriktirilgan ishlar",
+    projectsTitle: "Biriktirilgan loyihalar",
+    noWork: "Faol ish biriktirilmagan",
+    noProjects: "Loyiha biriktirilmagan",
+    moreWork: (n: number) => `Yana ${n} ta ish — profilda`,
+    moreProjects: (n: number) => `Yana ${n} ta loyiha — profilda`,
+    found: (n: number) => `${n} ta xodim`,
     onBusinessTrip: "Xizmat safarida",
     tripUntil: (date: string) => `Qaytish sanasi: ${date}`,
     tripBlocked: "Xizmat safaridan qaytguncha yangi vazifa berib bo'lmaydi",
@@ -504,7 +522,7 @@ export const T = {
     searchPh: "Xodimni qidirish…",
     empty: "Xodimlar topilmadi",
     emptyHint: "Qidiruv yoki filtrni o'zgartirib ko'ring.",
-    col: { person: "Xodim", position: "Lavozim / Bo'lim", load: "Bandlik", tasks: "Vazifalar", doing: "Hozir nima qilyapti", actions: "Amallar" },
+    col: { person: "Xodim", position: "Lavozim / Bo'lim", load: "Bandlik", tasks: "Vazifalar", doing: "Biriktirilgan ishlar", actions: "Amallar" },
     activeN: (n: number) => `${n} faol`,
     overdueN: (n: number) => `${n} kechikkan`,
     reviewN: (n: number) => `${n} tekshiruvda`,

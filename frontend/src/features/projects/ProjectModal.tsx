@@ -158,11 +158,6 @@ export default function ProjectModal({ id }: { id: number }) {
       headerExtra={
         manager && (
           <>
-            {Boolean(p.order) && p.stage_targets.includes("done") && (
-              <Button size="sm" variant="success" icon={<CheckCircle2 size={16} />} loading={setStage.isPending} onClick={() => setStage.mutate("done")}>
-                {T.projects.requestCompletion}
-              </Button>
-            )}
             {editingInfo ? (
               <Button size="sm" variant="ghost" onClick={cancelEdit}>
                 {T.common.cancel}
@@ -181,7 +176,7 @@ export default function ProjectModal({ id }: { id: number }) {
               onChange={(e) => setStage.mutate(e.target.value as ProjectStage)}
             >
               {meta.project_stages
-                .filter((s) => s.value === p.stage || (p.stage_targets.includes(s.value as ProjectStage) && !(p.order && s.value === "done")))
+                .filter((s) => s.value === p.stage || (p.stage_targets.includes(s.value as ProjectStage) && s.value !== "done"))
                 .map((s) => (
                   <option key={s.value} value={s.value}>
                     {s.label}
@@ -195,7 +190,7 @@ export default function ProjectModal({ id }: { id: number }) {
       dirty={(editingInfo && infoDirty) || teamDirty || files.length > 0}
       footer={
         <>
-          {p.actions.add_task && (
+          {p.actions.add_task && p.stage !== "done" && p.stage !== "pending_approval" && !p.completion && (
             <Button icon={<Plus />} onClick={() => open({ new: "task", project: p.id })}>
               {T.projects.addTask}
             </Button>
@@ -214,6 +209,11 @@ export default function ProjectModal({ id }: { id: number }) {
           {tab === "files" && manager && files.length > 0 && (
             <Button variant="primary" icon={<Upload />} loading={upload.isPending} onClick={() => upload.mutate()}>
               {T.common.save}
+            </Button>
+          )}
+          {tab === "main" && !editingInfo && p.stage_targets.includes("done") && (
+            <Button variant="success" icon={<CheckCircle2 />} loading={setStage.isPending} onClick={() => setStage.mutate("done")}>
+              {T.projects.requestCompletion}
             </Button>
           )}
         </>
@@ -361,12 +361,12 @@ export default function ProjectModal({ id }: { id: number }) {
                       <b style={{ fontWeight: 600 }}>{d.full_name}</b>
                       {d.specialty && <span className="small muted"> · {d.specialty}</span>}
                     </span>
-                    {savedIds.has(d.id) ? (
+                    {savedIds.has(d.id) && p.actions.add_task && p.stage !== "done" && p.stage !== "pending_approval" && !p.completion ? (
                       <Button size="sm" icon={<Plus />} disabled={teamDirty || d.is_on_business_trip} title={d.is_on_business_trip ? T.people.tripBlocked : undefined} onClick={() => open({ new: "task", project: p.id, assignee: d.id })}>
                         {T.projects.giveTask}
                       </Button>
                     ) : (
-                      <span className="small muted">{T.projects.teamUnsaved}</span>
+                      !savedIds.has(d.id) && <span className="small muted">{T.projects.teamUnsaved}</span>
                     )}
                     <Button size="sm" variant="ghost" icon={<X />} onClick={() => setMembers((xs) => xs.filter((x) => x !== d.id))}>
                       {T.projects.teamRemove}

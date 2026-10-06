@@ -3,6 +3,7 @@ from itertools import count
 from django.test import TestCase
 
 from apps.accounts.models import Role
+from apps.notifications.models import Notification
 from apps.orders.models import Order
 from apps.panel.tests.factories import client_for, dates, docx, future, make_user
 from apps.projects.models import Project
@@ -197,7 +198,12 @@ class ProjectCompletionTests(TestCase):
         self.assertEqual(r.status_code, 400)
         r = dept.post(f"/api/projects/{self.pid}/reject-completion/", {"reason": "Hujjat yetarli emas"}, format="json")
         self.assertEqual(r.status_code, 200, r.data)
-        self.assertEqual(Project.objects.get(pk=self.pid).stage, "needs_fix")
+        self.assertEqual(Project.objects.get(pk=self.pid).stage, "rejected")
+        order_id = Project.objects.get(pk=self.pid).order_id
+        detail = dept.get(f"/api/orders/{order_id}/").data
+        self.assertEqual(detail["project"]["stage_label"], "Rad etildi")
+        self.assertFalse(detail["actions"]["decide_completion"])
+        self.assertEqual(self.finish().data["stage"], "pending_approval")
         kinds = [n["kind"] for n in client_for(self.pm).get("/api/notifications/").data["results"]]
         self.assertIn("project_completion_rejected", kinds)
 
@@ -272,7 +278,7 @@ class ProjectCompletionAckTests(TestCase):
         kinds1 = [n["kind"] for n in client_for(self.dev1).get("/api/notifications/").data["results"]]
         self.assertIn("project_completion_ack_requested", kinds1)
 
-    def test_all_confirm_then_pm_finishes(self):
+    def test_all_confirm_automatically_finishes(self):
         self.finish()
         self.ack(self.dev1, True)
         mid = client_for(self.pm).get(f"/api/projects/{self.pid}/").data
@@ -282,18 +288,12 @@ class ProjectCompletionAckTests(TestCase):
         kinds_pm = [n["kind"] for n in client_for(self.pm).get("/api/notifications/").data["results"]]
         self.assertIn("project_completion_ack_done", kinds_pm)
 
-        # review 2026-10-05 (BLOKLOVCHI, tuzatildi): hammasi tasdiqlagach "stage_targets"da "done"
-        # qaytadan ko'rinishi SHART — aks holda frontend select/tugma uni hech qachon ko'rsatmaydi va
-        # PM butunlay tiqilib qoladi (backend `_apply_stage` to'g'ri ishlasa ham). Vizual (brauzer)
-        # tekshiruvda aynan shu holat tutilgan edi.
+        # Oxirgi tasdiq loyihani avtomatik yakunlaydi; PM qayta bosmaydi.
         after_all = client_for(self.pm).get(f"/api/projects/{self.pid}/").data
-        self.assertIn("done", after_all["stage_targets"])
+        self.assertEqual(after_all["stage"], "done")
+        self.assertEqual(after_all["stage_targets"], [])
         self.assertIsNone(after_all["completion"])
-
-        r = self.finish()
-        self.assertEqual(r.status_code, 200, r.data)
-        self.assertEqual(r.data["stage"], "done")
-        self.assertIsNone(r.data["completion"])
+        self.assertFalse(after_all["actions"]["add_task"])
 
     def test_reject_with_reason_cancels_round_and_project_stays(self):
         self.finish()
@@ -376,8 +376,13 @@ class ProjectCompletionAckWithOrderTests(TestCase):
         r2 = client_for(self.dev).post(f"/api/projects/{self.pid}/completion-ack/", {"confirmed": True}, format="json")
         self.assertEqual(r2.status_code, 200, r2.data)
 
-        r3 = pm.patch(f"/api/projects/{self.pid}/", {"stage": "done"}, format="json")
+        r3 = pm.get(f"/api/projects/{self.pid}/")
         self.assertEqual(r3.data["stage"], "pending_approval")
+        self.assertFalse(r3.data["actions"]["add_task"])
+        order_id = Project.objects.get(pk=self.pid).order_id
+        order = client_for(self.dept).get(f"/api/orders/{order_id}/").data
+        self.assertTrue(order["actions"]["decide_completion"])
+        self.assertTrue(Notification.objects.filter(recipient=self.dept, kind="project_completion_requested").exists())
 
         r4 = client_for(self.dept).post(f"/api/projects/{self.pid}/confirm-completion/")
         self.assertEqual(r4.status_code, 200, r4.data)

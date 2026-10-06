@@ -51,9 +51,9 @@ export function BusinessTripPanel() {
           </div>
           {selected?.is_on_business_trip && <div className="row-wrap"><Badge tone="warning">{T.people.onBusinessTrip}</Badge><span className="small muted">{T.people.tripUntil(fmtDate(selected.business_trip_return_date!))}</span></div>}
           {error && !(error instanceof ApiError && error.field("return_date")) && <ErrorBox error={error} />}
-          <div className="row-wrap">
-            <Button variant="primary" disabled={!employeeId || !returnDate || returnDate < tomorrow()} loading={setTrip.isPending} onClick={() => setTrip.mutate()}>{T.profile.tripSet}</Button>
+          <div className="form-actions">
             {selected?.is_on_business_trip && <Button variant="ghost" loading={endTrip.isPending} onClick={() => endTrip.mutate()}>{T.profile.tripEnd}</Button>}
+            <Button variant="primary" disabled={!employeeId || !returnDate || returnDate < tomorrow()} loading={setTrip.isPending} onClick={() => setTrip.mutate()}>{T.profile.tripSet}</Button>
           </div>
         </>
       )}

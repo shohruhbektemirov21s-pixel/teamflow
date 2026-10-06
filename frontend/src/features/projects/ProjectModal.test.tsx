@@ -20,9 +20,9 @@ const PROJECT: ProjectDetail = {
   completion: null,
 };
 
-function setup() {
+function setup(overrides: Partial<ProjectDetail> = {}) {
   mockGet({
-    "/projects/1/": PROJECT,
+    "/projects/1/": { ...PROJECT, ...overrides },
     "/tasks/?project=1&all=1": [],
     "/developers/": [
       { id: JASUR.id, full_name: JASUR.full_name, specialty: "Backend" },
@@ -33,6 +33,20 @@ function setup() {
 }
 
 describe("ProjectModal — Jamoa", () => {
+  it.each(["done", "pending_approval"] as const)("%s loyihada vazifa qo'shish va berish yashiriladi", async (stage) => {
+    setup({ stage, stage_targets: [] });
+    await screen.findByRole("tab", { name: /Jamoa/ });
+    expect(screen.queryByRole("button", { name: T.projects.addTask })).toBeNull();
+    fireEvent.click(screen.getByRole("tab", { name: /Jamoa/ }));
+    await screen.findByText(JASUR.full_name);
+    expect(screen.queryByRole("button", { name: new RegExp(T.projects.giveTask) })).toBeNull();
+  });
+
+  it("dasturchi tasdig'i kutilayotganda vazifa qo'shish yashiriladi", async () => {
+    setup({ completion: { requested_at: "2026-10-06T10:00:00Z", pending: [JASUR], confirmed: [] } });
+    await screen.findByRole("tab", { name: /Jamoa/ });
+    expect(screen.queryByRole("button", { name: T.projects.addTask })).toBeNull();
+  });
   it("faqat loyiha a'zolarini ko'rsatadi, qolganlar qidiruv orqali qo'shiladi", async () => {
     setup();
     fireEvent.click(await screen.findByRole("tab", { name: /Jamoa/ }));

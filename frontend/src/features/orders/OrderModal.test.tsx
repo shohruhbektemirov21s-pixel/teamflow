@@ -85,6 +85,27 @@ describe("OrderModal — loyihani yakunlashni tasdiqlash", () => {
 });
 
 describe("OrderModal — buyurtmani tasdiqlash va rad etish", () => {
+  it("rad etilgan buyurtmaga TZ v2 fayl va izoh bilan yuboriladi", async () => {
+    setup({ status: "rejected", project: null, actions: { ...ORDER.actions, decide_completion: false, new_version: true } });
+    vi.mocked(api.post).mockResolvedValue({ ok: true });
+    fireEvent.click(await screen.findByRole("button", { name: T.orders.newVersion }));
+    const send = screen.getByRole("button", { name: T.orders.send });
+    expect((send as HTMLButtonElement).disabled).toBe(true);
+    const file = new File(["TZ v2"], "tz-v2.docx", { type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" });
+    const input = screen.getByRole("dialog").querySelector('input[type="file"]')!;
+    fireEvent.change(input, { target: { files: [file] } });
+    expect((send as HTMLButtonElement).disabled).toBe(true);
+    fireEvent.change(screen.getByPlaceholderText(T.orders.newVersionPh), { target: { value: "Kamchiliklar tuzatildi" } });
+    fireEvent.click(send);
+    await waitFor(() => {
+      const call = vi.mocked(api.post).mock.calls.find(([path]) => path === "/orders/5/versions/");
+      expect(call).toBeTruthy();
+      const body = call![1] as FormData;
+      expect(body.get("note")).toBe("Kamchiliklar tuzatildi");
+      expect((body.get("file") as File).name).toBe("tz-v2.docx");
+    });
+    expect(await screen.findByText(T.orders.versionToast)).toBeTruthy();
+  });
   const submitted = {
     status: "submitted" as const,
     project: null,

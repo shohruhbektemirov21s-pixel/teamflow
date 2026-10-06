@@ -3,7 +3,7 @@ import mimetypes
 
 from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
-from django.db.models import Count, Q
+from django.db.models import Count, F, Q
 from django.http import FileResponse, Http404
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
@@ -85,7 +85,7 @@ def dashboard(request):
 def _people_rows(qs):
     """Xodim qatorlari (ro'yxat va bitta xodim oynasi uchun bir xil shakl): bandlik sonlari va hozirgi ishi.
 
-    Sonlar bitta annotatsiyali so'rovda, "hozir nima qilyapti" — yana bitta so'rovda (N+1 yo'q).
+    Sonlar, faol ishlar va loyihalar guruhlab olinadi (xodim soniga bog'liq N+1 yo'q).
     """
     now = timezone.now()
     t = "assigned_tasks"
@@ -101,19 +101,39 @@ def _people_rows(qs):
                                          assigned_tasks__archived_at__isnull=True), distinct=True),
         )
     )
-    doing = {}
-    for task in Task.objects.filter(status=Task.Status.IN_PROGRESS, archived_at__isnull=True,
-                                    assignees__in=users).distinct().prefetch_related("assignees"):
+    doing, work, projects = {}, {}, {}
+    for task in Task.objects.filter(status__in=ACTIVE, archived_at__isnull=True,
+                                    assignees__in=users).distinct().select_related("project").prefetch_related("assignees").order_by(F("due_at").asc(nulls_last=True), "pk"):
         for u in task.assignees.all():
-            doing.setdefault(u.pk, []).append({"id": task.pk, "title": task.title})
+            if task.status == Task.Status.IN_PROGRESS:
+                doing.setdefault(u.pk, []).append({"id": task.pk, "title": task.title})
+            work.setdefault(u.pk, []).append({
+                "id": task.pk, "title": task.title, "status": task.status,
+                "due_at": task.due_at, "is_overdue": bool(task.due_at and task.due_at < now),
+                "project": {"id": task.project_id, "name": task.project.name, "code": task.project.code},
+            })
+    user_ids = {u.pk for u in users}
+    for project in Project.objects.filter(
+        Q(members__in=users) | Q(created_by__in=users) | Q(order__approved_by__in=users)
+    ).distinct().select_related("order").prefetch_related("members"):
+        owners = {u.pk for u in project.members.all()} | {project.created_by_id}
+        if project.order_id and project.order.approved_by_id:
+            owners.add(project.order.approved_by_id)
+        for uid in owners & user_ids:
+            projects.setdefault(uid, []).append({
+                "id": project.pk, "name": project.name, "code": project.code,
+                "stage": project.stage, "end_date": project.end_date,
+            })
     return [
         {
             "id": u.pk, "full_name": u.full_name, "role": u.role, "role_label": u.get_role_display(),
             "specialty": u.specialty.name if u.specialty else "", "department_name": u.department_name,
+            "responsibilities": u.responsibilities,
             "avatar": avatar_url(u), "active_tasks": u.active_tasks, "overdue_tasks": u.overdue_tasks,
             "business_trip_return_date": u.business_trip_return_date, "is_on_business_trip": u.is_on_business_trip,
             "review_tasks": u.review_tasks, "done_tasks": u.done_tasks,
             "doing": doing.get(u.pk, [])[:3],
+            "work": work.get(u.pk, [])[:3], "projects": projects.get(u.pk, []),
         }
         for u in users
     ]

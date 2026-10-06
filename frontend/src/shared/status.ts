@@ -21,6 +21,7 @@ export const STAGE_TONE: Record<ProjectStage, Tone> = {
   planned: "slate",
   started: "info",
   needs_fix: "warning",
+  rejected: "danger",
   pending_approval: "violet",
   done: "success",
 };
@@ -66,7 +67,7 @@ export function boardMove(moves: { from: string; to: string }[], from: TaskStatu
   return null;
 }
 
-const AVATAR_COLORS = ["#4f46e5", "#0891b2", "#7c3aed", "#db2777", "#ea580c", "#059669", "#2563eb", "#9333ea"];
+const AVATAR_COLORS = ["#4f46e5", "#0369a1", "#7c3aed", "#db2777", "#c2410c", "#047857", "#2563eb", "#9333ea"];
 
 export function avatarColor(id: number): string {
   return AVATAR_COLORS[id % AVATAR_COLORS.length]!;

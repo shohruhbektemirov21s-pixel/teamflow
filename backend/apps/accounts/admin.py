@@ -33,7 +33,7 @@ class UserAdmin(DjangoUserAdmin):
     actions = [approve_users, block_users]
 
     fieldsets = DjangoUserAdmin.fieldsets + (
-        ("TeamFlow", {"fields": ("role", "specialty", "department_name")}),
+        ("TeamFlow", {"fields": ("role", "specialty", "department_name", "responsibilities")}),
     )
     add_fieldsets = DjangoUserAdmin.add_fieldsets + (
         ("TeamFlow", {"fields": ("first_name", "last_name", "role", "specialty", "department_name")}),

@@ -9,9 +9,11 @@ import { api, qs } from "@/shared/api";
 import { fmtDate } from "@/shared/format";
 import { T } from "@/shared/text";
 import type { Person, Task } from "@/shared/types";
-import { Button, Modal, Skeleton, Tabs } from "@/shared/ui";
+import { Button, ErrorBox, Modal, Skeleton, Tabs } from "@/shared/ui";
 
 import { ProfileHeader } from "./ProfileHeader";
+import { PersonWork } from "./PersonWork";
+import { PersonResponsibilities } from "./PersonResponsibilities";
 
 export default function PersonModal({ id }: { id: number }) {
   const me = useMe();
@@ -19,6 +21,7 @@ export default function PersonModal({ id }: { id: number }) {
   const { open, close } = useModal();
 
   const [tab, setTab] = useState<"tasks" | "report">("tasks");
+  const [dirty, setDirty] = useState(false);
 
   const personQuery = useQuery({
     queryKey: ["person", id],
@@ -47,8 +50,9 @@ export default function PersonModal({ id }: { id: number }) {
   const disciplineRate = doneTasks.length > 0 ? Math.round((onTimeDone / doneTasks.length) * 100) : 0;
 
   return (
-    <Modal title={person ? T.people.profileTitle : T.common.loading} onClose={close}>
+    <Modal title={person ? T.people.profileTitle : T.common.loading} onClose={close} dirty={dirty}>
       {personQuery.isLoading && <Skeleton h={200} />}
+      {personQuery.error && <ErrorBox error={personQuery.error} onRetry={() => personQuery.refetch()} />}
       {person && (
         <div className="stack">
           <ProfileHeader
@@ -61,6 +65,8 @@ export default function PersonModal({ id }: { id: number }) {
             }
           />
           {person.is_on_business_trip && <div className="card card-pad small">{T.people.onBusinessTrip}. {T.people.tripUntil(fmtDate(person.business_trip_return_date!))}. {T.people.tripBlocked}.</div>}
+          <PersonResponsibilities key={person.id} person={person} editable={isMgr} onDirtyChange={setDirty} />
+          <div className="card card-pad"><PersonWork person={person} full /></div>
           {isMgr && person.role === "developer" && (
             <div
               className="card card-pad"
@@ -69,13 +75,13 @@ export default function PersonModal({ id }: { id: number }) {
                 border: person.active_tasks === 0 ? "1px solid var(--success)" : undefined,
               }}
             >
-              <div className="row" style={{ justifyContent: "space-between", alignItems: "center", gap: 10 }}>
-                <div>
+              <div className="row-wrap" style={{ justifyContent: "space-between", alignItems: "center", gap: 10 }}>
+                <div className="grow">
                   <div style={{ fontWeight: 650, fontSize: 13.5 }}>
-                    {person.active_tasks === 0 ? T.people.freeNow : T.people.busyNow(person.active_tasks)}
+                    {person.is_on_business_trip ? T.people.onBusinessTrip : person.active_tasks === 0 ? T.people.freeNow : T.people.busyNow(person.active_tasks)}
                   </div>
                   <div className="small muted">
-                    {person.active_tasks === 0 ? T.people.freeHint : T.people.busyHint}
+                    {person.is_on_business_trip ? T.people.tripBlocked : person.active_tasks === 0 ? T.people.freeHint : T.people.busyHint}
                   </div>
                 </div>
                 <Button
@@ -103,13 +109,15 @@ export default function PersonModal({ id }: { id: number }) {
             />
           )}
 
-          {person.role === "developer" && tab === "tasks" && (
+          {person.role === "developer" && tasksQuery.error && <ErrorBox error={tasksQuery.error} onRetry={() => tasksQuery.refetch()} />}
+          {person.role === "developer" && tab === "tasks" && !tasksQuery.error && (
             <div className="card">
               <TaskTable tasks={tasksQuery.data} loading={tasksQuery.isLoading} emptyHint={T.people.noTasksHint} />
             </div>
           )}
 
-          {person.role === "developer" && tab === "report" && (
+          {person.role === "developer" && tab === "report" && tasksQuery.isLoading && <Skeleton h={200} />}
+          {person.role === "developer" && tab === "report" && tasksQuery.data && !tasksQuery.error && (
             <div className="stack">
               <div className="grid-2">
                 <div className="card card-pad stack-sm" style={{ textAlign: "center" }}>

@@ -73,14 +73,15 @@ export default function CalendarPage() {
         <span className="page-toolbar-title" aria-live="polite">
           {T.calendar.months[month.getMonth()]} {month.getFullYear()}
         </span>
-        <span className="spacer" />
-        <button className="icon-btn" onClick={() => shift(-1)} aria-label="←">
+        <div className="page-actions">
+        <button type="button" className="icon-btn" onClick={() => shift(-1)} aria-label={T.calendar.previousMonth}>
           <ChevronLeft />
         </button>
         <Button onClick={() => setMonth(new Date(new Date().getFullYear(), new Date().getMonth(), 1))}>{T.calendar.today}</Button>
-        <button className="icon-btn" onClick={() => shift(1)} aria-label="→">
+        <button type="button" className="icon-btn" onClick={() => shift(1)} aria-label={T.calendar.nextMonth}>
           <ChevronRight />
         </button>
+        </div>
       </div>
       {(query.error || projectsQuery.error) && (
         <ErrorBox error={query.error ?? projectsQuery.error} onRetry={() => (query.refetch(), projectsQuery.refetch())} />

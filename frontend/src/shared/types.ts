@@ -1,7 +1,7 @@
 export type Role = "boss" | "pm" | "developer" | "department";
 export type TaskStatus = "control" | "in_progress" | "in_review" | "done";
 export type OrderStatus = "submitted" | "approved" | "rejected" | "project_created";
-export type ProjectStage = "planned" | "started" | "needs_fix" | "pending_approval" | "done";
+export type ProjectStage = "planned" | "started" | "needs_fix" | "rejected" | "pending_approval" | "done";
 export type Priority = "low" | "medium" | "high" | "urgent";
 
 export interface Me {
@@ -179,6 +179,7 @@ export interface ProjectDetail extends Project {
 }
 
 export interface Person {
+  responsibilities?: string;
   id: number;
   full_name: string;
   role: Role;
@@ -193,6 +194,8 @@ export interface Person {
   review_tasks: number;
   done_tasks: number;
   doing: { id: number; title: string }[];
+  work?: { id: number; title: string; status: TaskStatus; due_at: string | null; is_overdue: boolean; project: { id: number; name: string; code: string } }[];
+  projects?: { id: number; name: string; code: string; stage: ProjectStage; end_date: string }[];
 }
 
 export interface Developer {

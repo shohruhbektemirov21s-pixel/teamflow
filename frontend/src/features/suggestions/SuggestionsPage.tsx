@@ -37,10 +37,11 @@ export default function SuggestionsPage() {
             { value: "rejected", label: T.suggestions.tabs.rejected! },
           ]}
         />
-        <span className="spacer" />
+        <div className="page-actions">
         <Button variant="primary" icon={<Plus />} onClick={() => open({ new: "suggestion" })}>
           {T.suggestions.new}
         </Button>
+        </div>
       </div>
 
       {query.error ? (

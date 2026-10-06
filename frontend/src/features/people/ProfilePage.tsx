@@ -90,7 +90,6 @@ export default function ProfilePage() {
 
   return (
     <div className="stack" style={{ maxWidth: 800, width: "100%", margin: "0 auto" }}>
-      <h1>{T.profile.title}</h1>
 
       <div className="card card-pad stack">
         <ProfileHeader
@@ -164,7 +163,7 @@ export default function ProfilePage() {
             <Field label={T.profile.dateJoined}>
               {(id) => <input id={id} className="input" value={p?.date_joined ? fmtDate(p.date_joined) : ""} disabled />}
             </Field>
-            <div style={{ gridColumn: "1 / -1" }}>
+            <div className="form-actions">
               <Button type="submit" variant="primary" loading={infoMut.isPending}>
                 {T.common.save}
               </Button>
@@ -212,7 +211,7 @@ export default function ProfilePage() {
             )}
           </Field>
         </div>
-        <div>
+        <div className="form-actions">
           <Button type="submit" variant="primary" loading={passMut.isPending} disabled={!oldPass || !newPass}>
             {T.profile.changePassword}
           </Button>

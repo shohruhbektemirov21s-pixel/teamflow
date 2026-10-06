@@ -3,6 +3,7 @@ from django.test import TestCase
 from apps.accounts.models import Role
 from apps.notifications.models import Notification
 from apps.orders.models import Order
+from apps.projects.models import Project
 from apps.panel.tests.factories import client_for, dates, docx, future, make_user
 
 
@@ -62,6 +63,22 @@ class OrderFlowTests(TestCase):
         r = client_for(self.dept).post(f"/api/orders/{oid}/versions/", {"file": docx(), "note": "x"},
                                        format="multipart")
         self.assertEqual(r.status_code, 400)
+
+    def test_department_lists_pending_completion_first_and_completed_last(self):
+        pending_id = self.submit().data["id"]
+        complete_id = self.submit().data["id"]
+        new_id = self.submit().data["id"]
+        newer_id = self.submit().data["id"]
+        for oid, stage in ((pending_id, "pending_approval"), (complete_id, "done")):
+            Order.objects.filter(pk=oid).update(status="project_created")
+            Project.objects.create(order_id=oid, code=f"SORT-{oid}", name="Portal", stage=stage, created_by=self.pm, **dates())
+        client = client_for(self.dept)
+        result = client.get("/api/orders/").data["results"]
+        self.assertEqual([row["id"] for row in result], [pending_id, newer_id, new_id, complete_id])
+        result = client.get("/api/orders/?status=submitted").data["results"]
+        self.assertEqual([row["id"] for row in result], [newer_id, new_id])
+        result = client_for(self.pm).get("/api/orders/").data["results"]
+        self.assertEqual([row["id"] for row in result], [newer_id, new_id, complete_id, pending_id])
 
     def test_reject_then_resubmit(self):
         oid = self.submit().data["id"]

@@ -31,7 +31,15 @@ export default function ProjectsPage() {
   return (
     <>
       <div className="page-toolbar">
-        <div className="chips">
+        <input className="input page-search" placeholder={T.common.search} value={q} onChange={(e) => { setQ(e.target.value); setPage(1); }} aria-label={T.common.search} />
+        {manager && (
+          <div className="page-actions">
+            <Button variant="primary" icon={<Plus />} onClick={() => open({ new: "project" })}>
+              {T.projects.new}
+            </Button>
+          </div>
+        )}
+        <div className="chips toolbar-filters">
           <button className="chip" aria-pressed={stage === ""} onClick={() => { setStage(""); setPage(1); }}>
             {T.common.all}
           </button>
@@ -41,13 +49,6 @@ export default function ProjectsPage() {
             </button>
           ))}
         </div>
-        <span className="spacer" />
-        <input className="input" style={{ maxWidth: 260 }} placeholder={T.common.search} value={q} onChange={(e) => { setQ(e.target.value); setPage(1); }} aria-label={T.common.search} />
-        {manager && (
-          <Button variant="primary" icon={<Plus />} onClick={() => open({ new: "project" })}>
-            {T.projects.new}
-          </Button>
-        )}
       </div>
       {query.error && <ErrorBox error={query.error} onRetry={() => query.refetch()} />}
       {query.isLoading && (

@@ -11,7 +11,7 @@ import {
   useSensors,
 } from "@dnd-kit/core";
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { CalendarClock, Lock, MoreHorizontal, Plus } from "lucide-react";
+import { CalendarClock, GripVertical, Lock, MoreHorizontal, Plus } from "lucide-react";
 import { type ReactNode, useState } from "react";
 
 import { useModal } from "@/app/modals";
@@ -192,20 +192,29 @@ function Column({
 
 function DraggableCard({ task, onOpen, onMove }: { task: Task; onOpen: (t: Task) => void; onMove: (t: Task, to: TaskStatus) => void }) {
   const draggable = task.status === "control" || task.status === "in_progress";
-  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: task.id, data: { task }, disabled: !draggable });
+  const { attributes, listeners, setNodeRef, setActivatorNodeRef, isDragging } = useDraggable({ id: task.id, data: { task }, disabled: !draggable });
   const [menu, setMenu] = useState(false);
   const meta = useMeta();
   const targets = meta.values<TaskStatus>("task_statuses").filter((s) => boardMove(meta.task_moves, task.status, s));
   return (
-    <div ref={setNodeRef} {...listeners} {...attributes} style={{ position: "relative" }}>
+    <div ref={setNodeRef} onPointerDown={(event) => listeners?.onPointerDown?.(event)} style={{ position: "relative" }}>
       <Card
         task={task}
         dragging={isDragging}
         onClick={() => onOpen(task)}
         menu={
+          <>
+          {draggable && <button ref={setActivatorNodeRef} type="button" className="icon-btn" {...attributes} {...listeners}
+            aria-label={`${T.board.dragTask}: ${task.title}`} title={T.board.dragTask}
+            onPointerDown={(event) => { event.stopPropagation(); listeners?.onPointerDown?.(event); }}
+            onClick={(event) => event.stopPropagation()}>
+            <GripVertical />
+          </button>}
+          {
           targets.length > 0 && (
             <>
               <button
+                type="button"
                 className="icon-btn"
                 style={{ width: 28, height: 28 }}
                 aria-label={T.board.actions}
@@ -223,6 +232,7 @@ function DraggableCard({ task, onOpen, onMove }: { task: Task; onOpen: (t: Task)
                 >
                   {targets.map((s) => (
                     <button
+                      type="button"
                       key={s}
                       className="palette-item"
                       onClick={(e) => {
@@ -238,6 +248,8 @@ function DraggableCard({ task, onOpen, onMove }: { task: Task; onOpen: (t: Task)
               )}
             </>
           )
+          }
+          </>
         }
       />
     </div>
@@ -251,15 +263,14 @@ function Card({ task, overlay, dragging, onClick, menu }: { task: Task; overlay?
       className={`tcard ${overlay ? "overlay" : ""} ${dragging ? "dragging" : ""}`}
       style={{ cursor: done ? "pointer" : undefined }}
       onClick={onClick}
-      onKeyDown={(e) => e.key === "Enter" && onClick?.()}
     >
       <div className="row">
         <span className="tcard-project grow ellipsis">{task.project.name}</span>
         {menu}
       </div>
-      <div style={{ fontWeight: 650 }}>
+      {onClick ? <button type="button" className="tcard-title" onClick={(event) => { event.stopPropagation(); onClick(); }}>
         <CodeTag code={task.code} /> {task.title}
-      </div>
+      </button> : <div style={{ fontWeight: 650 }}><CodeTag code={task.code} /> {task.title}</div>}
       {task.subtasks_progress.total > 0 && (
         <div className="stack-sm" style={{ gap: 4 }}>
           <div className="progress">

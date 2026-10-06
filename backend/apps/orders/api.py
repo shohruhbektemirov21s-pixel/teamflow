@@ -1,4 +1,4 @@
-from django.db.models import Q
+from django.db.models import Case, IntegerField, Q, Value, When
 from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied
@@ -34,6 +34,14 @@ class OrderViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.Crea
         if params.get("q"):
             q = params["q"]
             qs = qs.filter(Q(title__icontains=q) | Q(submitted_by__department_name__icontains=q))
+        if self.request.user.is_department:
+            qs = qs.alias(display_priority=Case(
+                When(project__stage="pending_approval", then=Value(0)),
+                When(project__stage="done", then=Value(2)),
+                default=Value(1), output_field=IntegerField(),
+            )).order_by("display_priority", "-created_at", "-id")
+        else:
+            qs = qs.order_by("-created_at", "-id")
         return qs
 
     def get_serializer_class(self):

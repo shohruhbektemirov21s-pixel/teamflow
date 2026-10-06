@@ -323,7 +323,16 @@ export function Tabs<K extends string>({ tabs, value, onChange }: { tabs: { key:
   return (
     <div className="tabs" role="tablist">
       {tabs.map((t) => (
-        <button key={t.key} role="tab" className="tab" aria-selected={t.key === value} onClick={() => onChange(t.key)}>
+        <button key={t.key} type="button" role="tab" className="tab" aria-selected={t.key === value} tabIndex={t.key === value ? 0 : -1} onClick={() => onChange(t.key)} onKeyDown={(event) => {
+          const current = tabs.findIndex((tab) => tab.key === t.key);
+          const next = event.key === "ArrowRight" ? (current + 1) % tabs.length
+            : event.key === "ArrowLeft" ? (current - 1 + tabs.length) % tabs.length
+            : event.key === "Home" ? 0 : event.key === "End" ? tabs.length - 1 : null;
+          if (next === null) return;
+          event.preventDefault();
+          onChange(tabs[next]!.key);
+          event.currentTarget.parentElement?.querySelectorAll<HTMLButtonElement>('[role="tab"]')[next]?.focus();
+        }}>
           {t.label}
         </button>
       ))}

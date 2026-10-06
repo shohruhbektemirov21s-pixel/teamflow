@@ -9,6 +9,10 @@ from .models import Role, Specialty, User
 SELF_REGISTER_ROLES = [Role.PM, Role.DEVELOPER, Role.DEPARTMENT]  # Boshliq faqat Django adminda
 
 
+class ResponsibilitiesSerializer(serializers.Serializer):
+    responsibilities = serializers.CharField(max_length=2000, allow_blank=True)
+
+
 def normalize_telegram(value):
     """Telegram username bir xil shaklda saqlanadi: "@username" (bo'sh bo'lishi mumkin)."""
     value = (value or "").strip().lstrip("@")
