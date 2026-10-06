@@ -108,25 +108,51 @@ export default function OrderModal({ id }: { id: number }) {
   const fe = (k: string) => error?.field(k);
   const set = (k: keyof typeof form) => (e: { target: { value: string } }) => setForm((f) => ({ ...f, [k]: e.target.value }));
 
-  const panelView = (() => {
+  // "Tasdiqlash", "Rad etish" va boshqa amallar — buyurtma oynasi ustida alohida, qora fonli modal
+  // (vazifani tekshiruvga yuborish oynasi kabi; foydalanuvchi istisnosi, 2026-10-06).
+  const panelModal = (() => {
     if (!panel) return null;
     const common = error && !Object.keys(error.fields).length && <Callout tone="danger">{error.message}</Callout>;
-    const buttons = (label: string, variant: "primary" | "danger", icon: ReactNode, disabled = false) => (
-      <div className="row">
-        <span className="spacer" />
-        <Button variant="ghost" onClick={() => setPanel(null)}>
-          {T.common.cancel}
-        </Button>
-        <Button variant={variant} icon={icon} loading={act.isPending} disabled={disabled} onClick={() => act.mutate(panel)}>
-          {label}
-        </Button>
-      </div>
+    const screen = (
+      opts: { icon: ReactNode; tone: "primary" | "success" | "danger"; title: string; subtitle: string; label: string; disabled: boolean },
+      body: ReactNode,
+    ) => (
+      <Modal
+        size="md"
+        stacked
+        title={
+          <span className="row" style={{ gap: 12 }}>
+            <span className={`modal-icon-badge ${opts.tone === "primary" ? "" : opts.tone}`}>{opts.icon}</span>
+            <span>{opts.title}</span>
+          </span>
+        }
+        subtitle={opts.subtitle}
+        onClose={() => setPanel(null)}
+        dirty={Boolean(form.note || form.reason || files.length)}
+        footer={
+          <>
+            <span className="spacer" />
+            <Button variant="default" onClick={() => setPanel(null)}>
+              {T.common.cancel}
+            </Button>
+            <Button variant={opts.tone} icon={opts.icon} loading={act.isPending} disabled={opts.disabled} onClick={() => act.mutate(panel)}>
+              {opts.label}
+            </Button>
+          </>
+        }
+      >
+        <div className="stack" style={{ gap: 16 }}>
+          {common}
+          {body}
+        </div>
+      </Modal>
     );
     if (panel === "approve" || panel === "dates")
-      return (
-        <div className="inline-panel">
-          <b>{panel === "approve" ? T.orders.approveTitle : T.orders.editDates}</b>
-          {common}
+      return screen(
+        panel === "approve"
+          ? { icon: <CheckCircle2 />, tone: "success", title: T.orders.approve, subtitle: T.orders.approveSubtitle, label: T.orders.approve, disabled: !form.start_date || !form.end_date }
+          : { icon: <CalendarDays />, tone: "primary", title: T.orders.editDates, subtitle: T.orders.datesSubtitle, label: T.common.save, disabled: !form.start_date || !form.end_date },
+        <>
           <div className="grid-2">
             <Field label={T.orders.startDate} required error={fe("start_date")}>
               {(fid, bad) => <input id={fid} type="date" className="input" aria-invalid={bad} value={form.start_date} onChange={set("start_date")} autoFocus />}
@@ -149,48 +175,52 @@ export default function OrderModal({ id }: { id: number }) {
                 )}
               </Field>
               <Field label={T.orders.note}>
-                {(fid) => <textarea id={fid} className="textarea" style={{ minHeight: 64 }} placeholder={T.orders.notePh} value={form.note} onChange={set("note")} />}
+                {(fid) => <textarea id={fid} className="textarea" style={{ minHeight: 88 }} placeholder={T.orders.notePh} value={form.note} onChange={set("note")} />}
               </Field>
             </>
           )}
-          {buttons(panel === "approve" ? T.orders.approve : T.common.save, "primary", <CheckCircle2 />, !form.start_date || !form.end_date)}
-        </div>
+        </>,
       );
-    if (panel === "reject")
-      return (
-        <div className="inline-panel">
-          {common}
-          <Field label={T.orders.rejectTitle} required error={fe("reason")}>
-            {(fid, bad) => <textarea id={fid} className="textarea" aria-invalid={bad} placeholder={T.orders.rejectPh} value={form.reason} onChange={set("reason")} autoFocus />}
-          </Field>
-          {buttons(T.orders.reject, "danger", <XCircle />, !form.reason.trim())}
-        </div>
+    if (panel === "reject" || panel === "reject_completion") {
+      const isOrder = panel === "reject";
+      return screen(
+        {
+          icon: <XCircle />,
+          tone: "danger",
+          title: isOrder ? T.orders.reject : T.orders.rejectCompletion,
+          subtitle: isOrder ? T.orders.rejectSubtitle : T.orders.rejectCompletionSubtitle,
+          label: isOrder ? T.orders.reject : T.orders.rejectCompletion,
+          disabled: !form.reason.trim(),
+        },
+        <Field label={isOrder ? T.orders.rejectTitle : T.orders.rejectCompletionTitle} required error={fe("reason")}>
+          {(fid, bad) => (
+            <textarea
+              id={fid}
+              className="textarea"
+              aria-invalid={bad}
+              style={{ minHeight: 104 }}
+              placeholder={isOrder ? T.orders.rejectPh : T.orders.rejectCompletionPh}
+              value={form.reason}
+              onChange={set("reason")}
+              autoFocus
+            />
+          )}
+        </Field>,
       );
-    if (panel === "reject_completion")
-      return (
-        <div className="inline-panel">
-          {common}
-          <Field label={T.orders.rejectCompletionTitle} required error={fe("reason")}>
-            {(fid, bad) => <textarea id={fid} className="textarea" aria-invalid={bad} placeholder={T.orders.rejectCompletionPh} value={form.reason} onChange={set("reason")} autoFocus />}
-          </Field>
-          {buttons(T.orders.rejectCompletion, "danger", <XCircle />, !form.reason.trim())}
-        </div>
-      );
-    return (
-      <div className="inline-panel">
-        <b>{T.orders.newVersionTitle}</b>
-        {common}
+    }
+    return screen(
+      { icon: <Send />, tone: "primary", title: T.orders.newVersion, subtitle: T.orders.newVersionSubtitle, label: T.orders.send, disabled: files.length !== 1 || !form.note.trim() },
+      <>
         <FilePicker files={files} onChange={setFiles} multiple={false} accept=".docx,.pdf" label={T.orders.tzFile} hint={T.orders.tzHint} invalid={Boolean(fe("file"))} />
         {fe("file") && <span className="field-error">{fe("file")}</span>}
         <Field label={T.orders.fixed} required error={fe("note")}>
           {(fid, bad) => <textarea id={fid} className="textarea" aria-invalid={bad} placeholder={T.orders.newVersionPh} value={form.note} onChange={set("note")} />}
         </Field>
-        {buttons(T.orders.send, "primary", <Send />, files.length !== 1 || !form.note.trim())}
-      </div>
+      </>,
     );
   })();
 
-  const footer = panelView ?? (
+  const footer = (
     <>
       {a.reject && (
         <Button variant="danger" icon={<XCircle />} onClick={() => openPanel("reject")}>
@@ -235,8 +265,10 @@ export default function OrderModal({ id }: { id: number }) {
   );
 
   return (
+    <>
     <Modal
       size="lg"
+      covered={Boolean(panel)}
       title={order.title}
       subtitle={
         <>
@@ -253,7 +285,6 @@ export default function OrderModal({ id }: { id: number }) {
         )
       }
       onClose={close}
-      dirty={Boolean(panel && (form.note || form.reason || files.length))}
       footer={footer}
     >
       <div className="stack" style={{ gap: 18 }}>
@@ -385,5 +416,7 @@ export default function OrderModal({ id }: { id: number }) {
         {tab === "comments" && <Comments type="order" id={order.id} />}
       </div>
     </Modal>
+    {panelModal}
+    </>
   );
 }

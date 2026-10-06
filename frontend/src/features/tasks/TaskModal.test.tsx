@@ -131,14 +131,29 @@ describe("TaskModal", () => {
   describe("Tekshiruvga yuborish oynasi", () => {
     const canSubmit = () => taskDetail({ status: "in_progress", actions: { ...taskDetail().actions, submit: true } });
 
-    it("alohida ekran: sarlavha, izoh, hisoblagich va fayllar soni", async () => {
+    it("vazifa oynasi ustida alohida modal: sarlavha, izoh, hisoblagich va fayllar soni", async () => {
       mockGet({ "/tasks/1/": canSubmit() });
       renderApp(<TaskModal id={1} submitMode />);
 
       expect(await screen.findByText(T.tasks.submitSubtitle)).toBeTruthy();
       expect(screen.getByText(T.tasks.submitCounter(0, 1000))).toBeTruthy();
       expect(screen.getByText(T.common.attachedCount(0))).toBeTruthy();
-      expect(screen.queryByText(T.tasks.info)).toBeNull(); // vazifa tafsilotlari o'rnini egallagan
+      // Vazifa oynasi orqada qoladi, lekin faqat ustdagi modal faol
+      expect(screen.getByText(T.tasks.info)).toBeTruthy();
+      expect(screen.getAllByRole("dialog")).toHaveLength(1);
+      expect(screen.getByRole("dialog", { name: T.tasks.submit })).toBeTruthy();
+    });
+
+    it("Esc faqat yuborish oynasini yopadi, vazifa oynasi qoladi", async () => {
+      mockGet({ "/tasks/1/": canSubmit() });
+      renderApp(<TaskModal id={1} submitMode />);
+      await screen.findByText(T.tasks.submitSubtitle);
+
+      fireEvent.keyDown(document, { key: "Escape" });
+
+      await waitFor(() => expect(screen.queryByText(T.tasks.submitSubtitle)).toBeNull());
+      expect(screen.getByRole("dialog")).toBeTruthy();
+      expect(screen.getByText(T.tasks.info)).toBeTruthy();
     });
 
     it("bo'sh matn bilan serverga yubormaydi, xato maydon yonida chiqadi", async () => {

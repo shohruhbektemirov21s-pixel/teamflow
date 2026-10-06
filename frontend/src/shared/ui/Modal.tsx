@@ -13,8 +13,15 @@ interface ModalProps {
   /** Saqlanmagan o'zgarish bo'lsa, tashqariga bosganda yopilmaydi va Esc so'raydi. */
   dirty?: boolean;
   footer?: ReactNode;
+  /** Boshqa modal ustida ochiladi: qoraroq fon (foydalanuvchi istisnosi, 2026-10-06). */
+  stacked?: boolean;
+  /** Ustida boshqa modal ochiq: bu oyna bosilmaydi va fokus olmaydi. */
+  covered?: boolean;
   children: ReactNode;
 }
+
+// Ochiq dialoglar tartibi: Esc/Tab faqat eng ustidagisiga tegishli.
+const dialogStack: { node: HTMLElement | null }[] = [];
 
 /**
  * Dialog xatti-harakati (Modal va rasm ko'rish oynasi uchun umumiy): ochilganda fokus ichkariga, Esc yopadi,
@@ -27,11 +34,14 @@ export function useDialogBehavior(ref: RefObject<HTMLElement | null>, onEscape: 
   useEffect(() => {
     const previous = document.activeElement as HTMLElement | null;
     const node = ref.current;
+    const token = { node };
+    dialogStack.push(token);
     const first = node?.querySelector<HTMLElement>("[autofocus], input, textarea, select, button:not([data-close])");
     (first ?? node)?.focus();
     document.body.style.overflow = "hidden";
 
     const onKey = (e: KeyboardEvent) => {
+      if (dialogStack[dialogStack.length - 1] !== token) return;
       if (e.key === "Escape") {
         e.stopPropagation();
         escRef.current();
@@ -55,8 +65,12 @@ export function useDialogBehavior(ref: RefObject<HTMLElement | null>, onEscape: 
     document.addEventListener("keydown", onKey);
     return () => {
       document.removeEventListener("keydown", onKey);
-      document.body.style.overflow = "";
+      dialogStack.splice(dialogStack.indexOf(token), 1);
+      if (!dialogStack.length) document.body.style.overflow = "";
       previous?.focus?.();
+      // Avvalgi element o'sha paytda bosilmaydigan (inert) bo'lgan bo'lsa — fokus ostdagi oynaga qaytadi.
+      const below = dialogStack[dialogStack.length - 1]?.node;
+      if (below && !below.contains(document.activeElement)) below.focus();
     };
   }, [ref]);
 }
@@ -65,7 +79,7 @@ export function useDialogBehavior(ref: RefObject<HTMLElement | null>, onEscape: 
  * Yagona modal komponenti (CLAUDE.md, 4-bo'lim): tepada sarlavha va ✕, o'rtada aylanuvchi tarkib,
  * pastda doim ko'rinadigan tugmalar paneli. Esc yopadi, fokus modal ichida qoladi va yopilganda qaytadi.
  */
-export function Modal({ title, subtitle, headerExtra, size = "md", onClose, dirty, footer, children }: ModalProps) {
+export function Modal({ title, subtitle, headerExtra, size = "md", onClose, dirty, footer, stacked, covered, children }: ModalProps) {
   const ref = useRef<HTMLDivElement>(null);
   const titleId = useId();
   const closeRef = useRef(onClose);
@@ -83,7 +97,12 @@ export function Modal({ title, subtitle, headerExtra, size = "md", onClose, dirt
   useDialogBehavior(ref, () => tryCloseRef.current());
 
   return createPortal(
-    <div className="overlay" onMouseDown={(e) => e.target === e.currentTarget && !dirtyRef.current && tryClose()}>
+    <div
+      className={`overlay ${stacked ? "overlay-stacked" : ""}`}
+      inert={covered}
+      aria-hidden={covered || undefined}
+      onMouseDown={(e) => e.target === e.currentTarget && !dirtyRef.current && tryClose()}
+    >
       <div className={`modal ${size}`} role="dialog" aria-modal="true" aria-labelledby={titleId} ref={ref} tabIndex={-1}>
         <div className="modal-head">
           <div className="grow stack-sm">

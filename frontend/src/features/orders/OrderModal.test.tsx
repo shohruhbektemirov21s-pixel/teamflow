@@ -63,10 +63,61 @@ describe("OrderModal — loyihani yakunlashni tasdiqlash", () => {
     );
   });
 
+  it("rad etish oynasi buyurtma oynasi ustida alohida ochiladi, Esc faqat uni yopadi", async () => {
+    setup();
+    fireEvent.click(await screen.findByRole("button", { name: T.orders.rejectCompletion }));
+
+    expect(await screen.findByText(T.orders.rejectCompletionSubtitle)).toBeTruthy();
+    expect(screen.getAllByRole("dialog")).toHaveLength(1);
+    expect(screen.getByRole("dialog", { name: T.orders.rejectCompletion })).toBeTruthy();
+
+    fireEvent.keyDown(document, { key: "Escape" });
+    await waitFor(() => expect(screen.queryByText(T.orders.rejectCompletionSubtitle)).toBeNull());
+    expect(screen.getByRole("dialog", { name: ORDER.title })).toBeTruthy();
+  });
+
   it("decide_completion bo'lmasa qaror tugmalari ko'rinmaydi (axborot banneri qoladi)", async () => {
     setup({ actions: { ...ORDER.actions, decide_completion: false } });
     await screen.findByText(T.orders.completionTitle); // loyiha hali kutilmoqda — hammaga ko'rinadi
     expect(screen.queryByRole("button", { name: T.orders.confirmCompletion })).toBeNull();
     expect(screen.queryByRole("button", { name: T.orders.rejectCompletion })).toBeNull();
+  });
+});
+
+describe("OrderModal — buyurtmani tasdiqlash va rad etish", () => {
+  const submitted = {
+    status: "submitted" as const,
+    project: null,
+    actions: { ...ORDER.actions, approve: true, reject: true, decide_completion: false },
+  };
+
+  it("Tasdiqlash — alohida oyna, sanalar bilan so'rov ketadi", async () => {
+    setup(submitted);
+    vi.mocked(api.post).mockResolvedValue({ ok: true });
+    fireEvent.click(await screen.findByRole("button", { name: T.orders.approve }));
+
+    expect(await screen.findByText(T.orders.approveSubtitle)).toBeTruthy();
+    expect(screen.getAllByRole("dialog")).toHaveLength(1);
+    fireEvent.click(screen.getByRole("button", { name: T.orders.approve }));
+
+    await waitFor(() =>
+      expect(api.post).toHaveBeenCalledWith("/orders/5/approve/", {
+        start_date: "2026-10-01", end_date: "2026-11-15", note: "", priority: "medium",
+      }),
+    );
+  });
+
+  it("Rad etish — sababsiz tugma o'chiq, sabab bilan so'rov ketadi", async () => {
+    setup(submitted);
+    vi.mocked(api.post).mockResolvedValue({ ok: true });
+    fireEvent.click(await screen.findByRole("button", { name: T.orders.reject }));
+
+    expect(await screen.findByText(T.orders.rejectSubtitle)).toBeTruthy();
+    const send = screen.getByRole("button", { name: T.orders.reject });
+    expect((send as HTMLButtonElement).disabled).toBe(true);
+
+    fireEvent.change(screen.getByPlaceholderText(T.orders.rejectPh), { target: { value: "TZ to'liq emas" } });
+    fireEvent.click(screen.getByRole("button", { name: T.orders.reject }));
+    await waitFor(() => expect(api.post).toHaveBeenCalledWith("/orders/5/reject/", { reason: "TZ to'liq emas" }));
   });
 });
