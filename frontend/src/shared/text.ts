@@ -151,7 +151,7 @@ export const T = {
 
   filters: {
     search: "Qidiruv",
-    searchPh: "Vazifa nomi",
+    searchPh: "Vazifa nomi yoki kodi",
     due: "Muddat",
     dueAll: "Hammasi",
     dueToday: "Bugun",

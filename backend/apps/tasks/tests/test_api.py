@@ -301,8 +301,12 @@ class DashboardTests(TestCase):
     def test_task_list_searches_one_or_two_digit_code_fragments(self):
         self.project.code = "DASH-12"
         self.project.save(update_fields=["code"])
-        self.overdue.code = "123456789"
-        self.overdue.save(update_fields=["code"])
+        for task, code in zip(
+            Task.objects.order_by("pk"),
+            ("123456789", "111111111", "222222222", "444444444"),
+        ):
+            task.code = code
+            task.save(update_fields=["code"])
         pm = client_for(self.pm)
 
         # Foydalanuvchi jadval filtrida kodning qisqa bo'lagini yozganda ham
