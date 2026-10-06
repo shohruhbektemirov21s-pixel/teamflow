@@ -26,26 +26,22 @@ export default function SuggestionsPage() {
 
   return (
     <>
-      <div className="page-head">
-        <div className="grow">
-          <h1>{T.suggestions.title}</h1>
-          {query.data && <p>{T.common.count(query.data.count)}</p>}
-        </div>
+      <div className="page-toolbar">
+        <Segmented<Status>
+          label={T.suggestions.status}
+          value={tab}
+          onChange={(value) => { setTab(value); setPage(1); }}
+          options={[
+            { value: "pending", label: T.suggestions.tabs.pending! },
+            { value: "accepted", label: T.suggestions.tabs.accepted! },
+            { value: "rejected", label: T.suggestions.tabs.rejected! },
+          ]}
+        />
+        <span className="spacer" />
         <Button variant="primary" icon={<Plus />} onClick={() => open({ new: "suggestion" })}>
           {T.suggestions.new}
         </Button>
       </div>
-
-      <Segmented<Status>
-        label={T.suggestions.status}
-        value={tab}
-        onChange={(value) => { setTab(value); setPage(1); }}
-        options={[
-          { value: "pending", label: T.suggestions.tabs.pending! },
-          { value: "accepted", label: T.suggestions.tabs.accepted! },
-          { value: "rejected", label: T.suggestions.tabs.rejected! },
-        ]}
-      />
 
       {query.error ? (
         <ErrorBox error={query.error} onRetry={() => query.refetch()} />

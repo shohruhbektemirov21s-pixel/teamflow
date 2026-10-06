@@ -43,13 +43,7 @@ export default function PeoplePage() {
 
   return (
     <>
-      <div className="page-head">
-        <div className="grow">
-          <h1>{T.nav.people}</h1>
-          <p className="muted">
-            {allPeople.length ? T.common.count(allPeople.length) + " xodim" : T.dashboard.teamHint}
-          </p>
-        </div>
+      <div className="page-toolbar">
         <div className="row-wrap" style={{ gap: 12 }}>
           {boss && (
             <Segmented

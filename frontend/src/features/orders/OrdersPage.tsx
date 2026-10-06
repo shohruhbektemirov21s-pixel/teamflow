@@ -38,17 +38,14 @@ export default function OrdersPage() {
 
   return (
     <>
-      <div className="page-head">
-        <div className="grow">
-          <h1>{dept ? T.orders.myTitle : T.orders.title}</h1>
-          {dept && me.department_name && <p>{me.department_name}</p>}
-        </div>
-        {dept && (
-          <Button variant="primary" size="lg" icon={<Plus />} onClick={() => open({ new: "order" })}>
+      {dept && (
+        <div className="page-toolbar">
+          <span className="spacer" />
+          <Button variant="primary" icon={<Plus />} onClick={() => open({ new: "order" })}>
             {T.orders.new}
           </Button>
-        )}
-      </div>
+        </div>
+      )}
 
       {dept && summary.data && <OrderStatusCards counts={summary.data.orders} value={status} onChange={(value) => { setStatus(value); setPage(1); }} />}
 

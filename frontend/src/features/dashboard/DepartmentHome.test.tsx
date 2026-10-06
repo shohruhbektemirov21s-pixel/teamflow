@@ -57,7 +57,9 @@ describe("DepartmentHome", () => {
     expect(await screen.findByText("Kadrlar tizimi")).toBeTruthy();
     expect(screen.getByText("Hujjat aylanishi")).toBeTruthy();
     expect(screen.queryByText(/sababini o'qing/)).toBeNull();
-    expect(screen.getByRole("heading", { name: T.dashboard.hello("Shoxrux") })).toBeTruthy();
+    // Sahifa sarlavhasi/salomlashish yo'q (nom tepadagi panelda); asosiy amal o'ngda
+    expect(screen.queryByRole("heading", { level: 1 })).toBeNull();
+    expect(screen.getByRole("button", { name: T.orders.new })).toBeTruthy();
 
     // "Tasdiqlangan" kartasi loyihaga aylanganlarni ham ko'rsatadi (soni bilan mos)
     const cards = screen.getAllByRole("button", { pressed: false }).filter((b) => b.classList.contains("total"));

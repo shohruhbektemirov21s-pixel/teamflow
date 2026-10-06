@@ -183,10 +183,11 @@ Menyu guruhlarga bo'lingan: *Asosiy ish* | *Muloqot* | *Kuzatuv* (Kuzatuv faqat 
 - Menyu pastida foydalanuvchi kartasi (ism, rol; bosilsa Profil ochiladi) va "Chiqish".
 - Yuqorida: qidiruv (`Ctrl K`, kodlar bilan ham), tungi/kunduzgi rejim, bildirishnomalar (qo'ng'iroq ikonkasi — o'z soni bilan; bosilsa modal ochiladi, chap menyuda alohida band yo'q, barcha rolda shu yerdan ochiladi).
 - Yon panel (drawer) **ishlatilmaydi**: ko'rish, yaratish, tahrirlash — faqat modalda.
+- **Sahifalarda katta sarlavha yo'q** — sahifa nomi tepadagi panelda. Sahifa asboblar qatori bilan boshlanadi: chapda filtrlar/qidiruv, o'ngda amallar (asosiy tugma eng o'ngda).
 - Manzillar: `/`, `/vazifalar`, `/mening-ishim`, `/taqvim`, `/loyihalar`, `/buyurtmalar`, `/xodimlar`, `/tekshiruv`, `/xabarlar`, `/takliflar`, `/qilingan-ishlar`, `/profil`. Rolga tegishli bo'lmagan sahifa ochilmaydi. (Bildirishnomalar alohida sahifa emas — qo'ng'iroq ikonkasi modal ochadi, 9-bo'lim.)
 
 ### Bosh panel — PM va Boshliq
-- Tepada salomlashish va asosiy amallar: Xodimlar, (yangi buyurtma bo'lsa) Buyurtmalar, Yangi loyiha, **Yangi vazifa**.
+- Tepada o'ngda asosiy amallar: Xodimlar, (yangi buyurtma bo'lsa) Buyurtmalar, Yangi loyiha, **Yangi vazifa** (eng o'ngda). Salomlashish matni yo'q (foydalanuvchi qarori, 2026-10-06).
 - Davr kartalari: **Yil boshidan, Oy boshidan, Hafta boshidan** — har birida Faol, Muddati o'tgan, Bajarilgan.
 - Qo'shimcha kartalar aniq nomlar bilan: **Kechikib bajarilgan**, **Muddati o'tgan**, **Tekshiruv kutilmoqda**.
 - Kirganda **"Hafta boshidan — Faol"** vazifalar jadvali darrov ochiq turadi (boshqa kartani bossa almashadi, "Yopish" bilan yopiladi).
@@ -196,7 +197,7 @@ Menyu guruhlarga bo'lingan: *Asosiy ish* | *Muloqot* | *Kuzatuv* (Kuzatuv faqat 
 - Xuddi shu tuzilma, sonlar faqat shu dasturchining o'z vazifalari bo'yicha.
 
 ### Bosh panel — Boshqarma
-- Salomlashish, boshqarma nomi, "Yangi buyurtma" va "Buyurtmalarim" tugmalari.
+- Tepada o'ngda "Buyurtmalarim" va "Yangi buyurtma" tugmalari (salomlashish va boshqarma nomi ko'rsatilmaydi — foydalanuvchi qarori, 2026-10-06).
 - Davr kartalari (boshqa bosh panellar bilan bir xil ko'rinish, umumiy `PeriodCards`): **Yil boshidan, Oy boshidan, Hafta boshidan** — har birida **Yuborilgan** (shu davrda yuborilgan), **Rad etilgan** va **Tasdiqlangan** (shu davrda qaror chiqqan, loyiha bo'lganlari bilan). Raqam bosilsa pastdagi ro'yxat shu buyurtmalar bilan filtrlanadi (son va ro'yxat bitta qoidadan: `orders/filters.py`, davr boshlanishi: `core/periods.py`).
 - Holat kartalari: Yuborilgan, Rad etilgan, Tasdiqlangan (loyiha bo'lganlari bilan). Bosilsa pastdagi ro'yxat filtrlanadi.
 - Pastda faqat o'z buyurtmalari jadvali. Qo'shimcha eslatma matnlari chiqmaydi (foydalanuvchi qarori).

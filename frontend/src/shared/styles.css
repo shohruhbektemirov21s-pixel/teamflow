@@ -416,8 +416,11 @@ button { font: inherit; color: inherit; }
 .search-trigger svg { width: 16px; height: 16px; flex: none; }
 kbd { font-family: var(--mono); font-size: 11px; padding: 2px 6px; border-radius: 5px; border: 1px solid var(--border-strong); background: var(--surface); color: var(--text-2); }
 .page { padding: 32px; max-width: 1440px; width: 100%; margin: 0 auto; display: flex; flex-direction: column; gap: 24px; }
-.page-head { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-.page-head p { color: var(--muted); margin-top: 4px; }
+/* Sahifa asboblar qatori: sahifa nomi tepadagi panelda, bu yerda — chapda filtrlar, o'ngda asosiy amallar */
+.page-toolbar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+/* Amallar guruhi: qator o'ralsa ham o'ngda qoladi, asosiy tugma eng o'ngda */
+.page-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end; margin-left: auto; }
+.page-toolbar-title { font-size: var(--fs-lg); font-weight: 700; letter-spacing: -0.01em; }
 .bell-dot { position: absolute; top: 4px; right: 4px; min-width: 16px; height: 16px; font-size: 10px; padding: 0 4px; border-radius: 8px; background: var(--danger); color: #fff; display: grid; place-items: center; font-weight: 700; box-shadow: 0 0 0 2px var(--surface); }
 .mobile-only { display: none; }
 .sidebar-backdrop { display: none; }
@@ -441,9 +444,6 @@ kbd { font-family: var(--mono); font-size: 11px; padding: 2px 6px; border-radius
 .show-sm { display: none; }
 
 /* ───────── Bosh panel ───────── */
-.hero { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-.hero h1 { font-size: var(--fs-2xl); }
-.hero p { margin-top: 4px; }
 .period-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
 .period { padding: 20px; }
 .period-title { display: flex; align-items: baseline; gap: 8px; margin-bottom: 12px; }
@@ -705,9 +705,8 @@ button.list-row:focus-visible { outline-offset: -2px; }
   .chat-list { width: 100%; border-right: 0; }
   .chat[data-open="1"] .chat-list, .chat[data-open="0"] .chat-main { display: none; }
   .show-sm { display: flex; }
-  /* Sarlavha to'liq qatorda, tugmalar pastida — sarlavha so'zma-so'z sinmasin */
-  .page-head > .grow, .hero > .grow { flex-basis: 100%; }
-  .hero h1 { font-size: var(--fs-xl); }
+  /* Telefonda asosiy amal tugmasi barmoq bilan bosishga qulay — qatorni to'liq egallaydi */
+  .page-toolbar > .btn-primary, .page-actions > .btn-primary { flex: 1; }
   .stat-num { font-size: var(--fs-xl); }
   /* Telefonda filtrlardan faqat qidiruv ko'rinadi, qolgani "Filtrlar" tugmasi bilan ochiladi */
   .filters { align-items: flex-end; padding: 12px; }

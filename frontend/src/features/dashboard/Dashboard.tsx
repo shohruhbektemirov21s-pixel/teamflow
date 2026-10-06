@@ -42,33 +42,32 @@ export default function Dashboard() {
 
   return (
     <>
-      <div className="hero">
-        <div className="grow">
-          <h1>{T.dashboard.hello(me.first_name || me.full_name)}</h1>
-        </div>
-        {manager ? (
-          <>
-            <Link to="/xodimlar" className="btn">
-              <Users size={16} /> {T.nav.people}
-            </Link>
-            {(d?.orders_pending ?? 0) > 0 && (
-              <Link to="/buyurtmalar" className="btn">
-                <FileText size={16} /> {T.nav.orders}
-                <span className="count-pill">{d?.orders_pending}</span>
+      <div className="page-toolbar">
+        <div className="page-actions">
+          {manager ? (
+            <>
+              <Link to="/xodimlar" className="btn">
+                <Users size={16} /> {T.nav.people}
               </Link>
-            )}
-            <Button icon={<FolderKanban />} onClick={() => open({ new: "project" })}>
-              {T.projects.new}
-            </Button>
-            <Button variant="primary" icon={<Plus />} onClick={() => open({ new: "task" })}>
-              {T.tasks.new}
-            </Button>
-          </>
-        ) : (
-          <Link to="/mening-ishim" className="btn btn-primary">
-            {T.nav.myWork}
-          </Link>
-        )}
+              {(d?.orders_pending ?? 0) > 0 && (
+                <Link to="/buyurtmalar" className="btn">
+                  <FileText size={16} /> {T.nav.orders}
+                  <span className="count-pill">{d?.orders_pending}</span>
+                </Link>
+              )}
+              <Button icon={<FolderKanban />} onClick={() => open({ new: "project" })}>
+                {T.projects.new}
+              </Button>
+              <Button variant="primary" icon={<Plus />} onClick={() => open({ new: "task" })}>
+                {T.tasks.new}
+              </Button>
+            </>
+          ) : (
+            <Link to="/mening-ishim" className="btn btn-primary">
+              {T.nav.myWork}
+            </Link>
+          )}
+        </div>
       </div>
 
       {dash.error && <ErrorBox error={dash.error} onRetry={() => dash.refetch()} />}
