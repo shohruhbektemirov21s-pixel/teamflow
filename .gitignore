@@ -2,6 +2,7 @@
 __pycache__/
 *.pyc
 backend/db.sqlite3
+backend/db.sqlite3.backup-*
 backend/media/
 backend/server.log
 backend/bot.log
