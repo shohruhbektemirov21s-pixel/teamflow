@@ -166,7 +166,7 @@ Qoidalar:
 
 **Loyiha** endi avtomatik kod olmaydi — o'rniga PM/Boshliq loyiha yaratishda (1-qadam) **loyiha raqamini qo'lda kiritadi** (majburiy, erkin matn/kod, masalan `PRJ-12`). Boshqa loyihada xuddi shu raqam bo'lsa, saqlashda xatolik chiqadi (takrorlanmaydi). `Project.code` shu qo'lda kiritilgan raqamni saqlaydi; ro'yxatlarda, loyiha oynasi sarlavhasida va qidiruvda shu raqam ko'rinadi.
 - `Ctrl K` qidiruvida vazifaning 9 xonali kodi yoki loyihaning qo'lda kiritilgan raqami yozilsa, aynan o'sha vazifa/loyiha darrov chiqadi (ko'rish huquqi bo'lsa).
-- Vazifalar jadvali qidiruvida vazifa kodi — shu vazifa, loyiha raqami — shu loyihaning vazifalari.
+- Vazifalar jadvali qidiruvida to'liq vazifa kodi — shu vazifa, to'liq loyiha raqami — shu loyihaning vazifalari. Kodning bir qismi (hatto 1–2 raqam) kiritilganda ham vazifa va loyiha kodlaridagi mosliklar topiladi. Bosh paneldagi jadval ham shu qidiruvdan foydalanadi (2026-10-06).
 
 ## 7. Menyu va sahifalar
 

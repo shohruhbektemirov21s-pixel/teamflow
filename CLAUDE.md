@@ -129,6 +129,8 @@ Har bir app ichidagi qatlamlar (`models`, `workflow`, `services`, `permissions`,
 
 ## 13. Foydalanuvchi qo'shimchalari
 
+- 2026-10-06: Bosh panel va Vazifalar jadvalidagi qidiruv vazifa yoki loyiha kodining bir qismi, hatto 1–2 raqam kiritilganda ham mos vazifalarni topishi kerak. `tasks/filters.py` da kodlar uchun qisman qidiruv qo'shildi; to'liq kod uchun aniq moslik saqlandi. Regression testi: `DashboardTests.test_task_list_searches_one_or_two_digit_code_fragments`.
+
 > Foydalanuvchi aytgan yangi qoidalar shu yerga sana bilan qo'shiladi.
 
 - 2026-09-28: Flow'lar bitta bo'limda 3–4 ta, istisnoda 5 ta.
