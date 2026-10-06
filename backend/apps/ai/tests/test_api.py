@@ -15,8 +15,8 @@ class WebAgentApiTests(TestCase):
         self.pm = make_user(Role.PM)
         self.client = client_for(self.pm)
 
-    @mock.patch("apps.ai.api.TinyFishService.navigate", return_value="run-123")
-    @mock.patch("apps.ai.api.validate_public_url", return_value="https://example.com/")
+    @mock.patch("apps.ai.services.web_agent.TinyFishService.navigate", return_value="run-123")
+    @mock.patch("apps.ai.services.web_agent.validate_public_url", return_value="https://example.com/")
     def test_manager_starts_url_automation_and_run_is_saved(self, validate_url, navigate):
         response = self.client.post(
             "/api/ai/web-agent/",
@@ -33,7 +33,7 @@ class WebAgentApiTests(TestCase):
         validate_url.assert_called_once_with("https://example.com")
         navigate.assert_called_once_with("https://example.com/", "Narxlarni toping")
 
-    @mock.patch("apps.ai.api.TinyFishService.research", return_value="research-123")
+    @mock.patch("apps.ai.services.web_agent.TinyFishService.research", return_value="research-123")
     def test_manager_starts_research_when_url_is_null(self, research):
         response = self.client.post(
             "/api/ai/web-agent/",
@@ -47,7 +47,7 @@ class WebAgentApiTests(TestCase):
         research.assert_called_once()
 
     @mock.patch(
-        "apps.ai.api.TinyFishService.get_task_status",
+        "apps.ai.services.web_agent.TinyFishService.get_task_status",
         return_value=ProviderTask(
             status="completed",
             result={"summary": "5 ta joy topildi", "citations": ["https://example.com"]},
@@ -84,7 +84,7 @@ class WebAgentApiTests(TestCase):
         self.assertEqual(response.status_code, 400)
         self.assertIn("url", response.data["fields"])
 
-    @mock.patch("apps.ai.api.TinyFishService.research", side_effect=TinyFishUnavailable("Timeout"))
+    @mock.patch("apps.ai.services.web_agent.TinyFishService.research", side_effect=TinyFishUnavailable("Timeout"))
     def test_provider_timeout_returns_clear_json_error_without_crashing(self, research):
         response = self.client.post("/api/ai/web-agent/", {"task": "Qidiring", "url": None}, format="json")
 

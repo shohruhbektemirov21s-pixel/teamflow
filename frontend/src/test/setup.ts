@@ -1,6 +1,9 @@
 /** Vitest umumiy sozlamasi: API va joriy foydalanuvchi soxtalashtiriladi, har testdan keyin DOM tozalanadi. */
-import { cleanup } from "@testing-library/react";
+import { cleanup, configure } from "@testing-library/react";
 import { afterEach, vi } from "vitest";
+
+// To'liq svit parallel ishlaganda ikki bosqichli async testlar (sahifalash) standart 1000ms'ga sig'may qolardi.
+configure({ asyncUtilTimeout: 5000 });
 
 vi.mock("@/shared/api", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/shared/api")>();
