@@ -3,6 +3,7 @@ import { useId, useState } from "react";
 
 import { useDevelopers } from "@/app/queries";
 import { T } from "@/shared/text";
+import { useDebounced } from "@/shared/hooks";
 import { Avatar, Skeleton } from "@/shared/ui";
 
 export interface PickerPerson {
@@ -32,9 +33,10 @@ export function DeveloperPicker({
   locked?: number[];
   label: string;
 }) {
-  const all = useDevelopers(!options);
-  const list = options ?? all.data ?? [];
   const [q, setQ] = useState("");
+  const search = useDebounced(q.trim());
+  const all = useDevelopers(!options, search, value);
+  const list = options ?? all.data ?? [];
   const listId = useId();
 
   const byId = new Map([...known, ...list].map((p) => [p.id, p]));

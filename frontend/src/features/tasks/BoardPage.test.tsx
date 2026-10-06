@@ -17,8 +17,8 @@ describe("Board card controls", () => {
     const task = taskDetail({ status: "control" });
     mockGet({
       "/meta/": { ...META, task_moves: [{ from: "control", to: "in_progress" }] },
-      "/projects/": { count: 0, next: null, previous: null, results: [] },
-      "/tasks/?mine=1&all=1": [task],
+      "/projects/lookup/?page_size=100": { count: 0, next: null, previous: null, results: [] },
+      "/tasks/?mine=1": [task],
     });
     renderApp(<><BoardPage /><CurrentModal /></>);
     const open = await screen.findByRole("button", { name: new RegExp(`^${task.code}`) });

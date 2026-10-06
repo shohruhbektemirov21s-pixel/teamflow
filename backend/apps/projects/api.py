@@ -1,4 +1,4 @@
-from django.db.models import Count, Q
+from django.db.models import Count, Prefetch, Q
 from django.shortcuts import get_object_or_404
 from django.utils.dateparse import parse_date
 from rest_framework import mixins, status, viewsets
@@ -6,11 +6,12 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from apps.core.api_utils import IsDepartment, IsManager
+from apps.core.pagination import bounded_unpaged
 from apps.core.codes import resolve_code
 from apps.orders.permissions import visible_orders
 
 from . import services
-from .models import Project
+from .models import Project, ProjectCompletionAck
 from .permissions import visible_projects
 from .serializers import (
     CompletionAckSerializer,
@@ -39,7 +40,9 @@ class ProjectViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.
             .order_by("-created_at", "-id")
         )
         if self.action == "retrieve":
-            qs = qs.select_related("order__submitted_by").prefetch_related("files")
+            qs = qs.select_related("order__submitted_by").prefetch_related(
+                "files", Prefetch("completion_acks", queryset=ProjectCompletionAck.objects.select_related("developer")),
+            )
         params = self.request.query_params
         if params.get("stage"):
             qs = qs.filter(stage__in=params["stage"].split(","))
@@ -59,11 +62,26 @@ class ProjectViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.
     def paginate_queryset(self, queryset):
         # Taqvim butun ro'yxatni oladi: ?all=1 (visible_projects bilan cheklangan)
         if self.request.query_params.get("all") == "1":
+            self._unpaged_rows = bounded_unpaged(queryset)
             return None
         return super().paginate_queryset(queryset)
 
+    def list(self, request, *args, **kwargs):
+        queryset = self.filter_queryset(self.get_queryset())
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            return self.get_paginated_response(self.get_serializer(page, many=True).data)
+        return Response(self.get_serializer(self._unpaged_rows, many=True).data)
+
     def get_serializer_class(self):
         return ProjectDetailSerializer if self.action == "retrieve" else ProjectListSerializer
+
+    @action(detail=False, methods=["get"])
+    def lookup(self, request):
+        """Form options need names/IDs, not every team and task progress."""
+        queryset = visible_projects(request.user).select_related(None).order_by("name", "pk").values("id", "name", "code")
+        page = super().paginate_queryset(queryset)
+        return self.get_paginated_response(list(page))
 
     def get_permissions(self):
         if self.action in self.MANAGER_ACTIONS:

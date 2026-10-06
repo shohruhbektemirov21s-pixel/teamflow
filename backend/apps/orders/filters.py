@@ -2,6 +2,8 @@
 
 Bosh paneldagi karta soni va karta bosilganda chiqadigan ro'yxat bir xil `apply_order_bucket` dan foydalanadi.
 """
+from django.db.models import Count, Q
+
 from apps.core.periods import PERIOD_KEYS, period_cards, period_starts
 
 from .models import Order
@@ -11,16 +13,21 @@ APPROVED = [S.APPROVED, S.PROJECT_CREATED]  # loyihaga aylangani ham tasdiqlanga
 BUCKETS = ("sent", "rejected", "approved")
 
 
-def apply_order_bucket(qs, bucket, since=None):
+def order_bucket_condition(bucket, since=None):
     """sent — shu davrda yuborilgan (holatidan qat'i nazar); rejected / approved — shu davrda shu qaror chiqqan
     (hozir ham shu holatda)."""
+    condition = Q()
     if bucket == "rejected":
-        qs = qs.filter(status=S.REJECTED)
+        condition &= Q(status=S.REJECTED)
     elif bucket == "approved":
-        qs = qs.filter(status__in=APPROVED)
+        condition &= Q(status__in=APPROVED)
     if since is not None:
-        qs = qs.filter(created_at__gte=since) if bucket == "sent" else qs.filter(decided_at__gte=since)
-    return qs
+        condition &= Q(created_at__gte=since) if bucket == "sent" else Q(decided_at__gte=since)
+    return condition
+
+
+def apply_order_bucket(qs, bucket, since=None):
+    return qs.filter(order_bucket_condition(bucket, since))
 
 
 def filter_orders(qs, params):
@@ -32,11 +39,16 @@ def filter_orders(qs, params):
 
 
 def department_dashboard(qs):
+    periods = period_cards(lambda since: {
+        b: Count("pk", filter=order_bucket_condition(b, since), distinct=True) for b in BUCKETS
+    })
+    totals = {"submitted": Q(status=S.SUBMITTED), "rejected": Q(status=S.REJECTED), "approved": Q(status__in=APPROVED)}
+    aggregates = {f"total_{b}": Count("pk", filter=condition, distinct=True) for b, condition in totals.items()}
+    aggregates.update({f"{p['key']}_{b}": count for p in periods for b, count in p["counts"].items()})
+    counts = qs.aggregate(**aggregates)
+    for p in periods:
+        p["counts"] = {b: counts[f"{p['key']}_{b}"] for b in p["counts"]}
     return {
-        "orders": {
-            "submitted": qs.filter(status=S.SUBMITTED).count(),
-            "rejected": qs.filter(status=S.REJECTED).count(),
-            "approved": qs.filter(status__in=APPROVED).count(),
-        },
-        "periods": period_cards(lambda since: {b: apply_order_bucket(qs, b, since).count() for b in BUCKETS}),
+        "orders": {b: counts[f"total_{b}"] for b in totals},
+        "periods": periods,
     }

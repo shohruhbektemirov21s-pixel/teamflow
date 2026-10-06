@@ -2,7 +2,7 @@
 
 Jamoa ishini boshqarish tizimi. Boshqarmalar buyurtma (TZ) yuboradi, loyiha menejeri uni tasdiqlab loyihaga aylantiradi, dasturchilarga vazifa beradi va bajarilgan ishni tekshiradi. Boshliq hamma narsani kuzatadi va boshqaradi.
 
-> **Holat (2026-10-06):** UX/UI tugmalari, modal sarlavha/pastki panellari, mobil buyurtma jadvali, klaviatura fokusi va tablar tartiblandi. Boshqarma buyurtmalari: yakunlash tasdig'i kutilayotganlar birinchi, yangi/faol buyurtmalar keyingi, to'liq yakunlanganlar oxirida. 236 backend testi, 94 frontend testi, TypeScript va build o'tdi. To'rt rol bo'yicha 253 boshlang'ich brauzer holati va 42 yakuniy holat 375/768/1440 px da soxta API bilan tekshirildi; 9 namunaviy axe auditida tuzatishdan keyin avtomatik buzilish topilmadi. Mahalliy server qayta ishga tushirildi, / va /api/meta/ 200.
+> **Holat (2026-10-06):** Production PostgreSQL/Redis, Gunicorn/Nginx, Telegram outbox, indekslar va sahifalash qo'shildi. 10 000 bir vaqtda virtual foydalanuvchi: 250 soniya peak, 501,96 so'rov/soniya, 135 349 so'rov, 0 xato, p95 110 ms. 269 PostgreSQL backend testi, 104 frontend testi, TypeScript, build va haqiqiy brauzerdagi 60 holat o'tdi. Mahalliy biznes ma'lumotlari saqlandi; root, JS, readiness va meta 200. Server hali tanlanmagan; natija sinovdagi aniq yuklama profiliga tegishli. [To'liq dalil va chegaralar](docs/performance/2026-10-06/REPORT.md), [production deploy](backend/deploy/README.md).
 > Bu fayl — loyihaning **yagona haqiqat manbai**. Agentlar uchun qoidalar: `CLAUDE.md`, `GEMINI.md`. Flow va modal reestri: `docs/FLOWS_MODALS.md`. Arxitektura, ma'lumotlar modeli va API: `docs/ARCHITECTURE.md`.
 
 ## Mundarija
@@ -32,7 +32,8 @@ Jamoa ishini boshqarish tizimi. Boshqarmalar buyurtma (TZ) yuboradi, loyiha mene
 | Qatlam | Tanlov |
 |---|---|
 | Backend | Python + Django + Django REST Framework |
-| Ma'lumotlar bazasi | Django standart bazasi (SQLite) |
+| Ma'lumotlar bazasi | Mahalliy SQLite; production PostgreSQL |
+| Production | Gunicorn + Nginx, Redis sessiya keshi, alohida Telegram outbox worker |
 | Admin panel | Django admin (alohida admin panel yozilmaydi) |
 | Frontend | React + TypeScript (Vite). Node faqat ishlab chiqishda kerak |
 | Word (.docx) ko'rish | Brauzerda, modal ichida (`docx-preview`) |
@@ -120,7 +121,8 @@ Qoidalar:
 - Faqat **PM va Boshliq** loyiha yaratadi. **Dasturchi yarata olmaydi.**
 - Loyiha: **loyiha raqami** (qo'lda kiritiladi, majburiy, erkin matn/kod — masalan `PRJ-12`, takrorlanmaydi: band bo'lsa xatolik chiqadi), nom, izoh, boshlanish sanasi, tugash sanasi, fayllar, dasturchilar (bir nechta), darajasi.
 - **Loyiha darajasi (6 ta):** Rejalashtirilgan → Boshlangan → Tuzatish kerak → Tasdiqlash kutilmoqda → Yakunlangan. PM/Boshliq qo'lda o'zgartiradi.
-- **Yakunlashni tasdiqlash:** PM/Boshliq "Yakunlangan"ni tanlaganda, avval **loyihadagi barcha faol dasturchilarga** bildirishnoma boradi ("Loyiha yakunlanishi kerak, tasdiqlaysizmi?" — bildirishnoma ichidagi tugma bilan Ha/Yo'q). **Hammasi tasdiqlagach keyingi bosqich avtomatik ishga tushadi** (PM qayta bosmaydi): buyurtmasiz (PM o'zi yaratgan) loyiha "Yakunlangan"ga to'g'ridan-to'g'ri o'tadi; buyurtmadan yaratilgan loyiha avval **"Tasdiqlash kutilmoqda"**ga o'tadi va buyurtmani yuborgan boshqarmaga bildirishnoma boradi — faqat o'sha boshqarma (Buyurtma oynasidan) **Tasdiqlaydi** (loyiha "Yakunlangan" bo'ladi) yoki **kamchilik sababi bilan rad etadi** ("Rad etildi"ga o'tadi, PM sababni ko'rib tuzatib yana so'raydi). Agar birortasi dasturchi sababli rad etsa, loyiha yakunlanmaydi, hozirgi holatida davom etadi va PM/Boshliq sababni ko'radi; qayta so'ralganda hammadan yangidan so'raladi. Loyihada faol dasturchi bo'lmasa, dasturchi so'rovi o'tkazib yuboriladi.
+- **2026-10-06:** PM loyihani yakunlashda izoh (1000 belgigacha) va fayllarni alohida modal orqali yuboradi. Loyiha oynasi orqada ko'rinib turadi va inert bo'ladi; umumiy Modal stacked uslubi ishlatiladi. Dasturchilar tasdig'idan keyin boshqarma buyurtma oynasida yakunlash hisoboti va fayllarini ko'radi. Fayllar faqat tegishli boshqarma uchun ochiladi.
+- **Yakunlashni tasdiqlash:** PM/Boshliq "Yakunlangan"ni tanlaganda, avval **loyihadagi barcha faol dasturchilarga** bildirishnoma boradi ("Loyihani yakunlashga rozimisiz?" — bildirishnoma ichidagi tugma bilan Ha/Yo'q). **Hammasi rozi bo'lgach PMga xabar keladi va "Yakunlash" tugmasi ochiladi**. PM yakunlaganda: buyurtmasiz (PM o'zi yaratgan) loyiha "Yakunlangan"ga to'g'ridan-to'g'ri o'tadi; buyurtmadan yaratilgan loyiha avval **"Tasdiqlash kutilmoqda"**ga o'tadi va buyurtmani yuborgan boshqarmaga bildirishnoma boradi — faqat o'sha boshqarma (Buyurtma oynasidan) **Tasdiqlaydi** (loyiha "Yakunlangan" bo'ladi) yoki **kamchilik sababi bilan rad etadi** ("Rad etildi"ga o'tadi, PM sababni ko'rib tuzatib yana so'raydi). Agar birortasi dasturchi sababli rad etsa, loyiha yakunlanmaydi, hozirgi holatida davom etadi va PM/Boshliq sababni ko'radi; qayta so'ralganda hammadan yangidan so'raladi. Loyihada faol dasturchi bo'lmasa, dasturchi so'rovi o'tkazib yuboriladi.
 - Loyihaga bir nechta dasturchi biriktiriladi, har biriga bir nechta vazifa berish mumkin.
 
 **Loyiha yaratish oynasi (3 qadam):** Asosiy → Jamoa → Vazifalar va fayllar. Buyurtmadan yaratilsa, 1-qadam oldindan to'ldirilgan.
@@ -284,7 +286,7 @@ Menyu guruhlarga bo'lingan: *Asosiy ish* | *Muloqot* | *Kuzatuv* (Kuzatuv faqat 
 - Bot (`runbot`) server bilan birga avtomatik ishga tushadi (`backend/start_server.bat`, log: `backend/bot.log`). Logga token yozilmaydi.
 - Bitta token bilan faqat **bitta** bot jarayoni ishlashi mumkin: boshqa joyda ham ishlasa, logda "409" chiqadi va `/start` xabarlari o'sha joyga ketadi.
 
-## 9. Modallar (amalda: 14 ta)
+## 9. Modallar (amalda: 15 ta)
 
 Ko'rish, yaratish, tahrirlash — hammasi modalda. Batafsil: `docs/FLOWS_MODALS.md`.
 
@@ -298,6 +300,7 @@ Ko'rish, yaratish, tahrirlash — hammasi modalda. Batafsil: `docs/FLOWS_MODALS.
 | 6 | Vazifa ko'rish (tekshiruv shu yerda) | 12 | Bildirishnomalar (qo'ng'iroq ikonkasi) |
 | | | 13 | Vazifa amali: Tekshiruvga yuborish / Qaytarish (vazifa oynasi ustida) |
 | | | 14 | Buyurtma amali: Tasdiqlash / Rad etish / sanalar / yangi TZ / kamchilik (buyurtma oynasi ustida) |
+| | | 15 | Loyiha amali: Yakunlash izohi va fayllar (loyiha oynasi ustida) |
 
 Word ko'rish alohida modal emas — joriy modal ichini almashtiradi ("← Orqaga").
 
@@ -489,3 +492,21 @@ Batafsil qoidalar: `CLAUDE.md` 4-bo'lim. Dizayn oldingi loyiha skrinshotlaridan 
 
 - **2026-10-06 (UX/UI):** Sahifa amallari qidiruv/filtr bilan bir qatorda, asosiy tugma o'ngda; modalda yakunlash/saqlash pastki panelda. Telefon ekranida sarlavha amallari alohida qatorda, tugmalar va buyurtma holati kesilmaydi. Klaviatura fokusi yashirin/o'chiq elementlarni o'tkazib yuboradi; tablar strelka/Home/End bilan ishlaydi. Rang kontrasti yaxshilandi; doskada sudrash dastagi va vazifani ochish tugmasi alohida.
 - **2026-10-06 (Buyurtmalar tartibi):** Boshqarma ro'yxatida yakunlash tasdig'i kutilayotgan loyihalar birinchi, yangi va davom etayotgan buyurtmalar keyingi, to'liq yakunlanganlar oxirida turadi. Har bir guruhda yangilari tepada; server tartibi sahifalashda ham saqlanadi.
+
+### Tezlik va resurslar (2026-10-06)
+
+- **2026-10-06 (tezlik va resurs sarfi):** Bosh panel hisoblari bitta agregat SQL orqali olinadi; loyiha vazifalari va dasturchilar faqat tegishli tab ochilganda yuklanadi. Bildirishnomani o'qish va izoh yozish barcha ro'yxatlarni qayta yuklamaydi. Kesh 60 soniya, dasturchilar ma'lumotnomasi 5 daqiqa; mutatsiyadan keyin tegishli kesh yangilanadi. Chat so'rovlari xabarlar uchun 5 soniya, suhbatlar uchun 15 soniya; yashirin tabda polling o'chirilgan. Fon blur effektlari olib tashlangan, modal orqasidagi loyiha ko'rinib turadi.
+
+| Mahalliy API tekshiruvi | Oldin SQL | Keyin SQL |
+|---|---:|---:|
+| PM bosh paneli | 14 | 2 |
+| Boshqarma bosh paneli | 12 | 1 |
+
+O'lchov mavjud kichik bazada (7 vazifa, 6 loyiha), autentifikatsiya qilingan API orqali olindi. Bosh panel javob hajmi saqlandi. 243 backend va 102 frontend testi o'tdi. Chatning davriy so'rovlari faol suhbatda daqiqasiga 32 dan 16 ga kamaytirildi. Bu SQL va so'rov sarfi o'lchovi; umumiy CPU/RAM yoki brauzer tezligi foizi o'lchanmagan.
+
+- **2026-10-06 (qo'shimcha optimallashtirish):** Chat polling faqat oxirgi xabardan keyingi yangi xabarlarni oladi; yangi xabar bo'lmasa javob `[]` va bazaga UPDATE yo'q. Brauzer oxirgi 200 xabarni saqlaydi. Vazifa ruxsatlari yuklangan ijrochilar ro'yxatidan tekshiriladi; ijrochilar o'zgarsa kesh tozalanadi. Mahalliy dasturchi vazifa tafsilotida SQL 9 dan 6 ga tushdi. Vazifa amallari chat, takliflar va metama'lumotlarni qayta yuklamaydi. Mahalliy server `--noreload` bilan ishga tushirildi (4 jarayondan 2 ga); Startup skripti ham avvaldan shu rejimda. Umumiy CPU/RAM yoki foydalanuvchi sezadigan tezlik foizi o'lchanmagan.
+
+Tekshiruv: 247 backend, 103 frontend testi (bitta worker), TypeScript va production build o'tdi. O'lchov va tekshiruv qaydi: `docs/scratch/performance-verification-2026-10-06.md`.
+
+- **2026-10-06 (10 000+ foydalanuvchi):** Foydalanuvchi bir vaqtda faol 10 000+ foydalanuvchini aniqlashtirdi; server hali tanlanmagan. Production PostgreSQL/Redis, Gunicorn/Nginx, sahifalash va Telegram outbox tayyorlandi. 4 jarayonli Locust bilan 10 000 alohida sessiya, 250 soniya peak, 501,96 so'rov/soniya, 135 349 so'rov, 0 xato, p95 110 ms; aniq profil va chegaralar docs/performance/2026-10-06/REPORT.md da. 269 PostgreSQL backend, 104 frontend testi hamda 60 haqiqiy brauzer holati o'tdi.
+- **2026-10-06 (tozalash va GitHub):** Foydalanuvchi testdan keyin kiritilgan ma'lumotlarni tozalashni va oxirida GitHub'ga yuklashni aniq buyurdi. Ushbu ish uchun commit/push ruxsati mavjud. Testlar alohida teamflow-scale-test Docker loyihasi va teamflow_scale PostgreSQL bazasida; haqiqiy SQLite biznes ma'lumotlari saqlanadi. Test konteyner/baza/volume va maxfiy fixturelar yakunda olib tashlanadi. Deployment qo'llanmasi backend/deploy/README.md da; haqiqiy server/TLS va SQLite data cutover hali bajarilmagan.

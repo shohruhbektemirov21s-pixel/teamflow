@@ -11,6 +11,8 @@ class ChatMessage(models.Model):
     class Meta:
         ordering = ["-created_at"]
         indexes = [
+            models.Index(fields=["author", "recipient", "-id"], name="chat_partner_cursor_idx"),
+            models.Index(fields=["recipient", "is_read", "author"], name="chat_unread_author_idx"),
             models.Index(fields=["author", "recipient", "-created_at"]),
             models.Index(fields=["recipient", "author", "-created_at"], name="chat_recipient_partner_idx"),
         ]

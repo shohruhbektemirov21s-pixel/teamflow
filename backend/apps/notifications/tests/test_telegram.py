@@ -23,7 +23,7 @@ class SyncThread:
         self.target(*self.args)
 
 
-@override_settings(TELEGRAM_BOT_TOKEN="test-token")
+@override_settings(TELEGRAM_BOT_TOKEN="test-token", TELEGRAM_DELIVERY_MODE="thread")
 class NotifyTelegramTests(TestCase):
     def setUp(self):
         self.linked = make_user(Role.DEVELOPER, telegram_chat_id="111")

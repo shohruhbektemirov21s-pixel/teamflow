@@ -16,7 +16,7 @@ export function Comments({ type, id, readOnly = false }: { type: "order" | "proj
   const query = useQuery({ queryKey: key, queryFn: () => api.get<CommentItem[]>(`/comments/${qs({ target_type: type, target_id: id })}`) });
   const [text, setText] = useState("");
   const toast = useToast();
-  const refresh = useRefresh();
+  const refresh = useRefresh(["comments", "history", "notifications"]);
   const meta = useMeta();
 
   const send = useMutation({

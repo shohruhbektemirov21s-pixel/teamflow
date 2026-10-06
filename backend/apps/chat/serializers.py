@@ -20,6 +20,10 @@ class ChatSendSerializer(ChatPartnerSerializer):
     text = serializers.CharField(max_length=5000, trim_whitespace=True, allow_blank=False)
 
 
+class ChatMessagesQuerySerializer(ChatPartnerSerializer):
+    after = serializers.IntegerField(min_value=0, required=False)
+
+
 class ChatMessageSerializer(serializers.ModelSerializer):
     class Meta:
         model = ChatMessage

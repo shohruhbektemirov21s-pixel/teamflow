@@ -1,7 +1,5 @@
 """Vazifalar: kim nimani ko'radi va qila oladi — BITTA joyda."""
-from django.db.models import Q
-
-from .models import Task
+from .models import SubTask, Task, TaskAssignment
 
 
 def visible_tasks(user):
@@ -10,7 +8,9 @@ def visible_tasks(user):
     if user.is_manager:
         return qs
     if user.is_developer:
-        return qs.filter(Q(assignments__developer=user) | Q(subtasks__assignees=user)).distinct()
+        assigned = TaskAssignment.objects.filter(developer=user).order_by().values("task_id")
+        subtasks = SubTask.objects.filter(assignees=user).order_by().values("task_id")
+        return qs.filter(pk__in=assigned.union(subtasks))
     return qs.none()
 
 
@@ -19,11 +19,17 @@ def listed_tasks(user):
     Faqat sub-vazifasi bor boshqa vazifa ro'yxatda chiqmaydi, lekin ochiladi (visible_tasks)."""
     qs = visible_tasks(user).filter(archived_at__isnull=True)
     if user.is_developer:
-        return qs.filter(assignments__developer=user)
+        return Task.objects.select_related("project", "created_by").filter(
+            archived_at__isnull=True,
+            pk__in=TaskAssignment.objects.filter(developer=user).values("task_id"),
+        )
     return qs
 
 
 def is_assignee(user, task):
+    assignments = getattr(task, "_prefetched_objects_cache", {}).get("assignments")
+    if assignments is not None:
+        return any(assignment.developer_id == user.pk for assignment in assignments)
     return task.assignments.filter(developer=user).exists()
 
 

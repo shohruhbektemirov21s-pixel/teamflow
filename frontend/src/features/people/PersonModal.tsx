@@ -4,12 +4,14 @@ import { useState } from "react";
 
 import { useMe } from "@/app/auth";
 import { useModal } from "@/app/modals";
+import { usePagedList } from "@/app/queries";
 import { TaskTable } from "@/features/tasks/TaskTable";
-import { api, qs } from "@/shared/api";
+import { api } from "@/shared/api";
 import { fmtDate } from "@/shared/format";
 import { T } from "@/shared/text";
 import type { Person, Task } from "@/shared/types";
 import { Button, ErrorBox, Modal, Skeleton, Tabs } from "@/shared/ui";
+import { Pagination } from "@/shared/ui/Pagination";
 
 import { ProfileHeader } from "./ProfileHeader";
 import { PersonWork } from "./PersonWork";
@@ -28,26 +30,23 @@ export default function PersonModal({ id }: { id: number }) {
     queryFn: () => api.get<Person>(`/people/${id}/`),
   });
 
-  const tasksQuery = useQuery({
-    queryKey: ["tasks", "person", id],
-    queryFn: () => api.get<Task[]>(`/tasks/${qs({ assignee: id, all: 1 })}`),
-    enabled: personQuery.data?.role === "developer",
-  });
+  const tasksQuery = usePagedList<Task>(["tasks", "person", id], "/tasks/", { assignee: id }, personQuery.data?.role === "developer");
 
   const person = personQuery.data;
   const tasks = tasksQuery.data || [];
 
   // Hisobot hisob-kitoblari
-  const totalTasks = tasks.length;
+  const totalTasks = person?.report?.total ?? tasks.length;
   const doneTasks = tasks.filter((t) => t.status === "done");
   const inProgressTasks = tasks.filter((t) => t.status !== "done");
   
-  const lateDone = doneTasks.filter((t) => t.due_at && t.completed_at && new Date(t.completed_at) > new Date(t.due_at)).length;
-  const onTimeDone = doneTasks.length - lateDone;
-  const currentlyOverdue = inProgressTasks.filter((t) => t.is_overdue).length;
+  const doneCount = person?.report?.done ?? doneTasks.length;
+  const lateDone = person?.report?.late ?? doneTasks.filter((t) => t.due_at && t.completed_at && new Date(t.completed_at) > new Date(t.due_at)).length;
+  const onTimeDone = doneCount - lateDone;
+  const currentlyOverdue = person?.overdue_tasks ?? inProgressTasks.filter((t) => t.is_overdue).length;
 
-  const successRate = totalTasks > 0 ? Math.round((doneTasks.length / totalTasks) * 100) : 0;
-  const disciplineRate = doneTasks.length > 0 ? Math.round((onTimeDone / doneTasks.length) * 100) : 0;
+  const successRate = totalTasks > 0 ? Math.round((doneCount / totalTasks) * 100) : 0;
+  const disciplineRate = doneCount > 0 ? Math.round((onTimeDone / doneCount) * 100) : 0;
 
   return (
     <Modal title={person ? T.people.profileTitle : T.common.loading} onClose={close} dirty={dirty}>
@@ -113,6 +112,7 @@ export default function PersonModal({ id }: { id: number }) {
           {person.role === "developer" && tab === "tasks" && !tasksQuery.error && (
             <div className="card">
               <TaskTable tasks={tasksQuery.data} loading={tasksQuery.isLoading} emptyHint={T.people.noTasksHint} />
+              <Pagination data={tasksQuery.pagination} page={tasksQuery.page} onPageChange={tasksQuery.onPageChange} />
             </div>
           )}
 
@@ -139,7 +139,7 @@ export default function PersonModal({ id }: { id: number }) {
                 </div>
                 <div className="card card-pad row" style={{ justifyContent: "space-between" }}>
                   <span className="muted">{T.people.doneTotal}</span>
-                  <b style={{ color: "var(--success)" }}>{doneTasks.length}</b>
+                  <b style={{ color: "var(--success)" }}>{doneCount}</b>
                 </div>
                 <div className="card card-pad row" style={{ justifyContent: "space-between" }}>
                   <span className="muted">{T.people.doneLate}</span>

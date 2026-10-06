@@ -35,6 +35,8 @@ class TaskListSerializer(serializers.ModelSerializer):
         return [user_brief(a.developer) for a in obj.assignments.all()]
 
     def get_subtasks_progress(self, obj):
+        if hasattr(obj, "subtask_total"):
+            return {"done": obj.subtask_done, "total": obj.subtask_total}
         items = obj.subtasks.all()
         return {"done": sum(1 for s in items if s.is_done), "total": len(items)}
 

@@ -33,14 +33,24 @@ export default function MessagesPage() {
   const convQuery = useQuery({
     queryKey: ["chat", "conversations"],
     queryFn: () => api.get<ChatConversation[]>("/chat/conversations/"),
-    refetchInterval: 5000,
+    enabled: !query,
+    refetchInterval: 15_000,
+    refetchIntervalInBackground: false,
   });
 
   const msgsQuery = useQuery({
     queryKey: ["chat", "messages", partnerId],
-    queryFn: () => api.get<ChatMessage[]>(`/chat/messages/${qs({ partner: partnerId })}`),
+    queryFn: async () => {
+      // Pollingda tarixni qayta yuklamaymiz; har suhbatning keshi alohida.
+      const cached = qc.getQueryData<ChatMessage[]>(["chat", "messages", partnerId]) ?? [];
+      const after = cached.length ? Math.max(...cached.map((message) => message.id)) : undefined;
+      const incoming = await api.get<ChatMessage[]>(`/chat/messages/${qs({ partner: partnerId, after })}`);
+      if (!incoming.length) return cached;
+      return [...cached, ...incoming].slice(-200);
+    },
     enabled: Boolean(partnerId),
-    refetchInterval: 3000,
+    refetchInterval: 5000,
+    refetchIntervalInBackground: false,
   });
 
   useEffect(() => {

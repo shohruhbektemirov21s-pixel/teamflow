@@ -5,7 +5,7 @@ from rest_framework.response import Response
 
 from apps.accounts.models import User
 from apps.core.api_utils import user_brief
-from .serializers import ChatMessageSerializer, ChatPartnerSerializer, ChatSendSerializer
+from .serializers import ChatMessageSerializer, ChatMessagesQuerySerializer, ChatSendSerializer
 from .services import conversation_summaries, messages_with_partner, send_message
 
 class ChatViewSet(viewsets.GenericViewSet):
@@ -25,9 +25,10 @@ class ChatViewSet(viewsets.GenericViewSet):
         
     @action(detail=False, methods=["get"])
     def messages(self, request):
-        serializer = ChatPartnerSerializer(data=request.query_params, context={"request": request})
+        serializer = ChatMessagesQuerySerializer(data=request.query_params, context={"request": request})
         serializer.is_valid(raise_exception=True)
-        messages = messages_with_partner(request.user, serializer.validated_data["partner"])
+        messages = messages_with_partner(request.user, serializer.validated_data["partner"],
+                                         after=serializer.validated_data.get("after"))
         return Response(ChatMessageSerializer(messages, many=True).data)
         
     @action(detail=False, methods=["post"])

@@ -1,0 +1,544 @@
+[
+  {
+    "role": "boss",
+    "width": 375,
+    "path": "/",
+    "authenticated": true,
+    "overflow": false,
+    "errors": [],
+    "failures": []
+  },
+  {
+    "role": "boss",
+    "width": 375,
+    "path": "/vazifalar",
+    "authenticated": true,
+    "overflow": false,
+    "errors": [],
+    "failures": []
+  },
+  {
+    "role": "boss",
+    "width": 375,
+    "path": "/loyihalar",
+    "authenticated": true,
+    "overflow": false,
+    "errors": [],
+    "failures": []
+  },
+  {
+    "role": "boss",
+    "width": 375,
+    "path": "/xodimlar",
+    "authenticated": true,
+    "overflow": false,
+    "errors": [],
+    "failures": []
+  },
+  {
+    "role": "boss",
+    "width": 375,
+    "path": "/taqvim",
+    "authenticated": true,
+    "overflow": false,
+    "errors": [],
+    "failures": []
+  },
+  {
+    "role": "boss",
+    "width": 375,
+    "path": "/tekshiruv",
+    "authenticated": true,
+    "overflow": false,
+    "errors": [],
+    "failures": []
+  },
+  {
+    "role": "boss",
+    "width": 375,
+    "path": "/profil",
+    "authenticated": true,
+    "overflow": false,
+    "errors": [],
+    "failures": []
+  },
+  {
+    "role": "boss",
+    "width": 375,
+    "path": "/qilingan-ishlar",
+    "authenticated": true,
+    "overflow": false,
+    "errors": [],
+    "failures": []
+  },
+  {
+    "role": "boss",
+    "width": 768,
+    "path": "/",
+    "authenticated": true,
+    "overflow": false,
+    "errors": [],
+    "failures": []
+  },
+  {
+    "role": "boss",
+    "width": 768,
+    "path": "/vazifalar",
+    "authenticated": true,
+    "overflow": false,
+    "errors": [],
+    "failures": []
+  },
+  {
+    "role": "boss",
+    "width": 768,
+    "path": "/loyihalar",
+    "authenticated": true,
+    "overflow": false,
+    "errors": [],
+    "failures": []
+  },
+  {
+    "role": "boss",
+    "width": 768,
+    "path": "/xodimlar",
+    "authenticated": true,
+    "overflow": false,
+    "errors": [],
+    "failures": []
+  },
+  {
+    "role": "boss",
+    "width": 768,
+    "path": "/taqvim",
+    "authenticated": true,
+    "overflow": false,
+    "errors": [],
+    "failures": []
+  },
+  {
+    "role": "boss",
+    "width": 768,
+    "path": "/tekshiruv",
+    "authenticated": true,
+    "overflow": false,
+    "errors": [],
+    "failures": []
+  },
+  {
+    "role": "boss",
+    "width": 768,
+    "path": "/profil",
+    "authenticated": true,
+    "overflow": false,
+    "errors": [],
+    "failures": []
+  },
+  {
+    "role": "boss",
+    "width": 768,
+    "path": "/qilingan-ishlar",
+    "authenticated": true,
+    "overflow": false,
+    "errors": [],
+    "failures": []
+  },
+  {
+    "role": "boss",
+    "width": 1440,
+    "path": "/",
+    "authenticated": true,
+    "overflow": false,
+    "errors": [],
+    "failures": []
+  },
+  {
+    "role": "boss",
+    "width": 1440,
+    "path": "/vazifalar",
+    "authenticated": true,
+    "overflow": false,
+    "errors": [],
+    "failures": []
+  },
+  {
+    "role": "boss",
+    "width": 1440,
+    "path": "/loyihalar",
+    "authenticated": true,
+    "overflow": false,
+    "errors": [],
+    "failures": []
+  },
+  {
+    "role": "boss",
+    "width": 1440,
+    "path": "/xodimlar",
+    "authenticated": true,
+    "overflow": false,
+    "errors": [],
+    "failures": [],
+    "pageTwo": true
+  },
+  {
+    "role": "boss",
+    "width": 1440,
+    "path": "/taqvim",
+    "authenticated": true,
+    "overflow": false,
+    "errors": [],
+    "failures": []
+  },
+  {
+    "role": "boss",
+    "width": 1440,
+    "path": "/tekshiruv",
+    "authenticated": true,
+    "overflow": false,
+    "errors": [],
+    "failures": []
+  },
+  {
+    "role": "boss",
+    "width": 1440,
+    "path": "/profil",
+    "authenticated": true,
+    "overflow": false,
+    "errors": [],
+    "failures": []
+  },
+  {
+    "role": "boss",
+    "width": 1440,
+    "path": "/qilingan-ishlar",
+    "authenticated": true,
+    "overflow": false,
+    "errors": [],
+    "failures": []
+  },
+  {
+    "role": "pm",
+    "width": 375,
+    "path": "/",
+    "authenticated": true,
+    "overflow": false,
+    "errors": [],
+    "failures": []
+  },
+  {
+    "role": "pm",
+    "width": 375,
+    "path": "/xodimlar",
+    "authenticated": true,
+    "overflow": false,
+    "errors": [],
+    "failures": []
+  },
+  {
+    "role": "pm",
+    "width": 375,
+    "path": "/vazifalar",
+    "authenticated": true,
+    "overflow": false,
+    "errors": [],
+    "failures": []
+  },
+  {
+    "role": "pm",
+    "width": 768,
+    "path": "/",
+    "authenticated": true,
+    "overflow": false,
+    "errors": [],
+    "failures": []
+  },
+  {
+    "role": "pm",
+    "width": 768,
+    "path": "/xodimlar",
+    "authenticated": true,
+    "overflow": false,
+    "errors": [],
+    "failures": []
+  },
+  {
+    "role": "pm",
+    "width": 768,
+    "path": "/vazifalar",
+    "authenticated": true,
+    "overflow": false,
+    "errors": [],
+    "failures": []
+  },
+  {
+    "role": "pm",
+    "width": 1440,
+    "path": "/",
+    "authenticated": true,
+    "overflow": false,
+    "errors": [],
+    "failures": []
+  },
+  {
+    "role": "pm",
+    "width": 1440,
+    "path": "/xodimlar",
+    "authenticated": true,
+    "overflow": false,
+    "errors": [],
+    "failures": [],
+    "pageTwo": true
+  },
+  {
+    "role": "pm",
+    "width": 1440,
+    "path": "/vazifalar",
+    "authenticated": true,
+    "overflow": false,
+    "errors": [],
+    "failures": []
+  },
+  {
+    "role": "developer",
+    "width": 375,
+    "path": "/",
+    "authenticated": true,
+    "overflow": false,
+    "errors": [],
+    "failures": []
+  },
+  {
+    "role": "developer",
+    "width": 375,
+    "path": "/mening-ishim",
+    "authenticated": true,
+    "overflow": false,
+    "errors": [],
+    "failures": []
+  },
+  {
+    "role": "developer",
+    "width": 375,
+    "path": "/vazifalar",
+    "authenticated": true,
+    "overflow": false,
+    "errors": [],
+    "failures": []
+  },
+  {
+    "role": "developer",
+    "width": 375,
+    "path": "/taqvim",
+    "authenticated": true,
+    "overflow": false,
+    "errors": [],
+    "failures": []
+  },
+  {
+    "role": "developer",
+    "width": 375,
+    "path": "/profil",
+    "authenticated": true,
+    "overflow": false,
+    "errors": [],
+    "failures": []
+  },
+  {
+    "role": "developer",
+    "width": 375,
+    "path": "/xabarlar",
+    "authenticated": true,
+    "overflow": false,
+    "errors": [],
+    "failures": []
+  },
+  {
+    "role": "developer",
+    "width": 768,
+    "path": "/",
+    "authenticated": true,
+    "overflow": false,
+    "errors": [],
+    "failures": []
+  },
+  {
+    "role": "developer",
+    "width": 768,
+    "path": "/mening-ishim",
+    "authenticated": true,
+    "overflow": false,
+    "errors": [],
+    "failures": []
+  },
+  {
+    "role": "developer",
+    "width": 768,
+    "path": "/vazifalar",
+    "authenticated": true,
+    "overflow": false,
+    "errors": [],
+    "failures": []
+  },
+  {
+    "role": "developer",
+    "width": 768,
+    "path": "/taqvim",
+    "authenticated": true,
+    "overflow": false,
+    "errors": [],
+    "failures": []
+  },
+  {
+    "role": "developer",
+    "width": 768,
+    "path": "/profil",
+    "authenticated": true,
+    "overflow": false,
+    "errors": [],
+    "failures": []
+  },
+  {
+    "role": "developer",
+    "width": 768,
+    "path": "/xabarlar",
+    "authenticated": true,
+    "overflow": false,
+    "errors": [],
+    "failures": []
+  },
+  {
+    "role": "developer",
+    "width": 1440,
+    "path": "/",
+    "authenticated": true,
+    "overflow": false,
+    "errors": [],
+    "failures": []
+  },
+  {
+    "role": "developer",
+    "width": 1440,
+    "path": "/mening-ishim",
+    "authenticated": true,
+    "overflow": false,
+    "errors": [],
+    "failures": []
+  },
+  {
+    "role": "developer",
+    "width": 1440,
+    "path": "/vazifalar",
+    "authenticated": true,
+    "overflow": false,
+    "errors": [],
+    "failures": []
+  },
+  {
+    "role": "developer",
+    "width": 1440,
+    "path": "/taqvim",
+    "authenticated": true,
+    "overflow": false,
+    "errors": [],
+    "failures": []
+  },
+  {
+    "role": "developer",
+    "width": 1440,
+    "path": "/profil",
+    "authenticated": true,
+    "overflow": false,
+    "errors": [],
+    "failures": []
+  },
+  {
+    "role": "developer",
+    "width": 1440,
+    "path": "/xabarlar",
+    "authenticated": true,
+    "overflow": false,
+    "errors": [],
+    "failures": []
+  },
+  {
+    "role": "department",
+    "width": 375,
+    "path": "/",
+    "authenticated": true,
+    "overflow": false,
+    "errors": [],
+    "failures": []
+  },
+  {
+    "role": "department",
+    "width": 375,
+    "path": "/buyurtmalar",
+    "authenticated": true,
+    "overflow": false,
+    "errors": [],
+    "failures": []
+  },
+  {
+    "role": "department",
+    "width": 375,
+    "path": "/profil",
+    "authenticated": true,
+    "overflow": false,
+    "errors": [],
+    "failures": []
+  },
+  {
+    "role": "department",
+    "width": 768,
+    "path": "/",
+    "authenticated": true,
+    "overflow": false,
+    "errors": [],
+    "failures": []
+  },
+  {
+    "role": "department",
+    "width": 768,
+    "path": "/buyurtmalar",
+    "authenticated": true,
+    "overflow": false,
+    "errors": [],
+    "failures": []
+  },
+  {
+    "role": "department",
+    "width": 768,
+    "path": "/profil",
+    "authenticated": true,
+    "overflow": false,
+    "errors": [],
+    "failures": []
+  },
+  {
+    "role": "department",
+    "width": 1440,
+    "path": "/",
+    "authenticated": true,
+    "overflow": false,
+    "errors": [],
+    "failures": []
+  },
+  {
+    "role": "department",
+    "width": 1440,
+    "path": "/buyurtmalar",
+    "authenticated": true,
+    "overflow": false,
+    "errors": [],
+    "failures": []
+  },
+  {
+    "role": "department",
+    "width": 1440,
+    "path": "/profil",
+    "authenticated": true,
+    "overflow": false,
+    "errors": [],
+    "failures": []
+  }
+]

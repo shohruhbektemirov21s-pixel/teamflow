@@ -32,8 +32,8 @@ const renderDay = () =>
 describe("Taqvim: kun modali", () => {
   it("shu kungi vazifalar va tugaydigan loyihalarni ko'rsatadi; vazifa bosilsa vazifa modali ochiladi", async () => {
     mockGet({
-      [`/tasks/?date=${DAY}&all=1`]: [taskDetail({ id: 12, title: "Kirish sahifasi" })],
-      [`/projects/?end_from=${DAY}&end_to=${DAY}&all=1`]: [PROJECT],
+      [`/tasks/?date=${DAY}`]: [taskDetail({ id: 12, title: "Kirish sahifasi" })],
+      [`/projects/?end_from=${DAY}&end_to=${DAY}`]: [PROJECT],
     });
     renderDay();
 
@@ -47,8 +47,8 @@ describe("Taqvim: kun modali", () => {
 
   it("loyiha bosilsa loyiha modali ochiladi", async () => {
     mockGet({
-      [`/tasks/?date=${DAY}&all=1`]: [],
-      [`/projects/?end_from=${DAY}&end_to=${DAY}&all=1`]: [PROJECT],
+      [`/tasks/?date=${DAY}`]: [],
+      [`/projects/?end_from=${DAY}&end_to=${DAY}`]: [PROJECT],
     });
     renderDay();
 
@@ -57,7 +57,7 @@ describe("Taqvim: kun modali", () => {
   });
 
   it("bo'sh kunda nima qilish kerakligi yoziladi", async () => {
-    mockGet({ [`/tasks/?date=${DAY}&all=1`]: [], [`/projects/?end_from=${DAY}&end_to=${DAY}&all=1`]: [] });
+    mockGet({ [`/tasks/?date=${DAY}`]: [], [`/projects/?end_from=${DAY}&end_to=${DAY}`]: [] });
     renderDay();
 
     expect(await screen.findByText(T.calendar.dayEmpty)).toBeTruthy();

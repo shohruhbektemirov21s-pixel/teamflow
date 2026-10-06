@@ -41,6 +41,29 @@ class TaskFlowTests(TestCase):
         self.assertEqual([s["title"] for s in r.data["subtasks"]], ["Forma", "API"])
         self.assertEqual(Notification.objects.filter(kind="task_assigned").count(), 2)
 
+    def test_prefetched_assignments_do_not_query_again_for_permissions(self):
+        from apps.tasks.permissions import can_manage_subtasks, can_work_on, is_assignee
+        tid = self.create().data["id"]
+        task = Task.objects.prefetch_related("assignments").get(pk=tid)
+        with self.assertNumQueries(0):
+            self.assertTrue(is_assignee(self.dev1, task))
+            self.assertTrue(can_manage_subtasks(self.dev1, task))
+            self.assertTrue(can_work_on(self.dev1, task))
+            self.assertFalse(is_assignee(self.outsider, task))
+            self.assertFalse(can_work_on(self.outsider, task))
+        uncached = Task.objects.get(pk=tid)
+        with self.assertNumQueries(1):
+            self.assertTrue(is_assignee(self.dev1, uncached))
+
+    def test_assignment_changes_clear_cached_permissions(self):
+        from apps.tasks.permissions import is_assignee
+        from apps.tasks.services import set_task_assignees
+        tid = self.create().data["id"]
+        task = Task.objects.prefetch_related("assignments").get(pk=tid)
+        set_task_assignees(task, self.pm, [self.dev2.pk])
+        self.assertFalse(is_assignee(self.dev1, task))
+        self.assertTrue(is_assignee(self.dev2, task))
+
     def test_assignee_must_be_project_member(self):
         self.assertEqual(self.create(assignee_ids=[self.outsider.pk]).status_code, 400)
         self.assertEqual(self.create(assignee_ids=[]).status_code, 400)
@@ -235,6 +258,14 @@ class TaskFlowTests(TestCase):
 
 
 class DashboardTests(TestCase):
+    def test_dashboard_counts_use_one_query_for_each_role(self):
+        from apps.tasks.filters import dashboard_counts
+        from apps.tasks.permissions import listed_tasks
+        for user in (self.pm, self.dev):
+            with self.subTest(role=user.role), self.assertNumQueries(1):
+                result = dashboard_counts(listed_tasks(user))
+            self.assertEqual(result["totals"]["active"], 3)
+
     def setUp(self):
         self.pm = make_user(Role.PM)
         self.dev = make_user(Role.DEVELOPER)
@@ -278,7 +309,10 @@ class DashboardTests(TestCase):
     def test_person_profile_matches_people_row(self):
         pm = client_for(self.pm)
         row = next(p for p in pm.get("/api/people/").data if p["id"] == self.dev.pk)
-        self.assertEqual(pm.get(f"/api/people/{self.dev.pk}/").data, row)
+        profile = pm.get(f"/api/people/{self.dev.pk}/").data
+        report = profile.pop("report")
+        self.assertEqual(profile, row)
+        self.assertEqual(report, {"total": 4, "done": 1, "late": 1})
         self.assertEqual(client_for(self.dev).get(f"/api/people/{self.dev.pk}/").status_code, 403)
         self.assertEqual(pm.get("/api/people/999999/").status_code, 404)
 

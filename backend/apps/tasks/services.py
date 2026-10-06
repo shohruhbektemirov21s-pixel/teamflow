@@ -181,6 +181,7 @@ def _apply_assignees(task, user, new):
     task.assignments.exclude(developer_id__in=[d.pk for d in new]).delete()
     added = [d for d in new if d.pk not in current]
     TaskAssignment.objects.bulk_create(TaskAssignment(task=task, developer=d) for d in added)
+    getattr(task, "_prefetched_objects_cache", {}).pop("assignments", None)
     notify(added, K.TASK_ASSIGNED, f"Sizga vazifa berildi: {task.title}", task, exclude=user)
     return added
 

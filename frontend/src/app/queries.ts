@@ -1,14 +1,34 @@
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import { api } from "@/shared/api";
+import { api, qs } from "@/shared/api";
+import { useState } from "react";
 import type { Dashboard, Developer, Me, Paged, Project } from "@/shared/types";
 
 import type { Counter } from "./nav";
 
-/** Mutatsiyadan keyin barcha ro'yxat va hisoblagichlarni yangilash (ma'lumot hajmi kichik — sodda va ishonchli). */
-export function useRefresh() {
+export function usePagedList<T>(baseKey: readonly unknown[], path: string,
+  params: Record<string, string | number | undefined>, enabled = true) {
+  const filterKey = JSON.stringify([baseKey, params]);
+  const [position, setPosition] = useState({ filterKey, page: 1 });
+  const page = position.filterKey === filterKey ? position.page : 1;
+  if (position.filterKey !== filterKey) setPosition({ filterKey, page: 1 });
+  const queryKey = [...baseKey, page];
+  const query = useQuery({
+    queryKey,
+    queryFn: async () => {
+      const result = await api.get<Paged<T> | T[]>(`${path}${qs({ ...params, page: page === 1 ? undefined : page })}`);
+      return Array.isArray(result) ? { count: result.length, next: null, previous: null, results: result } : result;
+    },
+    enabled,
+  });
+  return { ...query, data: query.data?.results, pagination: query.data, page, queryKey,
+    onPageChange: (nextPage: number) => setPosition({ filterKey, page: nextPage }) };
+}
+
+/** O'zgargan bo'limlarning keshini yangilash; domains berilmasa barcha ma'lumotlar yangilanadi. */
+export function useRefresh(domains?: readonly string[]) {
   const qc = useQueryClient();
-  return () => qc.invalidateQueries();
+  return () => qc.invalidateQueries(domains ? { predicate: (query) => domains.includes(String(query.queryKey[0])) } : undefined);
 }
 
 /** O'qilmagan bildirishnomalar soni (yon panel, sarlavha va Bildirishnomalar sahifasi — bitta kesh). */
@@ -42,24 +62,28 @@ export function useProjects(enabled = true) {
   return useQuery({
     queryKey: ["projects", "all"],
     queryFn: async () => {
-      const projects: Project[] = [];
+      const projects: Pick<Project, "id" | "name" | "code">[] = [];
       let page = 1;
-      let result: Paged<Project>;
+      let result: Paged<Pick<Project, "id" | "name" | "code">>;
       do {
-        result = await api.get<Paged<Project>>(`/projects/${page === 1 ? "" : `?page=${page}`}`);
+        result = await api.get<typeof result>(`/projects/lookup/${qs({ page_size: 100, page: page === 1 ? undefined : page })}`);
         projects.push(...result.results);
         page += 1;
       } while (result.next);
       return projects;
     },
     enabled,
+    staleTime: 60_000,
   });
 }
 
-export function useDevelopers(enabled = true) {
+export function useDevelopers(enabled = true, search = "", ids: readonly number[] = []) {
+  const selected = [...ids].sort((a, b) => a - b).join(",");
   return useQuery({
-    queryKey: ["developers"],
-    queryFn: () => api.get<Developer[]>("/developers/"),
+    queryKey: ["developers", search, selected],
+    queryFn: () => api.get<Developer[]>(`/developers/${qs({ q: search, ids: selected })}`),
+    placeholderData: keepPreviousData,
     enabled,
+    staleTime: 5 * 60_000,
   });
 }

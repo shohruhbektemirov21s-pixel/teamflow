@@ -129,6 +129,8 @@ Har bir app ichidagi qatlamlar (`models`, `workflow`, `services`, `permissions`,
 
 ## 13. Foydalanuvchi qo'shimchalari
 
+- **2026-10-06:** PM loyihani yakunlashda izoh (1000 belgigacha) va fayllarni alohida modal orqali yuboradi. Loyiha oynasi orqada ko'rinib turadi va inert bo'ladi; umumiy Modal stacked uslubi ishlatiladi. Dasturchilar tasdig'idan keyin boshqarma buyurtma oynasida yakunlash hisoboti va fayllarini ko'radi. Fayllar faqat tegishli boshqarma uchun ochiladi.
+
 - 2026-10-06: Bosh panel va Vazifalar jadvalidagi qidiruv vazifa yoki loyiha kodining bir qismi, hatto 1–2 raqam kiritilganda ham mos vazifalarni topishi kerak. `tasks/filters.py` da kodlar uchun qisman qidiruv qo'shildi; to'liq kod uchun aniq moslik saqlandi. Regression testi: `DashboardTests.test_task_list_searches_one_or_two_digit_code_fragments`.
 
 > Foydalanuvchi aytgan yangi qoidalar shu yerga sana bilan qo'shiladi.
@@ -208,3 +210,12 @@ Har bir app ichidagi qatlamlar (`models`, `workflow`, `services`, `permissions`,
 - **2026-10-06 (foydalanuvchi talabi):** Buyurtmaga TZ v2 kiritish ishlasin. PM yakunlashni so'ragach, barcha dasturchilar rozi bo'lsa avtomatik boshqarma tasdig'iga o'tsin; boshqarma tasdiqlasa to'liq yakunlansin, rad etsa "Rad etildi" ko'rinsin. Yakunlangan va yakunlash tasdig'i kutilayotgan loyihada vazifa qo'shish/berish yashirilsin va serverda ham cheklansin.
 
 - **2026-10-06 (foydalanuvchi talabi):** Tizim UX/UI to'liq ko'rib chiqilsin, tugmalar o'z joyida bo'lsin. Boshqarma buyurtmalar sahifasida yakunlash tasdig'i kutilayotganlar birinchi, yangi buyurtmalar teparoqda, to'liq yakunlanganlar pastda tursin.
+- **2026-10-06 (yakunlash tartibi yangilandi):** Dasturchilarga "Loyihani yakunlashga rozimisiz?" savoli, "Ha, roziman" va "Yo'q" tugmalari chiqadi. Hamma rozi bo'lgach PMga xabar keladi va "Yakunlash" ochiladi; loyiha avtomatik yakunlanmaydi. PM yakunlaydi, buyurtmali loyiha keyin boshqarma tasdig'iga yuboriladi. Oldingi yakunlash izohi va fayllari saqlanadi.
+- **2026-10-06 (tezlik va resurs sarfi):** Bosh panel hisoblari bitta agregat SQL orqali olinadi; loyiha vazifalari va dasturchilar faqat tegishli tab ochilganda yuklanadi. Bildirishnomani o'qish va izoh yozish barcha ro'yxatlarni qayta yuklamaydi. Kesh 60 soniya, dasturchilar ma'lumotnomasi 5 daqiqa; mutatsiyadan keyin tegishli kesh yangilanadi. Chat so'rovlari xabarlar uchun 5 soniya, suhbatlar uchun 15 soniya; yashirin tabda polling o'chirilgan. Fon blur effektlari olib tashlangan, modal orqasidagi loyiha ko'rinib turadi.
+
+- **2026-10-06 (qo'shimcha optimallashtirish):** Chat polling faqat oxirgi xabardan keyingi yangi xabarlarni oladi; yangi xabar bo'lmasa javob `[]` va bazaga UPDATE yo'q. Brauzer oxirgi 200 xabarni saqlaydi. Vazifa ruxsatlari yuklangan ijrochilar ro'yxatidan tekshiriladi; ijrochilar o'zgarsa kesh tozalanadi. Mahalliy dasturchi vazifa tafsilotida SQL 9 dan 6 ga tushdi. Vazifa amallari chat, takliflar va metama'lumotlarni qayta yuklamaydi. Mahalliy server `--noreload` bilan ishga tushirildi (4 jarayondan 2 ga); Startup skripti ham avvaldan shu rejimda. Umumiy CPU/RAM yoki foydalanuvchi sezadigan tezlik foizi o'lchanmagan.
+
+Tekshiruv: 247 backend, 103 frontend testi (bitta worker), TypeScript va production build o'tdi. O'lchov va tekshiruv qaydi: `docs/scratch/performance-verification-2026-10-06.md`.
+
+- **2026-10-06 (10 000+ foydalanuvchi):** Foydalanuvchi bir vaqtda faol 10 000+ foydalanuvchini aniqlashtirdi; server hali tanlanmagan. Production PostgreSQL/Redis, Gunicorn/Nginx, sahifalash va Telegram outbox tayyorlandi. 4 jarayonli Locust bilan 10 000 alohida sessiya, 250 soniya peak, 501,96 so'rov/soniya, 135 349 so'rov, 0 xato, p95 110 ms; aniq profil va chegaralar docs/performance/2026-10-06/REPORT.md da. 269 PostgreSQL backend, 104 frontend testi hamda 60 haqiqiy brauzer holati o'tdi.
+- **2026-10-06 (tozalash va GitHub):** Foydalanuvchi testdan keyin kiritilgan ma'lumotlarni tozalashni va oxirida GitHub'ga yuklashni aniq buyurdi. Ushbu ish uchun commit/push ruxsati mavjud. Testlar alohida teamflow-scale-test Docker loyihasi va teamflow_scale PostgreSQL bazasida; haqiqiy SQLite biznes ma'lumotlari saqlanadi. Test konteyner/baza/volume va maxfiy fixturelar yakunda olib tashlanadi. Deployment qo'llanmasi backend/deploy/README.md da; haqiqiy server/TLS va SQLite data cutover hali bajarilmagan.

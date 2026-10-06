@@ -1,0 +1,118 @@
+{
+  "users_peak": 10000,
+  "peak_seconds": 250,
+  "peak_requests_per_second": 501.96,
+  "requests": 135349,
+  "failures": 0,
+  "failure_percent": 0.0,
+  "p95_ms": 110.0,
+  "p99_ms": 260.0,
+  "peak_rolling_p95_max_ms": 260.0,
+  "endpoints": [
+    {
+      "method": "GET",
+      "name": "chat/poll",
+      "requests": 11504,
+      "failures": 0,
+      "p95_ms": 97.0,
+      "p99_ms": 200.0
+    },
+    {
+      "method": "GET",
+      "name": "dashboard/boss",
+      "requests": 1,
+      "failures": 0,
+      "p95_ms": 110.0,
+      "p99_ms": 110.0
+    },
+    {
+      "method": "GET",
+      "name": "dashboard/department",
+      "requests": 2728,
+      "failures": 0,
+      "p95_ms": 110.0,
+      "p99_ms": 220.0
+    },
+    {
+      "method": "GET",
+      "name": "dashboard/developer",
+      "requests": 22998,
+      "failures": 0,
+      "p95_ms": 110.0,
+      "p99_ms": 210.0
+    },
+    {
+      "method": "GET",
+      "name": "dashboard/pm",
+      "requests": 1334,
+      "failures": 0,
+      "p95_ms": 150.0,
+      "p99_ms": 260.0
+    },
+    {
+      "method": "GET",
+      "name": "list/department",
+      "requests": 2002,
+      "failures": 0,
+      "p95_ms": 110.0,
+      "p99_ms": 240.0
+    },
+    {
+      "method": "GET",
+      "name": "list/developer",
+      "requests": 17352,
+      "failures": 0,
+      "p95_ms": 120.0,
+      "p99_ms": 220.0
+    },
+    {
+      "method": "GET",
+      "name": "list/pm",
+      "requests": 1068,
+      "failures": 0,
+      "p95_ms": 160.0,
+      "p99_ms": 230.0
+    },
+    {
+      "method": "GET",
+      "name": "notifications/unread",
+      "requests": 58455,
+      "failures": 0,
+      "p95_ms": 94.0,
+      "p99_ms": 200.0
+    },
+    {
+      "method": "GET",
+      "name": "orders/page",
+      "requests": 4181,
+      "failures": 0,
+      "p95_ms": 94.0,
+      "p99_ms": 210.0
+    },
+    {
+      "method": "GET",
+      "name": "people/page",
+      "requests": 637,
+      "failures": 0,
+      "p95_ms": 480.0,
+      "p99_ms": 570.0
+    },
+    {
+      "method": "GET",
+      "name": "task/detail",
+      "requests": 8708,
+      "failures": 0,
+      "p95_ms": 120.0,
+      "p99_ms": 220.0
+    },
+    {
+      "method": "POST",
+      "name": "worklog/write",
+      "requests": 4381,
+      "failures": 0,
+      "p95_ms": 160.0,
+      "p99_ms": 270.0
+    }
+  ],
+  "passed": true
+}

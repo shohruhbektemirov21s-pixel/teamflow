@@ -37,6 +37,11 @@ class Task(models.Model):
 
     class Meta:
         ordering = ["-created_at"]
+        indexes = [
+            models.Index(fields=["archived_at", "status", "due_at"], name="task_active_status_due_idx"),
+            models.Index(fields=["archived_at", "due_at", "-created_at", "-id"], name="task_active_due_order_idx"),
+            models.Index(fields=["project", "archived_at", "due_at"], name="task_project_active_due_idx"),
+        ]
         verbose_name = "Vazifa"
         verbose_name_plural = "Vazifalar"
 
@@ -69,6 +74,7 @@ class TaskAssignment(models.Model):
     assigned_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
+        indexes = [models.Index(fields=["developer", "task"], name="assignment_developer_task_idx")]
         constraints = [models.UniqueConstraint(fields=["task", "developer"], name="uniq_task_assignment")]
         verbose_name = "Vazifa ijrochisi"
         verbose_name_plural = "Vazifa ijrochilari"

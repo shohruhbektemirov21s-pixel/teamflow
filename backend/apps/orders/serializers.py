@@ -63,9 +63,17 @@ class OrderDetailSerializer(OrderListSerializer):
     approved_by = serializers.SerializerMethodField()
     versions = OrderVersionSerializer(many=True, read_only=True)
     actions = serializers.SerializerMethodField()
+    completion_report = serializers.SerializerMethodField()
 
     class Meta(OrderListSerializer.Meta):
-        fields = OrderListSerializer.Meta.fields + ["approved_by", "pm_note", "decided_at", "versions", "actions"]
+        fields = OrderListSerializer.Meta.fields + ["approved_by", "pm_note", "decided_at", "versions", "actions", "completion_report"]
+
+    def get_completion_report(self, obj):
+        project = getattr(obj, "project", None)
+        if not project or project.stage not in ("pending_approval", "done", "rejected"):
+            return None
+        return {"note": project.completion_note,
+                "files": [file_info(f, "project") for f in project.files.filter(is_completion=True)]}
 
     def get_approved_by(self, obj):
         return user_brief(obj.approved_by)

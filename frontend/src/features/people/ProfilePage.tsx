@@ -3,13 +3,15 @@ import { ImagePlus, Trash2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 import { useAuth, useMe } from "@/app/auth";
+import { usePagedList } from "@/app/queries";
 import { TaskTable } from "@/features/tasks/TaskTable";
-import { api, ApiError, formData, qs } from "@/shared/api";
+import { api, ApiError, formData } from "@/shared/api";
 import { fmtDate } from "@/shared/format";
 import { useMeta } from "@/shared/meta";
 import { T } from "@/shared/text";
 import type { Profile, Task } from "@/shared/types";
 import { Button, ErrorBox, Field, SkeletonRows, useToast } from "@/shared/ui";
+import { Pagination } from "@/shared/ui/Pagination";
 
 import { ProfileHeader } from "./ProfileHeader";
 import { BusinessTripPanel } from "./BusinessTripPanel";
@@ -36,11 +38,7 @@ export default function ProfilePage() {
   const p = q.data;
   // Dasturchi profilida — faqat o'ziga biriktirilgan vazifalar (server `mine=1` bo'yicha filtrlaydi)
   const developer = me.role === "developer";
-  const myTasks = useQuery({
-    queryKey: ["tasks", "mine", "profile"],
-    queryFn: () => api.get<Task[]>(`/tasks/${qs({ mine: 1, all: 1 })}`),
-    enabled: developer,
-  });
+  const myTasks = usePagedList<Task>(["tasks", "mine", "profile"], "/tasks/", { mine: 1 }, developer);
 
   useEffect(() => {
     if (p) {
@@ -178,7 +176,7 @@ export default function ProfilePage() {
         <section className="card" aria-label={T.profile.myTasks}>
           <div className="card-head">
             <h3 className="grow">
-              {T.profile.myTasks} {myTasks.data && <span className="count-pill soft">{myTasks.data.length}</span>}
+              {T.profile.myTasks} {myTasks.data && <span className="count-pill soft">{myTasks.pagination?.count}</span>}
             </h3>
           </div>
           {myTasks.error ? (
@@ -188,6 +186,7 @@ export default function ProfilePage() {
           ) : (
             <TaskTable tasks={myTasks.data} loading={myTasks.isLoading} emptyHint={T.profile.myTasksEmpty} />
           )}
+          <Pagination data={myTasks.pagination} page={myTasks.page} onPageChange={myTasks.onPageChange} />
         </section>
       )}
 

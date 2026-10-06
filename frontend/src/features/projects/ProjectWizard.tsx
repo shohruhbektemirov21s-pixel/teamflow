@@ -7,6 +7,7 @@ import { useDevelopers, useRefresh } from "@/app/queries";
 import { api, ApiError, formData } from "@/shared/api";
 import { fmtDate, fromLocalInput } from "@/shared/format";
 import { useMeta } from "@/shared/meta";
+import { useDebounced } from "@/shared/hooks";
 import { T } from "@/shared/text";
 import type { OrderDetail, ProjectDetail, ProjectStage } from "@/shared/types";
 import { Avatar, Button, Callout, Field, FilePicker, Modal, Segmented, Skeleton, Stepper, useToast } from "@/shared/ui";
@@ -29,7 +30,6 @@ export default function ProjectWizard({ orderId }: { orderId?: number }) {
   const { close, open } = useModal();
   const toast = useToast();
   const refresh = useRefresh();
-  const developers = useDevelopers();
   const meta = useMeta();
   const order = useQuery({ queryKey: ["order", orderId], queryFn: () => api.get<OrderDetail>(`/orders/${orderId}/`), enabled: Boolean(orderId) });
 
@@ -42,6 +42,8 @@ export default function ProjectWizard({ orderId }: { orderId?: number }) {
   const [stage, setStage] = useState<ProjectStage>("planned");
   const [members, setMembers] = useState<number[]>([]);
   const [devSearch, setDevSearch] = useState("");
+  const developerSearch = useDebounced(devSearch.trim());
+  const developers = useDevelopers(true, developerSearch, members);
   const [files, setFiles] = useState<File[]>([]);
   const [tasks, setTasks] = useState<MemberTask[]>([]);
   const nextKey = useRef(0);

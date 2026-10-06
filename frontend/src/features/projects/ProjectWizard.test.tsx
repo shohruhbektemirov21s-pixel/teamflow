@@ -23,14 +23,14 @@ const STAGES = [
 
 describe("ProjectWizard — xodimlarga alohida vazifa", () => {
   it("yaratishda ichki tasdiqlash holatini tanlashga qo'ymaydi", async () => {
-    mockGet({ "/meta/": { ...META, project_stages: STAGES }, "/developers/": DEVS });
+    mockGet({ "/meta/": { ...META, project_stages: STAGES }, "/developers/": DEVS, [`/developers/?ids=${MALIKA.id}`]: DEVS, [`/developers/?ids=${JASUR.id}`]: DEVS });
     renderApp(<ProjectWizard />);
     expect(await screen.findByText(T.projects.stage)).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Tasdiqlash kutilmoqda" })).toBeNull();
   });
 
   it("har bir xodimga vazifa (sana, fayl) bilan loyihani bitta so'rovda yaratadi", async () => {
-    mockGet({ "/developers/": DEVS });
+    mockGet({ "/developers/": DEVS, [`/developers/?ids=${MALIKA.id}`]: DEVS, [`/developers/?ids=${JASUR.id}`]: DEVS });
     vi.mocked(api.post).mockResolvedValue({ id: 7, code: "200000007" });
     renderApp(<ProjectWizard />);
 
@@ -77,7 +77,7 @@ describe("ProjectWizard — xodimlarga alohida vazifa", () => {
   });
 
   it("tugash vaqti boshlanishdan oldin bo'lsa yaratib bo'lmaydi", async () => {
-    mockGet({ "/developers/": DEVS });
+    mockGet({ "/developers/": DEVS, [`/developers/?ids=${MALIKA.id}`]: DEVS, [`/developers/?ids=${JASUR.id}`]: DEVS });
     renderApp(<ProjectWizard />);
 
     fireEvent.change(await screen.findByLabelText(new RegExp(T.projects.code)), { target: { value: "PRJ-10" } });

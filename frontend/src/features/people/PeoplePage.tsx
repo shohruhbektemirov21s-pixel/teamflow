@@ -1,15 +1,15 @@
-﻿import { useQuery } from "@tanstack/react-query";
 import { Eye, Plus, Search, Users } from "lucide-react";
 import { useState } from "react";
 
 import { useMe } from "@/app/auth";
 import { useModal } from "@/app/modals";
-import { api, qs } from "@/shared/api";
+import { usePagedList } from "@/app/queries";
 import { useDebounced } from "@/shared/hooks";
 import { useMeta } from "@/shared/meta";
 import { T } from "@/shared/text";
 import type { Person } from "@/shared/types";
 import { Avatar, Badge, Button, Empty, ErrorBox, Segmented, SkeletonRows } from "@/shared/ui";
+import { Pagination } from "@/shared/ui/Pagination";
 
 import { PersonWork } from "./PersonWork";
 
@@ -22,14 +22,9 @@ export default function PeoplePage() {
   const [onlyFree, setOnlyFree] = useState(false);
   const [q, setQ] = useState("");
   const search = useDebounced(q.trim().toLowerCase());
-  const peopleQuery = useQuery({ queryKey: ["people", role], queryFn: () => api.get<Person[]>(`/people/${qs({ role })}`) });
-  const filtered = (peopleQuery.data ?? []).filter((p) => {
-    if (onlyFree && (p.active_tasks > 0 || p.role !== "developer" || p.is_on_business_trip)) return false;
-    return !search || [p.full_name, p.specialty, p.department_name, p.role_label, p.responsibilities,
-      ...(p.work ?? []).flatMap((t) => [t.title, t.project.name, t.project.code]),
-      ...(p.projects ?? []).flatMap((project) => [project.name, project.code]),
-    ].some((value) => value?.toLowerCase().includes(search));
-  });
+  const peopleQuery = usePagedList<Person>(["people", role, search, onlyFree], "/people/",
+    { role, q: search, free: onlyFree ? 1 : undefined, paginated: 1 });
+  const filtered = peopleQuery.data ?? [];
 
   function identity(p: Person) {
     return <button type="button" className="person-identity" onClick={() => open({ person: p.id })}>
@@ -62,7 +57,7 @@ export default function PeoplePage() {
       </div>
       <div className="row-wrap people-search-row">
         <label className="people-search"><Search size={18} className="muted" /><input type="search" placeholder={T.people.searchPh} aria-label={T.people.searchPh} value={q} onChange={(e) => setQ(e.target.value)} /></label>
-        {peopleQuery.data && <span className="small muted" role="status">{T.people.found(filtered.length)}</span>}
+        {peopleQuery.data && <span className="small muted" role="status">{T.people.found(peopleQuery.pagination?.count ?? 0)}</span>}
       </div>
     </div>
     {peopleQuery.error && <ErrorBox error={peopleQuery.error} onRetry={() => peopleQuery.refetch()} />}
@@ -75,5 +70,6 @@ export default function PeoplePage() {
     <div className={`people-grid ${view === "table" ? "people-mobile-grid" : ""}`}>
       {filtered.map((p) => <article key={p.id} className="card card-pad people-person-card">{identity(p)}{workload(p)}<div className="person-card-work"><div className="small muted person-work-label">{T.people.workTitle}</div><PersonWork person={p} /></div>{actions(p)}</article>)}
     </div>
+    <Pagination data={peopleQuery.pagination} page={peopleQuery.page} onPageChange={peopleQuery.onPageChange} />
   </>;
 }

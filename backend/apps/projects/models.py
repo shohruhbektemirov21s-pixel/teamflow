@@ -32,6 +32,7 @@ class Project(models.Model):
     end_date = models.DateField("Tugash sanasi")
     # Yakunlashdan oldin dasturchilardan so'ralgan tasdiq davri boshlangan payt (null — faol so'rov yo'q).
     completion_requested_at = models.DateTimeField("Dasturchi tasdig'i so'ralgan payt", null=True, blank=True)
+    completion_note = models.TextField("Yakunlash izohi", blank=True)
     created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="+")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -42,6 +43,7 @@ class Project(models.Model):
 
     class Meta:
         ordering = ["-created_at"]
+        indexes = [models.Index(fields=["end_date", "stage"], name="project_end_stage_idx")]
         verbose_name = "Loyiha"
         verbose_name_plural = "Loyihalar"
 
@@ -104,6 +106,7 @@ class ProjectCompletionAck(models.Model):
 
 class ProjectFile(models.Model):
     project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name="files")
+    is_completion = models.BooleanField(default=False)
     file = models.FileField(upload_to=UploadTo("projects/files"), validators=[validate_upload])
     original_name = models.CharField("Asl fayl nomi", max_length=255)
     uploaded_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="+")

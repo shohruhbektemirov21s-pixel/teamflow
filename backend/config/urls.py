@@ -13,6 +13,8 @@ from apps.suggestions.api import SuggestionViewSet
 from apps.tasks.api import TaskViewSet, project_setup
 from apps.chat.api import ChatViewSet
 from apps.ai.api import WebAgentView
+from apps.core.health import live, ready
+from apps.panel.calendar import calendar_summary
 
 admin.site.site_header = "TeamFlow — Boshqaruv paneli"
 admin.site.site_title = "TeamFlow"
@@ -40,6 +42,7 @@ api = [
     path("developers/", accounts.developers),
     path("meta/", panel.meta),
     path("dashboard/", panel.dashboard),
+    path("calendar/", calendar_summary),
     path("people/", panel.people),
     path("people/<int:pk>/business-trip/", accounts.business_trip),
     path("people/<int:pk>/responsibilities/", accounts.responsibilities),
@@ -66,6 +69,8 @@ def spa(request):
 
 
 urlpatterns = [
+    path("healthz/live/", live),
+    path("healthz/ready/", ready),
     path("admin/", admin.site.urls),
     path("api/", include(api)),
     re_path(r"^(?!api/|admin/|static/).*$", spa),

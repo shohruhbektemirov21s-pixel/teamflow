@@ -54,6 +54,7 @@ class User(AbstractUser):
     class Meta:
         verbose_name = "Foydalanuvchi"
         verbose_name_plural = "Foydalanuvchilar"
+        indexes = [models.Index(fields=["is_active", "role", "first_name", "last_name"], name="user_active_role_name_idx")]
 
     def clean(self):
         super().clean()

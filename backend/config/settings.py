@@ -3,6 +3,8 @@ import sys
 import tempfile
 from pathlib import Path
 
+from .runtime import cache_config, database_config
+
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
@@ -86,12 +88,12 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "config.wsgi.application"
 
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
-    }
-}
+DATABASES = {"default": database_config(os.environ.get("DATABASE_URL", ""), BASE_DIR, debug=DEBUG)}
+CACHES = {"default": cache_config(os.environ.get("REDIS_URL", ""), debug=DEBUG)}
+SESSION_ENGINE = "django.contrib.sessions.backends.cached_db" if os.environ.get("REDIS_URL") else "django.contrib.sessions.backends.db"
+if "test" in sys.argv:
+    CACHES = {"default": cache_config("", debug=True)}
+    SESSION_ENGINE = "django.contrib.sessions.backends.db"
 
 AUTH_USER_MODEL = "accounts.User"
 
@@ -116,6 +118,8 @@ STATICFILES_DIRS = [FRONTEND_DIST] if FRONTEND_DIST.exists() else []
 
 MEDIA_URL = "media/"
 MEDIA_ROOT = BASE_DIR / "media"
+if os.environ.get("DJANGO_MEDIA_ROOT"):
+    MEDIA_ROOT = Path(os.environ["DJANGO_MEDIA_ROOT"])
 if "test" in sys.argv:  # testlar haqiqiy media papkaga yozmasin
     MEDIA_ROOT = Path(tempfile.mkdtemp(prefix="teamflow-test-media-"))
     PASSWORD_HASHERS = ["django.contrib.auth.hashers.MD5PasswordHasher"]  # faqat testni tezlatish uchun
@@ -143,7 +147,7 @@ DATA_UPLOAD_MAX_MEMORY_SIZE = UPLOAD_MAX_MB * 1024 * 1024
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": ["apps.core.authentication.SessionAuth"],
     "DEFAULT_PERMISSION_CLASSES": ["rest_framework.permissions.IsAuthenticated"],
-    "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
+    "DEFAULT_PAGINATION_CLASS": "apps.core.pagination.BoundedPagination",
     "PAGE_SIZE": 50,
     "EXCEPTION_HANDLER": "apps.core.api_utils.api_exception_handler",
     "DEFAULT_THROTTLE_RATES": {"auth": "20/min", "ai_web_agent": "5/hour"},
@@ -152,14 +156,22 @@ REST_FRAMEWORK = {
 SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SAMESITE = "Lax"
 CSRF_COOKIE_SAMESITE = "Lax"
+SCALE_TEST_MODE = os.environ.get("SCALE_TEST_MODE", "0") == "1"
+TELEGRAM_DELIVERY_MODE = os.environ.get("TELEGRAM_DELIVERY_MODE", "thread" if DEBUG else "outbox")
+if TELEGRAM_DELIVERY_MODE not in ("thread", "outbox"):
+    raise RuntimeError("Unknown TELEGRAM_DELIVERY_MODE")
 if not DEBUG:
-    SESSION_COOKIE_SECURE = True
-    CSRF_COOKIE_SECURE = True
+    SESSION_COOKIE_SECURE = os.environ.get("DJANGO_SECURE_COOKIES", "1") == "1"
+    CSRF_COOKIE_SECURE = SESSION_COOKIE_SECURE
     # HTTPS faqat ishlab chiqarishda majburiy. Reverse-proxy TLS ni tugatsa ham Django
     # unga ishonishi uchun deploy muhitida `SECURE_PROXY_SSL_HEADER` ni sozlang.
     SECURE_SSL_REDIRECT = os.environ.get("DJANGO_SECURE_SSL_REDIRECT", "1") == "1"
+    SECURE_REDIRECT_EXEMPT = [r"^healthz/"]
     SECURE_HSTS_SECONDS = int(os.environ.get("DJANGO_HSTS_SECONDS", "31536000"))
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     SECURE_CONTENT_TYPE_NOSNIFF = True
     SECURE_REFERRER_POLICY = "same-origin"
     X_FRAME_OPTIONS = "DENY"
+    # Only enable behind the trusted reverse proxy; never expose Gunicorn directly.
+    if os.environ.get("DJANGO_TRUST_PROXY", "0") == "1":
+        SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")

@@ -81,3 +81,23 @@ class ChatApiTests(TestCase):
         response = self.client.get(f"/api/chat/messages/?partner={self.partner.pk}")
         self.assertEqual(len(response.data), MESSAGE_LIMIT)
         self.assertEqual(response.data[-1]["text"], str(MESSAGE_LIMIT + 4))
+
+    def test_poll_returns_only_new_messages_in_this_conversation(self):
+        old = ChatMessage.objects.create(author=self.partner, recipient=self.me, text="Old")
+        new = ChatMessage.objects.create(author=self.partner, recipient=self.me, text="New")
+        other = ChatMessage.objects.create(author=self.other, recipient=self.me, text="Private")
+        url = f"/api/chat/messages/?partner={self.partner.pk}&after={old.pk}"
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual([item["id"] for item in response.data], [new.pk])
+        other.refresh_from_db()
+        self.assertFalse(other.is_read)
+        with self.assertNumQueries(1):
+            from apps.chat.services import messages_with_partner
+            self.assertEqual(messages_with_partner(self.me, self.partner, after=new.pk), [])
+
+    def test_poll_rejects_invalid_cursor(self):
+        for after in ("-1", "abc", "1.5"):
+            with self.subTest(after=after):
+                response = self.client.get(f"/api/chat/messages/?partner={self.partner.pk}&after={after}")
+                self.assertEqual(response.status_code, 400)
