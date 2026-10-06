@@ -2,7 +2,7 @@
 
 Jamoa ishini boshqarish tizimi. Boshqarmalar buyurtma (TZ) yuboradi, loyiha menejeri uni tasdiqlab loyihaga aylantiradi, dasturchilarga vazifa beradi va bajarilgan ishni tekshiradi. Boshliq hamma narsani kuzatadi va boshqaradi.
 
-> **Holat (2026-10-06):** senior-review tuzatishlari va yangi "Tekshiruvga yuborish" oynasi bilan birga tekshirildi: 224 backend testi, 72 frontend testi (3 marta ketma-ket barqaror), TypeScript tur tekshiruvi va frontend build o'tdi. Ishchi muhitdagi joylashtirish alohida tekshirilmagan.
+> **Holat (2026-10-06):** senior-review tuzatishlari va yangi "Tekshiruvga yuborish" oynasi bilan birga tekshirildi: 224 backend testi, 73 frontend testi (3 marta ketma-ket barqaror), TypeScript tur tekshiruvi va frontend build o'tdi. Ishchi muhitdagi joylashtirish alohida tekshirilmagan.
 > Bu fayl — loyihaning **yagona haqiqat manbai**. Agentlar uchun qoidalar: `CLAUDE.md`, `GEMINI.md`. Flow va modal reestri: `docs/FLOWS_MODALS.md`. Arxitektura, ma'lumotlar modeli va API: `docs/ARCHITECTURE.md`.
 
 ## Mundarija
@@ -227,6 +227,7 @@ Menyu guruhlarga bo'lingan: *Asosiy ish* | *Muloqot* | *Kuzatuv* (Kuzatuv faqat 
 ### Buyurtmalar (`/buyurtmalar`)
 - PM/Boshliq uchun "Buyurtmalar (TZ)", Boshqarma uchun "Buyurtmalarim" (faqat o'z buyurtmalari).
 - Filtrlar: **Hammasi** (birinchi, standart tanlangan) · Yangi · Tasdiqlangan · Rad etilgan.
+- Jadvalda buyurtma nomi ostida izoh ko'rsatilmaydi (izoh buyurtma oynasida). Boshqarma bosh sahifasidagi jadval ham shunday.
 
 ### Xodimlar (`/xodimlar`, PM, Boshliq)
 - Barcha jamoa a'zolari (dasturchilar, menejerlar): bandligi, faol va kechikkan vazifalari, hozir nima qilayotgani. Vazifasi yo'qlar birinchi turadi.
