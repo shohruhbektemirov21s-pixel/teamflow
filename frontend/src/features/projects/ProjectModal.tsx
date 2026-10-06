@@ -3,7 +3,7 @@ import { CalendarDays, CheckCircle2, FileText, Pencil, Plus, Save, Search, Send,
 import { useEffect, useState } from "react";
 
 import { useModal } from "@/app/modals";
-import { useDevelopers, useRefresh } from "@/app/queries";
+import { useDevelopers, usePagedList, useRefresh } from "@/app/queries";
 import { Comments } from "@/features/comments/Comments";
 import { DocTitle, DocViewer } from "@/features/docs/DocViewer";
 import { TaskTable } from "@/features/tasks/TaskTable";
@@ -11,6 +11,7 @@ import { Pagination } from "@/shared/ui/Pagination";
 import { api, ApiError, formData, qs } from "@/shared/api";
 import { fmtDate } from "@/shared/format";
 import { useMeta } from "@/shared/meta";
+import { useDebounced } from "@/shared/hooks";
 import { T } from "@/shared/text";
 import type { FileInfo, HistoryItem, ProjectDetail, ProjectStage, Task } from "@/shared/types";
 import {
@@ -41,10 +42,9 @@ export default function ProjectModal({ id }: { id: number }) {
   const meta = useMeta();
   const [tab, setTab] = useState<Tab>("main");
   const query = useQuery({ queryKey: ["project", id], queryFn: () => api.get<ProjectDetail>(`/projects/${id}/`) });
-  const tasks = useQuery({ queryKey: ["tasks", "project", id], queryFn: () => api.get<Task[]>(`/tasks/${qs({ project: id, all: 1 })}`), enabled: tab === "tasks" });
+  const tasks = usePagedList<Task>(["tasks", "project", id], "/tasks/", { project: id }, tab === "tasks");
   const p = query.data;
   const manager = Boolean(p?.actions.edit);
-  const developers = useDevelopers(manager && tab === "team");
 
   const [historyPage, setHistoryPage] = useState(1);
   const [viewing, setViewing] = useState<FileInfo | null>(null);
@@ -52,6 +52,8 @@ export default function ProjectModal({ id }: { id: number }) {
   const [form, setForm] = useState({ name: "", description: "", start_date: "", end_date: "" });
   const [members, setMembers] = useState<number[]>([]);
   const [teamQ, setTeamQ] = useState("");
+  const developerSearch = useDebounced(teamQ.trim());
+  const developers = useDevelopers(manager && tab === "team", developerSearch, members);
   const [files, setFiles] = useState<File[]>([]);
   const [completionOpen, setCompletionOpen] = useState(false);
   const [completionNote, setCompletionNote] = useState("");
@@ -338,6 +340,7 @@ export default function ProjectModal({ id }: { id: number }) {
         {tab === "tasks" && (
           <div className="card">
             <TaskTable tasks={tasks.data} loading={tasks.isLoading} emptyHint={p.actions.add_task ? T.tasks.emptyHint : undefined} />
+            <Pagination data={tasks.pagination} page={tasks.page} onPageChange={tasks.onPageChange} />
           </div>
         )}
 

@@ -43,6 +43,7 @@ class Project(models.Model):
 
     class Meta:
         ordering = ["-created_at"]
+        indexes = [models.Index(fields=["end_date", "stage"], name="project_end_stage_idx")]
         verbose_name = "Loyiha"
         verbose_name_plural = "Loyihalar"
 

@@ -17,14 +17,14 @@
 ```
 
 Portlar: Django `127.0.0.1:8020` (8000-port boshqa dastur bilan band). Vite dev `127.0.0.1:5173`.
-Deployment: bitta Django jarayoni (`127.0.0.1:8020`). Frontend build (`frontend/dist`) Django orqali beriladi (`http://127.0.0.1:8020/`), shuning uchun serverda Node kerak emas. Ishlab chiqishda Vite dev-server `/api` va `/admin` ni 8020-portga proksi qiladi.
+Mahalliy ishga tushirish: Django (`127.0.0.1:8020`) frontend buildni ham beradi. Vite dev-server `/api` va `/admin` ni 8020-portga proksi qiladi. Production: HTTPS gateway → Nginx → Gunicorn/Django → PostgreSQL va Redis. Alohida Telegram outbox worker tashqi xabarlarni yuboradi. Node faqat build bosqichida kerak. Sozlash, ulanishlar chegarasi, backup va masshtablash shartlari: [deployment qo'llanmasi](../backend/deploy/README.md).
 
 ## 2. Texnologiya qarorlari
 
 | Qaror | Tanlov | Nima uchun |
 |---|---|---|
 | Backend | Python 3.14, Django 5.2, DRF 3.17 | Talab. Django admin tayyor tasdiqlash paneli beradi. |
-| DB | SQLite | Talab ("Django'nikidan"). Hamma so'rov ORM orqali, keyin PostgreSQL'ga o'tish oson. |
+| DB | Mahalliy SQLite; production PostgreSQL | Bir vaqtda yozish va tranzaksiya bloklashlari uchun PostgreSQL. Production SQLite'ga yashirin qaytmaydi. |
 | Auth | **Sessiya + CSRF** (DRF `SessionAuthentication`) | Bir origin (SPA Django orqali beriladi). Token `localStorage`da saqlanmaydi, XSS xavfi kam. Qo'shimcha kutubxona kerak emas. |
 | Foydalanuvchi | `AbstractUser` kengaytmasi, `role` maydoni | Rollar 4 ta, qat'iy. Alohida Role/Permission jadvali ortiqcha. |
 | Frontend | React + TypeScript + Vite | Kelishilgan. Node faqat build uchun. |

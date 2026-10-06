@@ -3,7 +3,8 @@ import mimetypes
 
 from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
-from django.db.models import Count, F, Q
+from django.db.models import Count, F, Q, Window
+from django.db.models.functions import RowNumber
 from django.http import FileResponse, Http404
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
@@ -18,6 +19,7 @@ from apps.accounts.serializers import SELF_REGISTER_ROLES
 from apps.core.choices import Priority
 from apps.core.api_utils import avatar_url, require_manager, user_brief
 from apps.core.codes import resolve_code
+from apps.core.pagination import BoundedPagination, bounded_unpaged
 from apps.core.models import ActivityLog, Comment
 from apps.core.services import log
 from apps.notifications.models import Notification
@@ -82,36 +84,41 @@ def dashboard(request):
     return Response(data)
 
 
+def _people_counts(qs):
+    now = timezone.now()
+    return qs.select_related("specialty").annotate(
+        active_tasks=Count("assigned_tasks", filter=Q(assigned_tasks__status__in=ACTIVE, assigned_tasks__archived_at__isnull=True), distinct=True),
+        overdue_tasks=Count("assigned_tasks", filter=Q(assigned_tasks__status__in=ACTIVE, assigned_tasks__due_at__lt=now, assigned_tasks__archived_at__isnull=True), distinct=True),
+        review_tasks=Count("assigned_tasks", filter=Q(assigned_tasks__status="in_review", assigned_tasks__archived_at__isnull=True), distinct=True),
+        done_tasks=Count("assigned_tasks", filter=Q(assigned_tasks__status="done", assigned_tasks__archived_at__isnull=True), distinct=True),
+    )
+
+
 def _people_rows(qs):
     """Xodim qatorlari (ro'yxat va bitta xodim oynasi uchun bir xil shakl): bandlik sonlari va hozirgi ishi.
 
     Sonlar, faol ishlar va loyihalar guruhlab olinadi (xodim soniga bog'liq N+1 yo'q).
     """
     now = timezone.now()
-    t = "assigned_tasks"
-    users = list(
-        qs.select_related("specialty").annotate(
-            active_tasks=Count(t, filter=Q(assigned_tasks__status__in=ACTIVE, assigned_tasks__archived_at__isnull=True), distinct=True),
-            overdue_tasks=Count(t, filter=Q(assigned_tasks__status__in=ACTIVE, assigned_tasks__due_at__lt=now,
-                                            assigned_tasks__archived_at__isnull=True),
-                                distinct=True),
-            review_tasks=Count(t, filter=Q(assigned_tasks__status=Task.Status.IN_REVIEW,
-                                           assigned_tasks__archived_at__isnull=True), distinct=True),
-            done_tasks=Count(t, filter=Q(assigned_tasks__status=Task.Status.DONE,
-                                         assigned_tasks__archived_at__isnull=True), distinct=True),
-        )
-    )
+    users = list(_people_counts(qs)) if hasattr(qs, "annotate") else list(qs)
     doing, work, projects = {}, {}, {}
-    for task in Task.objects.filter(status__in=ACTIVE, archived_at__isnull=True,
-                                    assignees__in=users).distinct().select_related("project").prefetch_related("assignees").order_by(F("due_at").asc(nulls_last=True), "pk"):
-        for u in task.assignees.all():
-            if task.status == Task.Status.IN_PROGRESS:
-                doing.setdefault(u.pk, []).append({"id": task.pk, "title": task.title})
-            work.setdefault(u.pk, []).append({
+    from apps.tasks.models import TaskAssignment
+    assignments = TaskAssignment.objects.filter(developer__in=users, task__status__in=ACTIVE,
+                                                task__archived_at__isnull=True)
+    def previews(queryset):
+        return queryset.select_related("task__project").annotate(_rank=Window(
+            expression=RowNumber(), partition_by=[F("developer_id")],
+            order_by=[F("task__due_at").asc(nulls_last=True), F("task_id").asc()],
+        )).filter(_rank__lte=3).order_by("developer_id", "_rank")
+    for assignment in previews(assignments):
+        task = assignment.task
+        work.setdefault(assignment.developer_id, []).append({
                 "id": task.pk, "title": task.title, "status": task.status,
                 "due_at": task.due_at, "is_overdue": bool(task.due_at and task.due_at < now),
                 "project": {"id": task.project_id, "name": task.project.name, "code": task.project.code},
             })
+    for assignment in previews(assignments.filter(task__status=Task.Status.IN_PROGRESS)):
+        doing.setdefault(assignment.developer_id, []).append({"id": assignment.task_id, "title": assignment.task.title})
     user_ids = {u.pk for u in users}
     for project in Project.objects.filter(
         Q(members__in=users) | Q(created_by__in=users) | Q(order__approved_by__in=users)
@@ -149,9 +156,25 @@ def people(request):
             qs = qs.filter(role=request.query_params["role"])
     else:
         qs = qs.filter(role=Role.DEVELOPER)
-    rows = _people_rows(qs)
-    rows.sort(key=lambda r: (r["active_tasks"], r["full_name"]))
-    return Response(rows)
+    q = request.query_params.get("q", "").strip()[:200]
+    if q:
+        matches = qs.filter(Q(first_name__icontains=q) | Q(last_name__icontains=q) | Q(specialty__name__icontains=q)
+                       | Q(department_name__icontains=q) | Q(responsibilities__icontains=q)
+                       | Q(project_memberships__project__name__icontains=q)
+                       | Q(project_memberships__project__code__icontains=q)
+                       | Q(assigned_tasks__title__icontains=q) | Q(assigned_tasks__project__name__icontains=q)
+                       | Q(assigned_tasks__project__code__icontains=q)).distinct()
+        qs = qs.filter(pk__in=matches.values("pk"))
+    qs = _people_counts(qs)
+    if request.query_params.get("free") == "1":
+        qs = qs.filter(role=Role.DEVELOPER, active_tasks=0).filter(
+            Q(business_trip_return_date__isnull=True) | Q(business_trip_return_date__lt=timezone.localdate()))
+    qs = qs.order_by("active_tasks", "first_name", "last_name", "pk")
+    if request.query_params.get("paginated") == "1":
+        paginator = BoundedPagination()
+        page = paginator.paginate_queryset(qs, request)
+        return paginator.get_paginated_response(_people_rows(page))
+    return Response(_people_rows(bounded_unpaged(qs)))
 
 
 # ─── Qidiruv (Ctrl K) ────────────────────────────────────────────────────────
@@ -334,4 +357,8 @@ def person_profile(request, pk):
     rows = _people_rows(qs)
     if not rows:
         raise Http404
+    rows[0]["report"] = Task.objects.filter(assignments__developer=pk, archived_at__isnull=True).aggregate(
+        total=Count("pk"), done=Count("pk", filter=Q(status="done")),
+        late=Count("pk", filter=Q(status="done", completed_at__gt=F("due_at"))),
+    )
     return Response(rows[0])

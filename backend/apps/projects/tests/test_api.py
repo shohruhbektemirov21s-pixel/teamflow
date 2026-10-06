@@ -183,7 +183,7 @@ class ProjectCompletionTests(TestCase):
         for f in report["files"]:
             download = client_for(self.dept).get(f["url"])
             self.assertEqual(download.status_code, 200)
-            download.close()
+            self.assertTrue(b"".join(download.streaming_content))
             self.assertEqual(client_for(self.other_dept).get(f["url"]).status_code, 404)
         tz = project.files.get(is_completion=False)
         self.assertEqual(client_for(self.dept).get(f"/api/files/project/{tz.pk}/").status_code, 404)

@@ -50,10 +50,15 @@ describe("TaskModal", () => {
   it("ijrochi qo'shish: qidiruvdan dasturchi tanlanadi va saqlanadi", async () => {
     mockGet({
       "/tasks/1/": taskDetail({ actions: { ...taskDetail().actions, manage_assignees: true } }),
-      "/developers/": [
+    ...Object.fromEntries(["", "mal"].flatMap((q) => [[], [JASUR.id], [JASUR.id, MALIKA.id]].map((ids) => {
+      const params = new URLSearchParams();
+      if (q) params.set("q", q);
+      if (ids.length) params.set("ids", ids.join(","));
+      return [`/developers/${params.size ? `?${params}` : ""}`, [
         { id: JASUR.id, full_name: JASUR.full_name, specialty: "Backend" },
         { id: MALIKA.id, full_name: MALIKA.full_name, specialty: "Frontend" },
-      ],
+      ]];
+    }))),
     });
     renderApp(<TaskModal id={1} />);
 

@@ -60,7 +60,8 @@ export default function TaskModal({ id, submitMode }: { id: number; submitMode?:
   const me = useMe();
   const { close, open } = useModal();
   const toast = useToast();
-  const refresh = useRefresh();
+  const refresh = useRefresh(["task", "tasks", "project", "projects", "order", "orders", "dashboard",
+    "people", "person", "profile", "developers", "history", "workdone", "comments", "notifications", "search", "calendar"]);
   const meta = useMeta();
   const query = useQuery({ queryKey: ["task", id], queryFn: () => api.get<TaskDetail>(`/tasks/${id}/`) });
   const task = query.data;

@@ -1,11 +1,14 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 
 import { api, ApiError } from "@/shared/api";
+import { usePagedList } from "@/app/queries";
+import { useDebounced } from "@/shared/hooks";
 import { fmtDate } from "@/shared/format";
 import { T } from "@/shared/text";
 import type { Person } from "@/shared/types";
 import { Badge, Button, ErrorBox, Field, SkeletonRows, useToast } from "@/shared/ui";
+import { Pagination } from "@/shared/ui/Pagination";
 
 const tomorrow = () => {
   const date = new Date();
@@ -18,7 +21,9 @@ export function BusinessTripPanel() {
   const toast = useToast();
   const [employeeId, setEmployeeId] = useState("");
   const [returnDate, setReturnDate] = useState("");
-  const people = useQuery({ queryKey: ["people", ""], queryFn: () => api.get<Person[]>("/people/") });
+  const [search, setSearch] = useState("");
+  const query = useDebounced(search.trim());
+  const people = usePagedList<Person>(["people", "trips", query], "/people/", { paginated: 1, q: query });
   const employees = (people.data ?? []).filter((person) => person.role === "developer" || person.role === "pm");
   const selected = employees.find((person) => person.id === Number(employeeId));
   const refresh = () => void qc.invalidateQueries();
@@ -38,6 +43,8 @@ export function BusinessTripPanel() {
       <p className="small muted">{T.profile.businessTripHint}</p>
       {people.isLoading ? <SkeletonRows rows={2} /> : people.error ? <ErrorBox error={people.error} onRetry={() => people.refetch()} /> : (
         <>
+          <input className="input" type="search" aria-label={T.people.searchPh} placeholder={T.people.searchPh} value={search} onChange={(event) => { setSearch(event.target.value); setEmployeeId(""); }} />
+          <Pagination data={people.pagination} page={people.page} onPageChange={(page) => { people.onPageChange(page); setEmployeeId(""); }} />
           <div className="grid-2">
             <Field label={T.profile.tripEmployee}>
               {(id) => <select id={id} className="select" value={employeeId} onChange={(event) => { setEmployeeId(event.target.value); setReturnDate(""); }}>

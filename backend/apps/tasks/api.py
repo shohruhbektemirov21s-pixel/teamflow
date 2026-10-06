@@ -1,4 +1,5 @@
-from django.db.models import Prefetch
+from django.db.models import Count, OuterRef, Prefetch, Q, Subquery
+from django.db.models.functions import Coalesce
 from django.shortcuts import get_object_or_404
 from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action, api_view, permission_classes
@@ -7,6 +8,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from apps.core.api_utils import IsManager, require_manager
+from apps.core.pagination import bounded_unpaged
 from apps.orders.permissions import visible_orders
 from apps.projects.permissions import visible_projects
 
@@ -35,15 +37,17 @@ class TaskViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.Gen
     def get_queryset(self):
         qs = visible_tasks(self.request.user).prefetch_related(
             Prefetch("assignments", queryset=TaskAssignment.objects.select_related("developer")),
-            "subtasks",
         )
         if self.action != "retrieve":
             qs = qs.filter(archived_at__isnull=True)
         if self.action == "list":
-            return filter_tasks(qs, self.request.query_params, self.request.user).order_by(
-                "due_at", "-created_at"
-            )
+            subtask_counts = SubTask.objects.filter(task_id=OuterRef("pk")).order_by().values("task_id")
+            return filter_tasks(qs, self.request.query_params, self.request.user).annotate(
+                subtask_total=Coalesce(Subquery(subtask_counts.annotate(n=Count("pk")).values("n")), 0),
+                subtask_done=Coalesce(Subquery(subtask_counts.filter(is_done=True).annotate(n=Count("pk")).values("n")), 0),
+            ).order_by("due_at", "-created_at", "-pk")
         return qs.prefetch_related(
+            "subtasks",
             "worklogs__author",
             "subtasks__assignees",
             "files",
@@ -59,8 +63,16 @@ class TaskViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.Gen
     def paginate_queryset(self, queryset):
         # Doska va taqvim butun ro'yxatni oladi: ?all=1 (visible_tasks bilan cheklangan)
         if self.request.query_params.get("all") == "1":
+            self._unpaged_rows = bounded_unpaged(queryset)
             return None
         return super().paginate_queryset(queryset)
+
+    def list(self, request, *args, **kwargs):
+        queryset = self.filter_queryset(self.get_queryset())
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            return self.get_paginated_response(self.get_serializer(page, many=True).data)
+        return Response(self.get_serializer(self._unpaged_rows, many=True).data)
 
     def _detail(self, task):
         self.action = "retrieve"

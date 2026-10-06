@@ -1,0 +1,100 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-teamflow}
+      POSTGRES_USER: teamflow
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
+    volumes: ["database:/var/lib/postgresql/data"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U teamflow -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    mem_limit: 1536m
+    restart: unless-stopped
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--maxmemory", "256mb", "--maxmemory-policy", "allkeys-lru"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    mem_limit: 384m
+    restart: unless-stopped
+  app:
+    build:
+      context: ../..
+      dockerfile: backend/Dockerfile
+    image: teamflow-scale:local
+    environment: &app_env
+      DJANGO_DEBUG: "0"
+      DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:?Set DJANGO_SECRET_KEY}
+      DJANGO_ALLOWED_HOSTS: ${DJANGO_ALLOWED_HOSTS:-localhost,127.0.0.1,app}
+      DJANGO_CSRF_TRUSTED_ORIGINS: ${DJANGO_CSRF_TRUSTED_ORIGINS:-https://localhost}
+      DJANGO_TRUST_PROXY: "1"
+      DATABASE_URL: postgresql://teamflow:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-teamflow}
+      REDIS_URL: redis://redis:6379/0
+      TELEGRAM_DELIVERY_MODE: outbox
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
+      TELEGRAM_BOT_USERNAME: ${TELEGRAM_BOT_USERNAME:-}
+      TINYFISH_API_KEY: ${TINYFISH_API_KEY:-}
+      TINYFISH_TIMEOUT_SECONDS: ${TINYFISH_TIMEOUT_SECONDS:-20}
+      WEB_WORKERS: ${WEB_WORKERS:-4}
+      WEB_THREADS: ${WEB_THREADS:-4}
+      WEB_MAX_REQUESTS: ${WEB_MAX_REQUESTS:-0}
+      SCALE_TEST_MODE: ${SCALE_TEST_MODE:-0}
+      DJANGO_SECURE_SSL_REDIRECT: ${DJANGO_SECURE_SSL_REDIRECT:-1}
+      DJANGO_SECURE_COOKIES: ${DJANGO_SECURE_COOKIES:-1}
+    depends_on:
+      db: {condition: service_healthy}
+      redis: {condition: service_healthy}
+    volumes: ["uploads:/app/backend/media", "static:/app/backend/staticfiles"]
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/healthz/live/', timeout=3)"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+    mem_limit: 2g
+    restart: unless-stopped
+  telegram:
+    image: teamflow-scale:local
+    command: ["python", "manage.py", "delivertelegram"]
+    environment: *app_env
+    depends_on: {app: {condition: service_healthy}}
+    mem_limit: 256m
+    restart: unless-stopped
+    profiles: ["telegram"]
+  bot:
+    image: teamflow-scale:local
+    command: ["python", "manage.py", "runbot"]
+    environment: *app_env
+    depends_on: {app: {condition: service_healthy}}
+    mem_limit: 256m
+    restart: unless-stopped
+    profiles: ["telegram"]
+  proxy:
+    image: nginx:1.28-alpine
+    ports: ["${BIND_ADDRESS:-127.0.0.1}:${HTTP_PORT:-8088}:80"]
+    environment:
+      PROXY_SCHEME: ${PROXY_SCHEME:-https}
+    volumes:
+      - ./nginx.conf:/etc/nginx/templates/default.conf.template:ro
+      - static:/srv/static:ro
+    depends_on: {app: {condition: service_healthy}}
+    mem_limit: 128m
+    restart: unless-stopped
+  load:
+    build:
+      context: ../..
+      dockerfile: backend/loadtesting/Dockerfile
+    image: teamflow-load:local
+    volumes: ["../loadtesting/artifacts:/artifacts"]
+    depends_on: {proxy: {condition: service_started}}
+    mem_limit: 1g
+    profiles: ["load"]
+volumes:
+  database:
+  uploads:
+  static:

@@ -2,7 +2,7 @@
 
 Jamoa ishini boshqarish tizimi. Boshqarmalar buyurtma (TZ) yuboradi, loyiha menejeri uni tasdiqlab loyihaga aylantiradi, dasturchilarga vazifa beradi va bajarilgan ishni tekshiradi. Boshliq hamma narsani kuzatadi va boshqaradi.
 
-> **Holat (2026-10-06):** UX/UI tugmalari, modal sarlavha/pastki panellari, mobil buyurtma jadvali, klaviatura fokusi va tablar tartiblandi. Boshqarma buyurtmalari: yakunlash tasdig'i kutilayotganlar birinchi, yangi/faol buyurtmalar keyingi, to'liq yakunlanganlar oxirida. 236 backend testi, 94 frontend testi, TypeScript va build o'tdi. To'rt rol bo'yicha 253 boshlang'ich brauzer holati va 42 yakuniy holat 375/768/1440 px da soxta API bilan tekshirildi; 9 namunaviy axe auditida tuzatishdan keyin avtomatik buzilish topilmadi. Mahalliy server qayta ishga tushirildi, / va /api/meta/ 200.
+> **Holat (2026-10-06):** Production PostgreSQL/Redis, Gunicorn/Nginx, Telegram outbox, indekslar va sahifalash qo'shildi. 10 000 bir vaqtda virtual foydalanuvchi: 250 soniya peak, 501,96 so'rov/soniya, 135 349 so'rov, 0 xato, p95 110 ms. 269 PostgreSQL backend testi, 104 frontend testi, TypeScript, build va haqiqiy brauzerdagi 60 holat o'tdi. Mahalliy biznes ma'lumotlari saqlandi; root, JS, readiness va meta 200. Server hali tanlanmagan; natija sinovdagi aniq yuklama profiliga tegishli. [To'liq dalil va chegaralar](docs/performance/2026-10-06/REPORT.md), [production deploy](backend/deploy/README.md).
 > Bu fayl — loyihaning **yagona haqiqat manbai**. Agentlar uchun qoidalar: `CLAUDE.md`, `GEMINI.md`. Flow va modal reestri: `docs/FLOWS_MODALS.md`. Arxitektura, ma'lumotlar modeli va API: `docs/ARCHITECTURE.md`.
 
 ## Mundarija
@@ -32,7 +32,8 @@ Jamoa ishini boshqarish tizimi. Boshqarmalar buyurtma (TZ) yuboradi, loyiha mene
 | Qatlam | Tanlov |
 |---|---|
 | Backend | Python + Django + Django REST Framework |
-| Ma'lumotlar bazasi | Django standart bazasi (SQLite) |
+| Ma'lumotlar bazasi | Mahalliy SQLite; production PostgreSQL |
+| Production | Gunicorn + Nginx, Redis sessiya keshi, alohida Telegram outbox worker |
 | Admin panel | Django admin (alohida admin panel yozilmaydi) |
 | Frontend | React + TypeScript (Vite). Node faqat ishlab chiqishda kerak |
 | Word (.docx) ko'rish | Brauzerda, modal ichida (`docx-preview`) |
@@ -502,3 +503,10 @@ Batafsil qoidalar: `CLAUDE.md` 4-bo'lim. Dizayn oldingi loyiha skrinshotlaridan 
 | Boshqarma bosh paneli | 12 | 1 |
 
 O'lchov mavjud kichik bazada (7 vazifa, 6 loyiha), autentifikatsiya qilingan API orqali olindi. Bosh panel javob hajmi saqlandi. 243 backend va 102 frontend testi o'tdi. Chatning davriy so'rovlari faol suhbatda daqiqasiga 32 dan 16 ga kamaytirildi. Bu SQL va so'rov sarfi o'lchovi; umumiy CPU/RAM yoki brauzer tezligi foizi o'lchanmagan.
+
+- **2026-10-06 (qo'shimcha optimallashtirish):** Chat polling faqat oxirgi xabardan keyingi yangi xabarlarni oladi; yangi xabar bo'lmasa javob `[]` va bazaga UPDATE yo'q. Brauzer oxirgi 200 xabarni saqlaydi. Vazifa ruxsatlari yuklangan ijrochilar ro'yxatidan tekshiriladi; ijrochilar o'zgarsa kesh tozalanadi. Mahalliy dasturchi vazifa tafsilotida SQL 9 dan 6 ga tushdi. Vazifa amallari chat, takliflar va metama'lumotlarni qayta yuklamaydi. Mahalliy server `--noreload` bilan ishga tushirildi (4 jarayondan 2 ga); Startup skripti ham avvaldan shu rejimda. Umumiy CPU/RAM yoki foydalanuvchi sezadigan tezlik foizi o'lchanmagan.
+
+Tekshiruv: 247 backend, 103 frontend testi (bitta worker), TypeScript va production build o'tdi. O'lchov va tekshiruv qaydi: `docs/scratch/performance-verification-2026-10-06.md`.
+
+- **2026-10-06 (10 000+ foydalanuvchi):** Foydalanuvchi bir vaqtda faol 10 000+ foydalanuvchini aniqlashtirdi; server hali tanlanmagan. Production PostgreSQL/Redis, Gunicorn/Nginx, sahifalash va Telegram outbox tayyorlandi. 4 jarayonli Locust bilan 10 000 alohida sessiya, 250 soniya peak, 501,96 so'rov/soniya, 135 349 so'rov, 0 xato, p95 110 ms; aniq profil va chegaralar docs/performance/2026-10-06/REPORT.md da. 269 PostgreSQL backend, 104 frontend testi hamda 60 haqiqiy brauzer holati o'tdi.
+- **2026-10-06 (tozalash va GitHub):** Foydalanuvchi testdan keyin kiritilgan ma'lumotlarni tozalashni va oxirida GitHub'ga yuklashni aniq buyurdi. Ushbu ish uchun commit/push ruxsati mavjud. Testlar alohida teamflow-scale-test Docker loyihasi va teamflow_scale PostgreSQL bazasida; haqiqiy SQLite biznes ma'lumotlari saqlanadi. Test konteyner/baza/volume va maxfiy fixturelar yakunda olib tashlanadi. Deployment qo'llanmasi backend/deploy/README.md da; haqiqiy server/TLS va SQLite data cutover hali bajarilmagan.

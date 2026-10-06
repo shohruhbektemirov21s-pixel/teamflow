@@ -21,7 +21,7 @@ describe("ProfilePage", () => {
     testUser.current = { ...PM, role: "boss", role_label: "Boshliq" };
     mockGet({
       "/auth/profile/": { ...PROFILE, ...testUser.current, stats: null },
-      "/people/": [{ id: 3, full_name: "Jasur Alimov", role: "developer", role_label: "Dasturchi", is_on_business_trip: false }],
+      "/people/?paginated=1": [{ id: 3, full_name: "Jasur Alimov", role: "developer", role_label: "Dasturchi", is_on_business_trip: false }],
     });
     vi.mocked(api.put).mockResolvedValue({ id: 3, is_on_business_trip: true, business_trip_return_date: "2099-01-01" });
     renderApp(<ProfilePage />);
@@ -39,13 +39,13 @@ describe("ProfilePage", () => {
     testUser.current = DEV;
     mockGet({
       "/auth/profile/": PROFILE,
-      "/tasks/?mine=1&all=1": [taskDetail({ title: "Mening vazifam" })],
+      "/tasks/?mine=1": [taskDetail({ title: "Mening vazifam" })],
     });
     renderApp(<ProfilePage />);
 
     expect(await screen.findByRole("region", { name: T.profile.myTasks })).toBeTruthy();
     expect(await screen.findByText("Mening vazifam")).toBeTruthy();
-    expect(api.get).toHaveBeenCalledWith("/tasks/?mine=1&all=1");
+    expect(api.get).toHaveBeenCalledWith("/tasks/?mine=1");
   });
 
   it("menejer profilida vazifalar ro'yxati so'ralmaydi", async () => {
@@ -54,7 +54,7 @@ describe("ProfilePage", () => {
 
     expect(await screen.findByText(T.profile.editInfoTitle)).toBeTruthy();
     expect(screen.queryByRole("region", { name: T.profile.myTasks })).toBeNull();
-    expect(api.get).not.toHaveBeenCalledWith("/tasks/?mine=1&all=1");
+    expect(api.get).not.toHaveBeenCalledWith("/tasks/?mine=1");
   });
 
   it("Telegram izohida bot havolasi bor (bot nomi serverdan, /meta/)", async () => {

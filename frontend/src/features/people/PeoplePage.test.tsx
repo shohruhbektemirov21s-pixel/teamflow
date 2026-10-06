@@ -26,7 +26,7 @@ afterEach(() => { testUser.current = PM; });
 describe("PeoplePage", () => {
   it.each(["boss", "pm"] as const)("%s ishlarni ko'radi va profilni ochadi", async (role) => {
     testUser.current = { ...PM, role };
-    mockGet({ [role === "boss" ? "/people/" : "/people/?role=developer"]: [person] });
+    mockGet({ [role === "boss" ? "/people/?paginated=1" : "/people/?role=developer&paginated=1"]: [person] });
     renderApp(<><PeoplePage /><LocationState /></>);
     const table = await screen.findByRole("table");
     await within(table).findByText("API tayyorlash");
@@ -36,7 +36,7 @@ describe("PeoplePage", () => {
   });
 
   it("vazifa va loyiha tugmalari tegishli oynani ochadi", async () => {
-    mockGet({ "/people/?role=developer": [person] });
+    mockGet({ "/people/?role=developer&paginated=1": [person] });
     renderApp(<><PeoplePage /><LocationState /></>);
     const table = await screen.findByRole("table");
     fireEvent.click(await within(table).findByRole("button", { name: /API tayyorlash/ }));
@@ -46,7 +46,7 @@ describe("PeoplePage", () => {
   });
 
   it("karta ichida tugmalar bir-biriga joylanmaydi va safarda vazifa berilmaydi", async () => {
-    mockGet({ "/people/?role=developer": [{ ...person, is_on_business_trip: true }] });
+    mockGet({ "/people/?role=developer&paginated=1": [{ ...person, is_on_business_trip: true }] });
     renderApp(<PeoplePage />);
     const table = await screen.findByRole("table");
     expect((await within(table).findByRole("button", { name: T.people.giveTask }) as HTMLButtonElement).disabled).toBe(true);
@@ -58,7 +58,12 @@ describe("PeoplePage", () => {
 
   it("loyiha nomi bilan xodim topiladi va bo'shlar filtri ishlaydi", async () => {
     const free = { ...person, id: 4, full_name: "Bo'sh xodim", active_tasks: 0, work: [], projects: [] };
-    mockGet({ "/people/?role=developer": [person, free] });
+    mockGet({
+      "/people/?role=developer&paginated=1": [person, free],
+      "/people/?role=developer&q=portal&paginated=1": [person],
+      "/people/?role=developer&free=1&paginated=1": [free],
+      "/people/?role=developer&q=portal&free=1&paginated=1": [],
+    });
     renderApp(<PeoplePage />);
     await screen.findByRole("table");
     fireEvent.change(screen.getByRole("searchbox"), { target: { value: "Portal" } });

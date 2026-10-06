@@ -1,0 +1,27 @@
+{
+  "app": {
+    "sample_count": 31,
+    "max_cpu_percent": 702.89,
+    "max_memory_mib": 897.4
+  },
+  "proxy": {
+    "sample_count": 31,
+    "max_cpu_percent": 19.02,
+    "max_memory_mib": 39.27
+  },
+  "db": {
+    "sample_count": 31,
+    "max_cpu_percent": 275.35,
+    "max_memory_mib": 208.4
+  },
+  "redis": {
+    "sample_count": 31,
+    "max_cpu_percent": 9.9,
+    "max_memory_mib": 13.89
+  },
+  "load-generator": {
+    "sample_count": 30,
+    "max_cpu_percent": 112.14,
+    "max_memory_mib": 461.6
+  }
+}

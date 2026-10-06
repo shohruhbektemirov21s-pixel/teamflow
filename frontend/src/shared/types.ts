@@ -181,6 +181,7 @@ export interface ProjectDetail extends Project {
 }
 
 export interface Person {
+  report?: { total: number; done: number; late: number };
   responsibilities?: string;
   id: number;
   full_name: string;

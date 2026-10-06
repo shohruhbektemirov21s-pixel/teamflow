@@ -23,11 +23,16 @@ const PROJECT: ProjectDetail = {
 function setup(overrides: Partial<ProjectDetail> = {}) {
   mockGet({
     "/projects/1/": { ...PROJECT, ...overrides },
-    "/tasks/?project=1&all=1": [],
-    "/developers/": [
-      { id: JASUR.id, full_name: JASUR.full_name, specialty: "Backend" },
-      { id: MALIKA.id, full_name: MALIKA.full_name, specialty: "Frontend" },
-    ],
+    "/tasks/?project=1": [],
+    ...Object.fromEntries(["", "mal"].flatMap((q) => [[], [JASUR.id], [JASUR.id, MALIKA.id]].map((ids) => {
+      const params = new URLSearchParams();
+      if (q) params.set("q", q);
+      if (ids.length) params.set("ids", ids.join(","));
+      return [`/developers/${params.size ? `?${params}` : ""}`, [
+        { id: JASUR.id, full_name: JASUR.full_name, specialty: "Backend" },
+        { id: MALIKA.id, full_name: MALIKA.full_name, specialty: "Frontend" },
+      ]];
+    }))),
   });
   renderApp(<ProjectModal id={1} />);
 }
@@ -36,10 +41,10 @@ describe("ProjectModal — yakunlash", () => {
   it("vazifalarni faqat vazifalar tabi ochilganda yuklaydi", async () => {
     setup();
     await screen.findByRole("button", { name: T.projects.requestCompletion });
-    expect(api.get).not.toHaveBeenCalledWith("/tasks/?project=1&all=1");
+    expect(api.get).not.toHaveBeenCalledWith("/tasks/?project=1");
     expect(api.get).not.toHaveBeenCalledWith("/developers/");
     fireEvent.click(screen.getByRole("tab", { name: /Vazifalar/ }));
-    await waitFor(() => expect(api.get).toHaveBeenCalledWith("/tasks/?project=1&all=1"));
+    await waitFor(() => expect(api.get).toHaveBeenCalledWith("/tasks/?project=1"));
   });
 
   it("hamma rozi bo'lgach PM yakunlaydi va oldingi hisobotni saqlaydi", async () => {
@@ -141,7 +146,7 @@ describe("ProjectModal — tarix", () => {
   it("keyingi tarix sahifasini ko'rsatadi", async () => {
     mockGet({
       "/projects/1/": PROJECT,
-      "/tasks/?project=1&all=1": [],
+      "/tasks/?project=1": [],
       "/developers/": [],
       "/history/?project=1&paginated=1": { count: 21, next: true, previous: false, results: [] },
       "/history/?project=1&paginated=1&page=2": { count: 21, next: false, previous: true, results: [

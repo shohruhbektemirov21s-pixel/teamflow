@@ -13,7 +13,7 @@ from django.utils.dateparse import parse_date
 from apps.core.codes import resolve_code
 from apps.core.periods import PERIOD_KEYS, period_cards, period_starts
 
-from .models import Task
+from .models import Task, TaskAssignment
 
 S = Task.Status
 ACTIVE = [S.CONTROL, S.IN_PROGRESS, S.IN_REVIEW]
@@ -60,7 +60,7 @@ def _day_range(d):
 def filter_tasks(qs, params, user):
     """GET parametrlari bo'yicha filtr (ro'yxat, jadval, taqvim, doska)."""
     if params.get("mine") == "1":
-        qs = qs.filter(assignments__developer=user)
+        qs = qs.filter(pk__in=TaskAssignment.objects.filter(developer=user).values("task_id"))
     if params.get("q"):
         code = resolve_code(params["q"])
         if code:
@@ -119,7 +119,9 @@ def filter_tasks(qs, params, user):
         qs = qs.filter(due_at__gte=_day_range(d)[0])
     if params.get("due_to") and (d := parse_date(params["due_to"])):
         qs = qs.filter(due_at__lt=_day_range(d)[1])
-    return qs.distinct()
+    # Only the name lookup can match multiple assignments for one task.
+    # Avoid a DISTINCT over every wide task row for the ordinary list/count.
+    return qs.distinct() if params.get("assignee_name") else qs
 
 
 def dashboard_counts(qs):

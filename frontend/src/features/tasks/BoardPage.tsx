@@ -10,19 +10,20 @@ import {
   useSensor,
   useSensors,
 } from "@dnd-kit/core";
-import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { CalendarClock, GripVertical, Lock, MoreHorizontal, Plus } from "lucide-react";
 import { type ReactNode, useState } from "react";
 
 import { useModal } from "@/app/modals";
-import { useProjects, useRefresh } from "@/app/queries";
-import { api, qs } from "@/shared/api";
+import { usePagedList, useProjects, useRefresh } from "@/app/queries";
+import { api } from "@/shared/api";
 import { fmtDateTime } from "@/shared/format";
 import { useMeta } from "@/shared/meta";
 import { boardMove, TASK_TONE } from "@/shared/status";
 import { T } from "@/shared/text";
-import type { Task, TaskStatus } from "@/shared/types";
+import type { Paged, Task, TaskStatus } from "@/shared/types";
 import { Button, CodeTag, Due, ErrorBox, PriorityBadge, Segmented, Skeleton, useToast } from "@/shared/ui";
+import { Pagination } from "@/shared/ui/Pagination";
 
 type DueFilter = "" | "today" | "week";
 
@@ -43,12 +44,8 @@ export default function BoardPage() {
   const [due, setDue] = useState<DueFilter>("");
   const [dragging, setDragging] = useState<Task | null>(null);
 
-  const key = ["tasks", "board", project, due];
-  const query = useQuery({
-    queryKey: key,
-    queryFn: () => api.get<Task[]>(`/tasks/${qs({ mine: 1, all: 1, project, due })}`),
-    placeholderData: keepPreviousData,
-  });
+  const query = usePagedList<Task>(["tasks", "board", project, due], "/tasks/", { mine: 1, project, due });
+  const key = query.queryKey;
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }), // oddiy bosish — modal ochadi
@@ -61,8 +58,9 @@ export default function BoardPage() {
     mutationFn: (id: number) => api.post(`/tasks/${id}/start/`),
     onMutate: async (id) => {
       await qc.cancelQueries({ queryKey: key });
-      const prev = qc.getQueryData<Task[]>(key);
-      qc.setQueryData<Task[]>(key, (xs) => xs?.map((t) => (t.id === id ? { ...t, status: "in_progress" } : t)));
+      const prev = qc.getQueryData<Paged<Task>>(key);
+      qc.setQueryData<Paged<Task>>(key, (xs) => xs && ({ ...xs,
+        results: xs.results.map((t) => (t.id === id ? { ...t, status: "in_progress" } : t)) }));
       return { prev };
     },
     onError: (e: Error, _id, ctx) => {
@@ -149,6 +147,7 @@ export default function BoardPage() {
           <DragOverlay>{dragging && <Card task={dragging} overlay />}</DragOverlay>
         </DndContext>
       )}
+      <Pagination data={query.pagination} page={query.page} onPageChange={query.onPageChange} />
     </>
   );
 }

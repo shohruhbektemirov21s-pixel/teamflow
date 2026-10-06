@@ -1,0 +1,22 @@
+[
+  {
+    "check": "invalid login rejected",
+    "passed": true
+  },
+  {
+    "check": "valid login accepted",
+    "passed": true
+  },
+  {
+    "check": "session survives reload",
+    "passed": true
+  },
+  {
+    "check": "logout accepted",
+    "passed": true
+  },
+  {
+    "check": "logged-out session denied",
+    "passed": true
+  }
+]

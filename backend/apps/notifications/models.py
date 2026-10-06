@@ -35,9 +35,26 @@ class Notification(models.Model):
 
     class Meta:
         ordering = ["-created_at"]
-        indexes = [models.Index(fields=["recipient", "is_read"])]
+        indexes = [models.Index(fields=["recipient", "is_read"]),
+                   models.Index(fields=["recipient", "-created_at", "-id"], name="notification_feed_idx")]
         verbose_name = "Bildirishnoma"
         verbose_name_plural = "Bildirishnomalar"
 
     def __str__(self):
         return f"{self.recipient}: {self.message}"
+
+
+class TelegramDelivery(models.Model):
+    """Transactional outbox, independent from notification read/delete state."""
+    chat_id = models.CharField(max_length=100)
+    text = models.CharField(max_length=255)
+    attempts = models.PositiveSmallIntegerField(default=0)
+    available_at = models.DateTimeField()
+    lease_until = models.DateTimeField(null=True)
+    lease_token = models.CharField(max_length=32, blank=True)
+    sent_at = models.DateTimeField(null=True)
+    failed_at = models.DateTimeField(null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        indexes = [models.Index(fields=["sent_at", "failed_at", "available_at"], name="telegram_pending_idx")]

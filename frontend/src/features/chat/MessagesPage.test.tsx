@@ -1,13 +1,33 @@
-import { fireEvent, screen } from "@testing-library/react";
+import { fireEvent, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
 import { MALIKA, PM } from "@/test/fixtures";
 import { mockGet, renderApp } from "@/test/render";
 import { T } from "@/shared/text";
+import { api } from "@/shared/api";
 
 import MessagesPage from "./MessagesPage";
 
 describe("MessagesPage", () => {
+  it("polling eski xabarlarni saqlaydi va faqat yangi xabarlarni oladi", async () => {
+    mockGet({
+      "/chat/conversations/": [{ partner: MALIKA, last_message: "Old", unread_count: 0 }],
+      [`/chat/messages/?partner=${MALIKA.id}`]: [
+        { id: 10, text: "Old", created_at: "2026-09-30T08:00:00Z", author_id: MALIKA.id },
+      ],
+      [`/chat/messages/?partner=${MALIKA.id}&after=10`]: [
+        { id: 11, text: "New", created_at: "2026-09-30T08:01:00Z", author_id: MALIKA.id },
+      ],
+      [`/chat/messages/?partner=${MALIKA.id}&after=11`]: [],
+    });
+    renderApp(<MessagesPage />);
+    fireEvent.click(await screen.findByRole("button", { name: new RegExp(MALIKA.full_name) }));
+    await screen.findByText("Old", { selector: ".bubble" });
+    await screen.findByText("New", { selector: ".bubble" }, { timeout: 7000 });
+    expect(screen.getByText("Old", { selector: ".bubble" })).toBeTruthy();
+    await waitFor(() => expect(api.get).toHaveBeenCalledWith(`/chat/messages/?partner=${MALIKA.id}&after=11`), { timeout: 7000 });
+    expect(screen.getAllByText("New", { selector: ".bubble" })).toHaveLength(1);
+  }, 20000);
   it("qidiruvdan yangi odam tanlansa suhbat ochiladi, o'z xabarim 'mine' uslubida", async () => {
     mockGet({
       "/chat/conversations/": [],

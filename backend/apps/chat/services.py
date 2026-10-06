@@ -45,13 +45,18 @@ def conversation_summaries(user):
 MESSAGE_LIMIT = 200  # suhbatda oxirgi N ta xabar — uzun yozishma butunlay yuklanmasin
 
 
-def messages_with_partner(user, partner):
-    """Suhbatning oxirgi `MESSAGE_LIMIT` ta xabari (eskidan yangiga). Kiruvchi xabarlar o'qildi deb belgilanadi."""
-    latest = list(
-        ChatMessage.objects.filter(Q(author=user, recipient=partner) | Q(author=partner, recipient=user))
-        .order_by("-created_at", "-id")[:MESSAGE_LIMIT]
-    )
-    ChatMessage.objects.filter(author=partner, recipient=user, is_read=False).update(is_read=True)
+def messages_with_partner(user, partner, *, after=None):
+    """Oxirgi xabarlar; pollingda faqat `after` ID dan yangilari. Javob eskidan yangiga.
+
+    Faqat olingan xabarlargacha o'qildi belgilanadi; bo'sh polling bazaga yozmaydi.
+    """
+    messages = ChatMessage.objects.filter(Q(author=user, recipient=partner) | Q(author=partner, recipient=user))
+    if after is not None:
+        messages = messages.filter(id__gt=after)
+    latest = list(messages.order_by("-id")[:MESSAGE_LIMIT])
+    if latest:
+        ChatMessage.objects.filter(author=partner, recipient=user, is_read=False,
+                                   id__lte=latest[0].pk).update(is_read=True)
     return latest[::-1]
 
 

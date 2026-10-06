@@ -2,7 +2,6 @@ import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { ChevronLeft, ChevronRight, Flag } from "lucide-react";
 import { useMemo, useState } from "react";
 
-import { isManager, useMe } from "@/app/auth";
 import { useModal } from "@/app/modals";
 import { api, qs } from "@/shared/api";
 import { fmtDate, isoDate } from "@/shared/format";
@@ -16,7 +15,6 @@ const MAX_PER_DAY = 3;
 
 /** Taqvim: vazifalar tugash sanasi bo'yicha oylik ko'rinishda. */
 export default function CalendarPage() {
-  const me = useMe();
   const { open } = useModal();
   const meta = useMeta();
   const [month, setMonth] = useState(() => {
@@ -34,21 +32,17 @@ export default function CalendarPage() {
 
   const range = { due_from: isoDate(days[0]!), due_to: isoDate(days[days.length - 1]!) };
   const query = useQuery({
-    queryKey: ["tasks", "calendar", range.due_from, me.role],
-    queryFn: () => api.get<Task[]>(`/tasks/${qs({ ...range, all: 1, mine: isManager(me) ? undefined : 1 })}`),
+    queryKey: ["calendar", range.due_from],
+    queryFn: () => api.get<{ tasks: Task[]; projects: Project[]; task_counts: Record<string, number>; project_counts: Record<string, number> }>(
+      `/calendar/${qs({ start: range.due_from, end: range.due_to })}`),
     placeholderData: keepPreviousData,
   });
 
   // Loyihalar tugash sanasi (serverda rol bo'yicha cheklangan: dasturchi — faqat o'z loyihalari)
-  const projectsQuery = useQuery({
-    queryKey: ["projects", "calendar", range.due_from],
-    queryFn: () => api.get<Project[]>(`/projects/${qs({ end_from: range.due_from, end_to: range.due_to, all: 1 })}`),
-    placeholderData: keepPreviousData,
-  });
 
   const byDay = useMemo(() => {
     const map = new Map<string, Task[]>();
-    for (const t of query.data ?? []) {
+    for (const t of query.data?.tasks ?? []) {
       if (!t.due_at) continue;
       const key = isoDate(new Date(t.due_at));
       map.set(key, [...(map.get(key) ?? []), t]);
@@ -58,9 +52,9 @@ export default function CalendarPage() {
 
   const projectsByDay = useMemo(() => {
     const map = new Map<string, Project[]>();
-    for (const p of projectsQuery.data ?? []) map.set(p.end_date, [...(map.get(p.end_date) ?? []), p]);
+    for (const p of query.data?.projects ?? []) map.set(p.end_date, [...(map.get(p.end_date) ?? []), p]);
     return map;
-  }, [projectsQuery.data]);
+  }, [query.data]);
 
   const openDay = (key: string) => open({ day: key });
 
@@ -83,8 +77,8 @@ export default function CalendarPage() {
         </button>
         </div>
       </div>
-      {(query.error || projectsQuery.error) && (
-        <ErrorBox error={query.error ?? projectsQuery.error} onRetry={() => (query.refetch(), projectsQuery.refetch())} />
+      {query.error && (
+        <ErrorBox error={query.error} onRetry={() => query.refetch()} />
       )}
       <div className="card" style={{ overflow: "hidden" }}>
         <div className="cal">
@@ -99,7 +93,8 @@ export default function CalendarPage() {
             const ends = projectsByDay.get(key) ?? [];
             // Loyiha muddatlari birinchi, keyin vazifalar; kunda jami MAX_PER_DAY ta belgi
             const taskSlots = Math.max(0, MAX_PER_DAY - ends.length);
-            const hidden = Math.max(0, ends.length - MAX_PER_DAY) + Math.max(0, items.length - taskSlots);
+            const hidden = Math.max(0, (query.data?.project_counts[key] ?? 0) - MAX_PER_DAY)
+              + Math.max(0, (query.data?.task_counts[key] ?? 0) - taskSlots);
             const out = d.getMonth() !== month.getMonth();
             return (
               // Kunning istalgan joyi bosilsa — kun ro'yxati; klaviatura uchun kun raqami tugma
