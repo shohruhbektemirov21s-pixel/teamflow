@@ -39,7 +39,7 @@ class ProjectDetailSerializer(ProjectListSerializer):
 
     class Meta(ProjectListSerializer.Meta):
         fields = ProjectListSerializer.Meta.fields + [
-            "created_by", "files", "order", "actions", "stage_targets", "completion",
+            "created_by", "files", "order", "actions", "stage_targets", "completion", "completion_note",
         ]
 
     def get_created_by(self, obj):
@@ -68,21 +68,21 @@ class ProjectDetailSerializer(ProjectListSerializer):
     def _completion_acks(self, obj):
         if not obj.completion_requested_at:
             return None
-        acks = list(obj.completion_acks.select_related("developer"))
-        return acks if any(a.confirmed is None for a in acks) else []
+        acks = list(obj.completion_acks.all())
+        return acks
 
     def get_stage_targets(self, obj):
         """PM/Boshliq uchun daraja tanlovi shu ro'yxat bilan cheklanadi (masalan "Tasdiqlash kutilmoqda"
         paytida bo'sh — qaror endi boshqarmaga tegishli). Dasturchi tasdig'i hali kutilayotgan paytda
-        "Yakunlangan" qayta tanlanmaydi; hammasi tasdiqlagach keyingi bosqich avtomatik bajariladi."""
+        "Yakunlangan" qayta tanlanmaydi; hammasi rozi bo'lgach PM yakunlay oladi."""
         targets = list(project_targets(obj.stage, self.context["request"].user.role))
-        if self._completion_acks(obj):  # bo'sh ro'yxat ([]) — hammasi tasdiqlagan, "done" qaytadi
+        if any(a.confirmed is not True for a in (self._completion_acks(obj) or [])):
             targets = [t for t in targets if t != S.DONE]
         return targets
 
     def get_completion(self, obj):
         """Yakunlash uchun dasturchi tasdig'i hali kutilayotgan bo'lsa — kim tasdiqladi, kim kutilmoqda.
-        Hammasi tasdiqlagach `None`: loyiha keyingi yakunlash bosqichiga o'tgan bo'ladi."""
+        Hammasi rozi bo'lgach pending bo'shaydi, confirmed ro'yxati PM yakunlaguncha saqlanadi."""
         acks = self._completion_acks(obj)
         if not acks:
             return None
@@ -110,6 +110,8 @@ class ProjectCreateSerializer(serializers.Serializer):
 
 
 class ProjectUpdateSerializer(serializers.Serializer):
+    completion_note = serializers.CharField(max_length=1000, required=False, allow_blank=True)
+    files = serializers.ListField(child=serializers.FileField(validators=[validate_upload]), required=False)
     name = serializers.CharField(max_length=255, required=False)
     description = serializers.CharField(required=False, allow_blank=True)
     start_date = serializers.DateField(required=False)

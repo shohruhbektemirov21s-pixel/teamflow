@@ -6,7 +6,7 @@ foydalanadi, shuning uchun raqam va ro'yxat hech qachon farq qilmaydi.
 import calendar
 from datetime import datetime, time, timedelta
 
-from django.db.models import F, Q
+from django.db.models import Count, F, Q
 from django.utils import timezone
 from django.utils.dateparse import parse_date
 
@@ -28,23 +28,27 @@ BUCKETS = {
 }
 
 
-def apply_bucket(qs, bucket, since=None):
+def bucket_condition(bucket, since=None):
     """Toifa bo'yicha filtr. `since` bo'lsa: bajarilganlar — shu sanadan keyin bajarilgan,
     qolganlar — shu sanadan keyin yaratilgan."""
-    now = timezone.now()
+    condition = Q()
     if bucket == "active":
-        qs = qs.filter(status__in=ACTIVE)
+        condition &= Q(status__in=ACTIVE)
     elif bucket == "overdue":
-        qs = qs.filter(status__in=ACTIVE, due_at__lt=now)
+        condition &= Q(status__in=ACTIVE, due_at__lt=timezone.now())
     elif bucket == "done":
-        qs = qs.filter(status=S.DONE)
+        condition &= Q(status=S.DONE)
     elif bucket == "late":
-        qs = qs.filter(status=S.DONE, completed_at__gt=F("due_at"))
+        condition &= Q(status=S.DONE, completed_at__gt=F("due_at"))
     elif bucket == "review":
-        qs = qs.filter(status=S.IN_REVIEW)
+        condition &= Q(status=S.IN_REVIEW)
     if since is not None:
-        qs = qs.filter(completed_at__gte=since) if bucket in ("done", "late") else qs.filter(created_at__gte=since)
-    return qs
+        condition &= Q(completed_at__gte=since) if bucket in ("done", "late") else Q(created_at__gte=since)
+    return condition
+
+
+def apply_bucket(qs, bucket, since=None):
+    return qs.filter(bucket_condition(bucket, since))
 
 
 def _day_range(d):
@@ -120,6 +124,14 @@ def filter_tasks(qs, params, user):
 
 def dashboard_counts(qs):
     """Bosh panel kartalari: davrlar bo'yicha (yil/oy/hafta) va umumiy."""
-    periods = period_cards(lambda since: {b: apply_bucket(qs, b, since).count() for b in ("active", "overdue", "done")})
-    totals = {b: apply_bucket(qs, b).count() for b in ("late", "overdue", "review", "active")}
+    periods = period_cards(lambda since: {
+        b: Count("pk", filter=bucket_condition(b, since), distinct=True) for b in ("active", "overdue", "done")
+    })
+    total_keys = ("late", "overdue", "review", "active")
+    aggregates = {f"total_{b}": Count("pk", filter=bucket_condition(b), distinct=True) for b in total_keys}
+    aggregates.update({f"{p['key']}_{b}": count for p in periods for b, count in p["counts"].items()})
+    counts = qs.aggregate(**aggregates)
+    for p in periods:
+        p["counts"] = {b: counts[f"{p['key']}_{b}"] for b in p["counts"]}
+    totals = {b: counts[f"total_{b}"] for b in total_keys}
     return {"periods": periods, "totals": totals, "labels": BUCKETS}

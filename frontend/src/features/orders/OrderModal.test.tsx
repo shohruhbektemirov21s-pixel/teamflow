@@ -29,6 +29,15 @@ const ORDER: OrderDetail = {
   },
 };
 
+it("boshqarmaga yakunlash izohi va fayllarini ko'rsatadi", async () => {
+  mockGet({ "/orders/5/": { ...ORDER, completion_report: {
+    note: "Portal ishga tushirildi", files: [{ id: 10, name: "natija.pdf", size: 100, url: "/api/files/project/10/" }],
+  } } });
+  renderApp(<OrderModal id={5} />);
+  expect(await screen.findByText("Portal ishga tushirildi")).toBeTruthy();
+  expect(screen.getByText("natija.pdf")).toBeTruthy();
+});
+
 function setup(overrides: Partial<OrderDetail> = {}) {
   mockGet({ "/orders/5/": { ...ORDER, ...overrides } });
   renderApp(<OrderModal id={5} />);

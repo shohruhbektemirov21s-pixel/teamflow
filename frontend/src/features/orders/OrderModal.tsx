@@ -323,6 +323,13 @@ export default function OrderModal({ id }: { id: number }) {
                   <p className="prose">{order.pm_note}</p>
                 </div>
               )}
+              {order.completion_report && (order.completion_report.note || order.completion_report.files.length > 0) && (
+                <div className="stack-sm">
+                  <div className="section-title">{T.projects.completionReport}</div>
+                  {order.completion_report.note && <p className="prose">{order.completion_report.note}</p>}
+                  <FileList files={order.completion_report.files} onOpen={setViewing} />
+                </div>
+              )}
               {latest && (
                 <div>
                   <div className="section-title">

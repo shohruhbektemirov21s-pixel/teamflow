@@ -144,6 +144,7 @@ export interface Order {
 }
 
 export interface OrderDetail extends Order {
+  completion_report?: { note: string; files: FileInfo[] } | null;
   approved_by: UserBrief | null;
   pm_note: string;
   decided_at: string | null;
@@ -169,6 +170,7 @@ export interface Project {
 }
 
 export interface ProjectDetail extends Project {
+  completion_note?: string;
   code: string;
   created_by: UserBrief;
   files: FileInfo[];

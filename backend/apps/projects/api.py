@@ -1,4 +1,4 @@
-from django.db.models import Count, Q
+from django.db.models import Count, Prefetch, Q
 from django.shortcuts import get_object_or_404
 from django.utils.dateparse import parse_date
 from rest_framework import mixins, status, viewsets
@@ -10,7 +10,7 @@ from apps.core.codes import resolve_code
 from apps.orders.permissions import visible_orders
 
 from . import services
-from .models import Project
+from .models import Project, ProjectCompletionAck
 from .permissions import visible_projects
 from .serializers import (
     CompletionAckSerializer,
@@ -39,7 +39,9 @@ class ProjectViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.
             .order_by("-created_at", "-id")
         )
         if self.action == "retrieve":
-            qs = qs.select_related("order__submitted_by").prefetch_related("files")
+            qs = qs.select_related("order__submitted_by").prefetch_related(
+                "files", Prefetch("completion_acks", queryset=ProjectCompletionAck.objects.select_related("developer")),
+            )
         params = self.request.query_params
         if params.get("stage"):
             qs = qs.filter(stage__in=params["stage"].split(","))

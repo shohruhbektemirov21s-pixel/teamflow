@@ -30,7 +30,7 @@ const MessagesPage = lazy(() => import("./features/chat/MessagesPage"));
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 15_000,
+      staleTime: 60_000,
       retry: (count, err) => !(err instanceof ApiError && [401, 403, 404].includes(err.status)) && count < 2,
       refetchOnWindowFocus: true,
     },

@@ -287,8 +287,11 @@ def _file_owner_check(user, kind, pk):
         obj = get_object_or_404(OrderVersion.objects.select_related("order"), pk=pk)
         return obj if can_view_order(user, obj.order) else None
     if kind == "project":
-        obj = get_object_or_404(ProjectFile.objects.select_related("project"), pk=pk)
-        return obj if can_view_project(user, obj.project) else None
+        obj = get_object_or_404(ProjectFile.objects.select_related("project__order"), pk=pk)
+        department_report = (user.is_department and obj.is_completion and obj.project.order_id
+                             and obj.project.order.submitted_by_id == user.pk
+                             and obj.project.stage in ("pending_approval", "done", "rejected"))
+        return obj if can_view_project(user, obj.project) or department_report else None
     if kind == "task":
         obj = get_object_or_404(TaskFile, pk=pk)
         return obj if visible_tasks(user).filter(pk=obj.task_id).exists() else None

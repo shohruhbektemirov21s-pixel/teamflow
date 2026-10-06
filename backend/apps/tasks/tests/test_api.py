@@ -235,6 +235,14 @@ class TaskFlowTests(TestCase):
 
 
 class DashboardTests(TestCase):
+    def test_dashboard_counts_use_one_query_for_each_role(self):
+        from apps.tasks.filters import dashboard_counts
+        from apps.tasks.permissions import listed_tasks
+        for user in (self.pm, self.dev):
+            with self.subTest(role=user.role), self.assertNumQueries(1):
+                result = dashboard_counts(listed_tasks(user))
+            self.assertEqual(result["totals"]["active"], 3)
+
     def setUp(self):
         self.pm = make_user(Role.PM)
         self.dev = make_user(Role.DEVELOPER)

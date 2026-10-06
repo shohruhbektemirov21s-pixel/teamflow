@@ -1,5 +1,5 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { CalendarDays, CheckCircle2, FileText, Pencil, Plus, Save, Search, Upload, User, UserPlus, X } from "lucide-react";
+import { CalendarDays, CheckCircle2, FileText, Pencil, Plus, Save, Search, Send, Upload, User, UserPlus, X } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { useModal } from "@/app/modals";
@@ -39,13 +39,13 @@ export default function ProjectModal({ id }: { id: number }) {
   const toast = useToast();
   const refresh = useRefresh();
   const meta = useMeta();
+  const [tab, setTab] = useState<Tab>("main");
   const query = useQuery({ queryKey: ["project", id], queryFn: () => api.get<ProjectDetail>(`/projects/${id}/`) });
-  const tasks = useQuery({ queryKey: ["tasks", "project", id], queryFn: () => api.get<Task[]>(`/tasks/${qs({ project: id, all: 1 })}`) });
+  const tasks = useQuery({ queryKey: ["tasks", "project", id], queryFn: () => api.get<Task[]>(`/tasks/${qs({ project: id, all: 1 })}`), enabled: tab === "tasks" });
   const p = query.data;
   const manager = Boolean(p?.actions.edit);
-  const developers = useDevelopers(manager);
+  const developers = useDevelopers(manager && tab === "team");
 
-  const [tab, setTab] = useState<Tab>("main");
   const [historyPage, setHistoryPage] = useState(1);
   const [viewing, setViewing] = useState<FileInfo | null>(null);
   const [editingInfo, setEditingInfo] = useState(false);
@@ -53,6 +53,9 @@ export default function ProjectModal({ id }: { id: number }) {
   const [members, setMembers] = useState<number[]>([]);
   const [teamQ, setTeamQ] = useState("");
   const [files, setFiles] = useState<File[]>([]);
+  const [completionOpen, setCompletionOpen] = useState(false);
+  const [completionNote, setCompletionNote] = useState("");
+  const [completionFiles, setCompletionFiles] = useState<File[]>([]);
   const [error, setError] = useState<ApiError | null>(null);
 
   const history = useQuery({
@@ -92,13 +95,19 @@ export default function ProjectModal({ id }: { id: number }) {
     onError,
   });
   const setStage = useMutation({
-    mutationFn: (stage: ProjectStage) => api.patch<ProjectDetail>(`/projects/${id}/`, { stage }),
+    mutationFn: (stage: ProjectStage) => api.patch<ProjectDetail>(`/projects/${id}/`,
+      stage === "done" && !p?.completion ? formData({ stage, completion_note: completionNote }, completionFiles) : { stage }),
     onSuccess: (d, stage) => {
       const msg =
-        stage === "done" && d.completion ? T.projects.completionAckToast
+        stage === "done" && d.completion?.pending.length ? T.projects.completionAckToast
         : stage === "done" && d.stage === "pending_approval" ? T.projects.requestCompletionToast
         : T.common.saved;
       done(msg)();
+      if (stage === "done") {
+        setCompletionOpen(false);
+        setCompletionNote("");
+        setCompletionFiles([]);
+      }
     },
     onError,
   });
@@ -140,8 +149,10 @@ export default function ProjectModal({ id }: { id: number }) {
   const pct = p.progress.total ? Math.round((p.progress.done / p.progress.total) * 100) : 0;
 
   return (
+    <>
     <Modal
       size="lg"
+      covered={completionOpen}
       title={
         <>
           <CodeTag code={p.code} /> {p.name}
@@ -212,7 +223,11 @@ export default function ProjectModal({ id }: { id: number }) {
             </Button>
           )}
           {tab === "main" && !editingInfo && p.stage_targets.includes("done") && (
-            <Button variant="success" icon={<CheckCircle2 />} loading={setStage.isPending} onClick={() => setStage.mutate("done")}>
+            <Button variant="success" icon={<CheckCircle2 />} loading={setStage.isPending} onClick={() => {
+              setError(null);
+              if (p.completion && !p.completion.pending.length) setStage.mutate("done");
+              else setCompletionOpen(true);
+            }}>
               {T.projects.requestCompletion}
             </Button>
           )}
@@ -265,9 +280,18 @@ export default function ProjectModal({ id }: { id: number }) {
             <div className="stack">
               {p.order && <Callout tone="info">{T.projects.fromOrderLocked}</Callout>}
               {p.completion && (
-                <Callout tone="info">{T.projects.completionAckPending(p.completion.pending.map((u) => u.full_name).join(", "))}</Callout>
+                <Callout tone="info">
+                  {p.completion.pending.length ? T.projects.completionAckPending(p.completion.pending.map((u) => u.full_name).join(", ")) : manager ? T.projects.completionAckReady : T.projects.completionAckWaitingPm}
+                  {p.completion.confirmed.length > 0 && <div>{T.projects.completionAckConfirmed(p.completion.confirmed.map((u) => u.full_name).join(", "))}</div>}
+                </Callout>
               )}
               {p.stage === "pending_approval" && <Callout tone="info">{T.projects.pendingApproval}</Callout>}
+              {p.completion_note && (
+                <div>
+                  <div className="section-title">{T.projects.completionNote}</div>
+                  <p className="prose">{p.completion_note}</p>
+                </div>
+              )}
               {manager && editingInfo ? (
                 <>
                   <Field label={T.projects.name} error={fe("name")}>
@@ -396,5 +420,34 @@ export default function ProjectModal({ id }: { id: number }) {
         {tab === "comments" && <Comments type="project" id={p.id} />}
       </div>
     </Modal>
+    {completionOpen && (
+      <Modal
+        stacked
+        size="md"
+        title={<span className="row" style={{ gap: 12 }}><span className="modal-icon-badge"><CheckCircle2 /></span>{T.projects.completionModalTitle}</span>}
+        subtitle={T.projects.completionModalSubtitle}
+        onClose={() => { if (!setStage.isPending) setCompletionOpen(false); }}
+        dirty={Boolean(completionNote.trim() || completionFiles.length)}
+        footer={<>
+          <span className="spacer" />
+          <Button disabled={setStage.isPending} onClick={() => setCompletionOpen(false)}>{T.common.cancel}</Button>
+          <Button variant="gradient" icon={<Send />} loading={setStage.isPending} onClick={() => setStage.mutate("done")}>
+            {T.projects.completionSend}
+          </Button>
+        </>}
+      >
+        <div className="stack" style={{ gap: 16 }}>
+          {error && <ErrorBox error={error} />}
+          <Field label={T.projects.completionNote} error={fe("completion_note")}>
+            {(fid, bad) => <textarea id={fid} className="textarea" autoFocus aria-invalid={bad} maxLength={1000}
+              placeholder={T.projects.completionNotePh} value={completionNote} disabled={setStage.isPending}
+              onChange={(e) => setCompletionNote(e.target.value)} style={{ minHeight: 104 }} />}
+          </Field>
+          <span className="small muted">{T.tasks.submitCounter(completionNote.length, 1000)}</span>
+          <FilePicker size="lg" files={completionFiles} onChange={setCompletionFiles} hint={T.common.attachLimit} />
+        </div>
+      </Modal>
+    )}
+    </>
   );
 }

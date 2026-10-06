@@ -5,10 +5,10 @@ import type { Dashboard, Developer, Me, Paged, Project } from "@/shared/types";
 
 import type { Counter } from "./nav";
 
-/** Mutatsiyadan keyin barcha ro'yxat va hisoblagichlarni yangilash (ma'lumot hajmi kichik — sodda va ishonchli). */
-export function useRefresh() {
+/** O'zgargan bo'limlarning keshini yangilash; domains berilmasa barcha ma'lumotlar yangilanadi. */
+export function useRefresh(domains?: readonly string[]) {
   const qc = useQueryClient();
-  return () => qc.invalidateQueries();
+  return () => qc.invalidateQueries(domains ? { predicate: (query) => domains.includes(String(query.queryKey[0])) } : undefined);
 }
 
 /** O'qilmagan bildirishnomalar soni (yon panel, sarlavha va Bildirishnomalar sahifasi — bitta kesh). */
@@ -53,6 +53,7 @@ export function useProjects(enabled = true) {
       return projects;
     },
     enabled,
+    staleTime: 60_000,
   });
 }
 
@@ -61,5 +62,6 @@ export function useDevelopers(enabled = true) {
     queryKey: ["developers"],
     queryFn: () => api.get<Developer[]>("/developers/"),
     enabled,
+    staleTime: 5 * 60_000,
   });
 }

@@ -33,14 +33,17 @@ export default function MessagesPage() {
   const convQuery = useQuery({
     queryKey: ["chat", "conversations"],
     queryFn: () => api.get<ChatConversation[]>("/chat/conversations/"),
-    refetchInterval: 5000,
+    enabled: !query,
+    refetchInterval: 15_000,
+    refetchIntervalInBackground: false,
   });
 
   const msgsQuery = useQuery({
     queryKey: ["chat", "messages", partnerId],
     queryFn: () => api.get<ChatMessage[]>(`/chat/messages/${qs({ partner: partnerId })}`),
     enabled: Boolean(partnerId),
-    refetchInterval: 3000,
+    refetchInterval: 5000,
+    refetchIntervalInBackground: false,
   });
 
   useEffect(() => {

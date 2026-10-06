@@ -5,7 +5,21 @@ import { describe, expect, it, vi } from "vitest";
 
 import { api } from "@/shared/api";
 
-import { useProjects } from "./queries";
+import { useProjects, useRefresh } from "./queries";
+
+it("faqat o'zgargan bo'limlarni yangilab, qolgan keshni saqlaydi", async () => {
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  client.setQueryData(["notifications", "unread"], { count: 1 });
+  client.setQueryData(["dashboard"], { totals: {} });
+  client.setQueryData(["tasks"], []);
+  const wrapper = ({ children }: { children: ReactNode }) => <QueryClientProvider client={client}>{children}</QueryClientProvider>;
+  const { result } = renderHook(() => useRefresh(["notifications"]), { wrapper });
+  await result.current();
+  expect(client.getQueryState(["notifications", "unread"])?.isInvalidated).toBe(true);
+  expect(client.getQueryState(["dashboard"])?.isInvalidated).toBe(false);
+  expect(client.getQueryState(["tasks"])?.isInvalidated).toBe(false);
+  client.clear();
+});
 
 describe("useProjects", () => {
   it("loyiha tanlash uchun keyingi sahifalarni ham oladi", async () => {

@@ -1,7 +1,8 @@
-import { fireEvent, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { fireEvent, screen, waitFor } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
 
 import { useModal } from "@/app/modals";
+import { api } from "@/shared/api";
 import { T } from "@/shared/text";
 import type { Notice } from "@/shared/types";
 import { mockGet, renderApp } from "@/test/render";
@@ -30,6 +31,21 @@ const renderModal = () =>
   );
 
 describe("NotificationsModal", () => {
+  it("dasturchiga rozilik savoli va Ha/Yo'q tugmalarini ko'rsatadi", async () => {
+    vi.mocked(api.post).mockResolvedValue({});
+    mockGet({
+      "/notifications/": { count: 1, next: null, previous: null, results: [notice(1, {
+        kind: "project_completion_ack_requested", needs_ack: true, target: { type: "project", id: 7 },
+      })] },
+      "/notifications/unread_count/": { count: 0 },
+    });
+    renderModal();
+    expect(await screen.findByText(T.notifications.ackQuestion)).toBeTruthy();
+    expect(screen.getByRole("button", { name: T.notifications.ackReject })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: T.notifications.ackConfirm }));
+    await waitFor(() => expect(api.post).toHaveBeenCalledWith("/projects/7/completion-ack/", { confirmed: true }));
+  });
+
   it("kun bo'yicha guruhlaydi va o'qilmaganlarni ajratib ko'rsatadi", async () => {
     mockGet({
       "/notifications/": { count: 2, next: null, previous: null, results: [

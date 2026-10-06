@@ -407,7 +407,7 @@ button { font: inherit; color: inherit; }
 .main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 .topbar {
   position: sticky; top: 0; z-index: 20; height: 64px; display: flex; align-items: center; gap: 8px;
-  padding: 0 24px; background: color-mix(in srgb, var(--surface) 90%, transparent); backdrop-filter: blur(8px);
+  padding: 0 24px; background: var(--surface);
   border-bottom: 1px solid var(--border);
 }
 .search-trigger {
@@ -545,8 +545,8 @@ kbd { font-family: var(--mono); font-size: 11px; padding: 2px 6px; border-radius
 .progress > span { display: block; height: 100%; background: var(--primary); border-radius: 4px; }
 
 /* ───────── Modal ───────── */
-.overlay { position: fixed; inset: 0; background: var(--overlay); backdrop-filter: blur(2px); z-index: 100; display: grid; place-items: center; padding: 24px; animation: fade .15s ease-out; }
-.overlay-stacked { background: var(--overlay-strong); backdrop-filter: blur(3px); z-index: 110; }
+.overlay { position: fixed; inset: 0; background: var(--overlay); z-index: 100; display: grid; place-items: center; padding: 24px; animation: fade .15s ease-out; }
+.overlay-stacked { background: var(--overlay-strong); z-index: 110; }
 .modal {
   background: var(--surface); border-radius: var(--radius-lg); box-shadow: var(--shadow-lg); width: 100%; max-height: calc(100vh - 48px);
   display: flex; flex-direction: column; overflow: hidden; animation: rise .18s var(--ease); border: 1px solid var(--border);

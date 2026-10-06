@@ -120,7 +120,8 @@ Qoidalar:
 - Faqat **PM va Boshliq** loyiha yaratadi. **Dasturchi yarata olmaydi.**
 - Loyiha: **loyiha raqami** (qo'lda kiritiladi, majburiy, erkin matn/kod — masalan `PRJ-12`, takrorlanmaydi: band bo'lsa xatolik chiqadi), nom, izoh, boshlanish sanasi, tugash sanasi, fayllar, dasturchilar (bir nechta), darajasi.
 - **Loyiha darajasi (6 ta):** Rejalashtirilgan → Boshlangan → Tuzatish kerak → Tasdiqlash kutilmoqda → Yakunlangan. PM/Boshliq qo'lda o'zgartiradi.
-- **Yakunlashni tasdiqlash:** PM/Boshliq "Yakunlangan"ni tanlaganda, avval **loyihadagi barcha faol dasturchilarga** bildirishnoma boradi ("Loyiha yakunlanishi kerak, tasdiqlaysizmi?" — bildirishnoma ichidagi tugma bilan Ha/Yo'q). **Hammasi tasdiqlagach keyingi bosqich avtomatik ishga tushadi** (PM qayta bosmaydi): buyurtmasiz (PM o'zi yaratgan) loyiha "Yakunlangan"ga to'g'ridan-to'g'ri o'tadi; buyurtmadan yaratilgan loyiha avval **"Tasdiqlash kutilmoqda"**ga o'tadi va buyurtmani yuborgan boshqarmaga bildirishnoma boradi — faqat o'sha boshqarma (Buyurtma oynasidan) **Tasdiqlaydi** (loyiha "Yakunlangan" bo'ladi) yoki **kamchilik sababi bilan rad etadi** ("Rad etildi"ga o'tadi, PM sababni ko'rib tuzatib yana so'raydi). Agar birortasi dasturchi sababli rad etsa, loyiha yakunlanmaydi, hozirgi holatida davom etadi va PM/Boshliq sababni ko'radi; qayta so'ralganda hammadan yangidan so'raladi. Loyihada faol dasturchi bo'lmasa, dasturchi so'rovi o'tkazib yuboriladi.
+- **2026-10-06:** PM loyihani yakunlashda izoh (1000 belgigacha) va fayllarni alohida modal orqali yuboradi. Loyiha oynasi orqada ko'rinib turadi va inert bo'ladi; umumiy Modal stacked uslubi ishlatiladi. Dasturchilar tasdig'idan keyin boshqarma buyurtma oynasida yakunlash hisoboti va fayllarini ko'radi. Fayllar faqat tegishli boshqarma uchun ochiladi.
+- **Yakunlashni tasdiqlash:** PM/Boshliq "Yakunlangan"ni tanlaganda, avval **loyihadagi barcha faol dasturchilarga** bildirishnoma boradi ("Loyihani yakunlashga rozimisiz?" — bildirishnoma ichidagi tugma bilan Ha/Yo'q). **Hammasi rozi bo'lgach PMga xabar keladi va "Yakunlash" tugmasi ochiladi**. PM yakunlaganda: buyurtmasiz (PM o'zi yaratgan) loyiha "Yakunlangan"ga to'g'ridan-to'g'ri o'tadi; buyurtmadan yaratilgan loyiha avval **"Tasdiqlash kutilmoqda"**ga o'tadi va buyurtmani yuborgan boshqarmaga bildirishnoma boradi — faqat o'sha boshqarma (Buyurtma oynasidan) **Tasdiqlaydi** (loyiha "Yakunlangan" bo'ladi) yoki **kamchilik sababi bilan rad etadi** ("Rad etildi"ga o'tadi, PM sababni ko'rib tuzatib yana so'raydi). Agar birortasi dasturchi sababli rad etsa, loyiha yakunlanmaydi, hozirgi holatida davom etadi va PM/Boshliq sababni ko'radi; qayta so'ralganda hammadan yangidan so'raladi. Loyihada faol dasturchi bo'lmasa, dasturchi so'rovi o'tkazib yuboriladi.
 - Loyihaga bir nechta dasturchi biriktiriladi, har biriga bir nechta vazifa berish mumkin.
 
 **Loyiha yaratish oynasi (3 qadam):** Asosiy → Jamoa → Vazifalar va fayllar. Buyurtmadan yaratilsa, 1-qadam oldindan to'ldirilgan.
@@ -284,7 +285,7 @@ Menyu guruhlarga bo'lingan: *Asosiy ish* | *Muloqot* | *Kuzatuv* (Kuzatuv faqat 
 - Bot (`runbot`) server bilan birga avtomatik ishga tushadi (`backend/start_server.bat`, log: `backend/bot.log`). Logga token yozilmaydi.
 - Bitta token bilan faqat **bitta** bot jarayoni ishlashi mumkin: boshqa joyda ham ishlasa, logda "409" chiqadi va `/start` xabarlari o'sha joyga ketadi.
 
-## 9. Modallar (amalda: 14 ta)
+## 9. Modallar (amalda: 15 ta)
 
 Ko'rish, yaratish, tahrirlash — hammasi modalda. Batafsil: `docs/FLOWS_MODALS.md`.
 
@@ -298,6 +299,7 @@ Ko'rish, yaratish, tahrirlash — hammasi modalda. Batafsil: `docs/FLOWS_MODALS.
 | 6 | Vazifa ko'rish (tekshiruv shu yerda) | 12 | Bildirishnomalar (qo'ng'iroq ikonkasi) |
 | | | 13 | Vazifa amali: Tekshiruvga yuborish / Qaytarish (vazifa oynasi ustida) |
 | | | 14 | Buyurtma amali: Tasdiqlash / Rad etish / sanalar / yangi TZ / kamchilik (buyurtma oynasi ustida) |
+| | | 15 | Loyiha amali: Yakunlash izohi va fayllar (loyiha oynasi ustida) |
 
 Word ko'rish alohida modal emas — joriy modal ichini almashtiradi ("← Orqaga").
 
@@ -489,3 +491,14 @@ Batafsil qoidalar: `CLAUDE.md` 4-bo'lim. Dizayn oldingi loyiha skrinshotlaridan 
 
 - **2026-10-06 (UX/UI):** Sahifa amallari qidiruv/filtr bilan bir qatorda, asosiy tugma o'ngda; modalda yakunlash/saqlash pastki panelda. Telefon ekranida sarlavha amallari alohida qatorda, tugmalar va buyurtma holati kesilmaydi. Klaviatura fokusi yashirin/o'chiq elementlarni o'tkazib yuboradi; tablar strelka/Home/End bilan ishlaydi. Rang kontrasti yaxshilandi; doskada sudrash dastagi va vazifani ochish tugmasi alohida.
 - **2026-10-06 (Buyurtmalar tartibi):** Boshqarma ro'yxatida yakunlash tasdig'i kutilayotgan loyihalar birinchi, yangi va davom etayotgan buyurtmalar keyingi, to'liq yakunlanganlar oxirida turadi. Har bir guruhda yangilari tepada; server tartibi sahifalashda ham saqlanadi.
+
+### Tezlik va resurslar (2026-10-06)
+
+- **2026-10-06 (tezlik va resurs sarfi):** Bosh panel hisoblari bitta agregat SQL orqali olinadi; loyiha vazifalari va dasturchilar faqat tegishli tab ochilganda yuklanadi. Bildirishnomani o'qish va izoh yozish barcha ro'yxatlarni qayta yuklamaydi. Kesh 60 soniya, dasturchilar ma'lumotnomasi 5 daqiqa; mutatsiyadan keyin tegishli kesh yangilanadi. Chat so'rovlari xabarlar uchun 5 soniya, suhbatlar uchun 15 soniya; yashirin tabda polling o'chirilgan. Fon blur effektlari olib tashlangan, modal orqasidagi loyiha ko'rinib turadi.
+
+| Mahalliy API tekshiruvi | Oldin SQL | Keyin SQL |
+|---|---:|---:|
+| PM bosh paneli | 14 | 2 |
+| Boshqarma bosh paneli | 12 | 1 |
+
+O'lchov mavjud kichik bazada (7 vazifa, 6 loyiha), autentifikatsiya qilingan API orqali olindi. Bosh panel javob hajmi saqlandi. 243 backend va 102 frontend testi o'tdi. Chatning davriy so'rovlari faol suhbatda daqiqasiga 32 dan 16 ga kamaytirildi. Bu SQL va so'rov sarfi o'lchovi; umumiy CPU/RAM yoki brauzer tezligi foizi o'lchanmagan.
