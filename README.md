@@ -2,7 +2,7 @@
 
 Jamoa ishini boshqarish tizimi. Boshqarmalar buyurtma (TZ) yuboradi, loyiha menejeri uni tasdiqlab loyihaga aylantiradi, dasturchilarga vazifa beradi va bajarilgan ishni tekshiradi. Boshliq hamma narsani kuzatadi va boshqaradi.
 
-> **Holat (2026-10-05):** arxitektura ko'rigi, regressiya tuzatishlari, xizmat safari, loyiha tasdiqlash va vazifani tekshiruvga yuborish ruxsati birga tekshirildi: 195 backend testi, 64 frontend testi, TypeScript tur tekshiruvi va frontend build o'tdi. Ishchi muhitdagi joylashtirish alohida tekshirilmagan.
+> **Holat (2026-10-06):** senior-review tuzatishlari va yangi "Tekshiruvga yuborish" oynasi bilan birga tekshirildi: 224 backend testi, 68 frontend testi (3 marta ketma-ket barqaror), TypeScript tur tekshiruvi va frontend build o'tdi. Ishchi muhitdagi joylashtirish alohida tekshirilmagan.
 > Bu fayl — loyihaning **yagona haqiqat manbai**. Agentlar uchun qoidalar: `CLAUDE.md`, `GEMINI.md`. Flow va modal reestri: `docs/FLOWS_MODALS.md`. Arxitektura, ma'lumotlar modeli va API: `docs/ARCHITECTURE.md`.
 
 ## Mundarija
@@ -209,7 +209,7 @@ Menyu guruhlarga bo'lingan: *Asosiy ish* | *Muloqot* | *Kuzatuv* (Kuzatuv faqat 
 - "+ Yangi vazifa" tugmasi, filtrlar: loyiha, muddat (Bugun / Shu hafta / Hammasi).
 - Doska ustunlari — holatlar: **Nazoratda | Jarayonda | Tekshiruvda | Bajarildi**.
 - Vazifani **sichqoncha bilan sudrab** ustunlar orasida o'tkazish mumkin.
-- **Tekshiruvda** ustuniga tashlanganda "Nima qildingiz?" oynasi ochiladi (izoh, fayl).
+- **Tekshiruvda** ustuniga tashlanganda (yoki vazifa oynasida "Tekshiruvga yuborish" bosilganda) **"Tekshiruvga yuborish" oynasi** ochiladi — vazifa oynasining ichini to'liq egallaydi (modal ustida modal yo'q): "Nima qildingiz?" (majburiy, 1000 belgigacha, hisoblagich bilan), katta drag&drop fayl zonasi va "Fayl tanlash" tugmasi (Word, PDF yoki rasm, 20 MB gacha — mos kelmagan fayl brauzerning o'zida rad etiladi), "Biriktirilgan fayllar (N)" ro'yxati. Matn bo'sh bo'lsa yuborilmaydi, xato maydon yonida chiqadi. "Bekor qilish", ✕ yoki `Esc` vazifa oynasiga qaytaradi. PM'ning "Qaytarish" oynasi ham xuddi shu ko'rinishda (faylsiz).
 - **Bajarildi** ustuniga dasturchi tashlay olmaydi, uni faqat PM tasdiqlaydi.
 - Sudrab bo'lmaydigan holat uchun kartada "⋯" menyu (klaviatura bilan).
 - Xato bo'lsa o'zgarish orqaga qaytariladi, "Bekor qilish" xabari chiqadi.

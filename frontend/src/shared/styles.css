@@ -214,6 +214,12 @@ button { font: inherit; color: inherit; }
 .btn svg { width: 16px; height: 16px; flex: none; }
 .btn-primary { background: var(--primary-solid); border-color: var(--primary-solid); color: var(--primary-text); }
 .btn-primary:hover:not(:disabled), .btn-primary:active:not(:disabled) { background: var(--primary-solid-hover); border-color: var(--primary-solid-hover); color: var(--primary-text); }
+.btn-gradient {
+  --grad: linear-gradient(135deg, color-mix(in srgb, var(--violet) 35%, var(--primary-solid)), var(--primary-solid));
+  background: var(--grad); border-color: transparent; color: var(--primary-text); border-radius: var(--radius);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--primary-solid) 28%, transparent);
+}
+.btn-gradient:hover:not(:disabled), .btn-gradient:active:not(:disabled) { background: var(--grad); color: var(--primary-text); filter: brightness(.92); }
 .btn-danger { color: var(--danger); border-color: color-mix(in srgb, var(--danger) 30%, transparent); background: var(--danger-soft); box-shadow: none; }
 .btn-danger:hover:not(:disabled), .btn-danger:active:not(:disabled) { background: var(--danger-soft); border-color: var(--danger); color: var(--danger-hover); }
 .btn-success { background: var(--success); border-color: var(--success); color: #fff; }
@@ -275,6 +281,9 @@ button { font: inherit; color: inherit; }
   transition: border-color .15s var(--ease), background-color .15s var(--ease);
 }
 .dropzone:hover, .dropzone.drag { border-color: var(--primary); background: var(--primary-soft); }
+.dropzone-lg { flex-direction: column; text-align: center; padding: 32px 20px; gap: 10px; background: var(--primary-soft); border-color: var(--primary); }
+.dropzone-lg .file-icon { width: 48px; height: 48px; border-radius: var(--radius-full); background: var(--surface); }
+.dropzone-lg .file-icon svg { width: 22px; height: 22px; }
 
 /* ───────── Belgi (badge) ───────── */
 .badge {
@@ -485,7 +494,7 @@ kbd { font-family: var(--mono); font-size: 11px; padding: 2px 6px; border-radius
 .progress > span { display: block; height: 100%; background: var(--primary); border-radius: 4px; }
 
 /* ───────── Modal ───────── */
-.overlay { position: fixed; inset: 0; background: var(--overlay); z-index: 100; display: grid; place-items: center; padding: 24px; animation: fade .15s ease-out; }
+.overlay { position: fixed; inset: 0; background: var(--overlay); backdrop-filter: blur(2px); z-index: 100; display: grid; place-items: center; padding: 24px; animation: fade .15s ease-out; }
 .modal {
   background: var(--surface); border-radius: var(--radius-lg); box-shadow: var(--shadow-lg); width: 100%; max-height: calc(100vh - 48px);
   display: flex; flex-direction: column; overflow: hidden; animation: rise .18s var(--ease); border: 1px solid var(--border);
@@ -495,6 +504,8 @@ kbd { font-family: var(--mono); font-size: 11px; padding: 2px 6px; border-radius
 .modal.lg { max-width: 1040px; }
 .modal-head { display: flex; align-items: flex-start; gap: 12px; padding: 16px 16px 16px 24px; border-bottom: 1px solid var(--border); }
 .modal-title { font-size: var(--fs-lg); font-weight: 700; letter-spacing: -0.01em; line-height: 1.3; padding-top: 8px; }
+.modal-icon-badge { width: 40px; height: 40px; border-radius: var(--radius-sm); background: var(--primary-soft); color: var(--primary); display: inline-grid; place-items: center; flex: none; }
+.modal-icon-badge svg { width: 20px; height: 20px; }
 .modal-body { padding: 24px; overflow-y: auto; flex: 1; }
 .modal-foot { display: flex; align-items: center; gap: 8px; padding: 16px 24px; border-top: 1px solid var(--border); background: var(--surface-2); flex-wrap: wrap; }
 .modal-split { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 24px; align-items: start; }

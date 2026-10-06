@@ -3,7 +3,9 @@ import {
   CalendarClock,
   CheckCircle2,
   Clock3,
+  FileText,
   FolderKanban,
+  Info,
   Pencil,
   Play,
   Plus,
@@ -109,7 +111,8 @@ export default function TaskModal({ id, submitMode }: { id: number; submitMode?:
       setFiles([]);
       setNoteError(undefined);
       refresh();
-      if (kind === "delete") close();
+      // Doskadan "Tekshiruvga yuborish" bilan ochilgan bo'lsa — yuborilgach doskaga qaytadi.
+      if (kind === "delete" || (kind === "submit" && submitMode)) close();
     },
     onError: (e: Error) => {
       const fieldMsg = e instanceof ApiError ? e.field("note") : undefined;
@@ -188,47 +191,45 @@ export default function TaskModal({ id, submitMode }: { id: number; submitMode?:
       </Modal>
     );
 
+  if ((panel === "submit" && task.actions.submit) || panel === "return") {
+    const isSubmit = panel === "submit";
+    const cancel = () => {
+      setPanel(null);
+      setNote("");
+      setFiles([]);
+      setNoteError(undefined);
+    };
+    const confirm = () => {
+      if (!note.trim()) {
+        setNoteError(T.common.required);
+        return;
+      }
+      act.mutate(isSubmit ? "submit" : "return");
+    };
+    return (
+      <TaskActionScreen
+        isSubmit={isSubmit}
+        note={note}
+        onNoteChange={(v) => {
+          setNote(v);
+          if (noteError) setNoteError(undefined);
+        }}
+        noteError={noteError}
+        files={files}
+        onFilesChange={setFiles}
+        loading={act.isPending}
+        onCancel={cancel}
+        onConfirm={confirm}
+      />
+    );
+  }
+
   const statuses = meta.task_statuses;
   const step = statuses.findIndex((s) => s.value === task.status);
   const lastReturned = [...task.submissions].reverse().find((s) => s.decision === "returned");
 
   const footer = (() => {
     const a = task.actions;
-    if ((panel === "submit" && a.submit) || panel === "return") {
-      const isSubmit = panel === "submit";
-      return (
-        <div className="inline-panel">
-          <Field label={isSubmit ? T.tasks.submitTitle : T.tasks.returnTitle} required error={noteError}>
-            {(fid, bad) => (
-              <textarea
-                id={fid}
-                className="textarea"
-                aria-invalid={bad}
-                autoFocus
-                placeholder={isSubmit ? T.tasks.submitPh : T.tasks.returnPh}
-                value={note}
-                onChange={(e) => setNote(e.target.value)}
-              />
-            )}
-          </Field>
-          {isSubmit && <FilePicker files={files} onChange={setFiles} />}
-          <div className="row">
-            <span className="spacer" />
-            <Button variant="ghost" onClick={() => (setPanel(null), setNoteError(undefined))}>
-              {T.common.cancel}
-            </Button>
-            <Button
-              variant={isSubmit ? "primary" : "danger"}
-              icon={isSubmit ? <Send /> : <RotateCcw />}
-              loading={act.isPending}
-              onClick={() => act.mutate(isSubmit ? "submit" : "return")}
-            >
-              {isSubmit ? T.tasks.submitSend : T.tasks.returnSend}
-            </Button>
-          </div>
-        </div>
-      );
-    }
     const left = (
       <>
         {a.delete && (
@@ -285,7 +286,6 @@ export default function TaskModal({ id, submitMode }: { id: number; submitMode?:
         </>
       }
       onClose={close}
-      dirty={Boolean(panel && note.trim())}
       footer={footer}
     >
       <div className="stack" style={{ gap: 18 }}>
@@ -616,5 +616,91 @@ function PeopleEditor({
         </Button>
       </div>
     </div>
+  );
+}
+
+const NOTE_MAX = 1000;
+
+/** "Tekshiruvga yuborish" / "Qaytarish" — alohida ekran, TaskModal o'rnini egallaydi (modal ustida modal yo'q). */
+function TaskActionScreen({
+  isSubmit,
+  note,
+  onNoteChange,
+  noteError,
+  files,
+  onFilesChange,
+  loading,
+  onCancel,
+  onConfirm,
+}: {
+  isSubmit: boolean;
+  note: string;
+  onNoteChange: (v: string) => void;
+  noteError?: string;
+  files: File[];
+  onFilesChange: (files: File[]) => void;
+  loading: boolean;
+  onCancel: () => void;
+  onConfirm: () => void;
+}) {
+  const dirty = Boolean(note.trim() || files.length);
+  return (
+    <Modal
+      size="lg"
+      title={
+        <span className="row" style={{ gap: 12 }}>
+          <span className="modal-icon-badge">{isSubmit ? <FileText /> : <RotateCcw />}</span>
+          <span>{isSubmit ? T.tasks.submit : T.tasks.return}</span>
+        </span>
+      }
+      subtitle={isSubmit ? T.tasks.submitSubtitle : T.tasks.returnSubtitle}
+      onClose={onCancel}
+      dirty={dirty}
+      footer={
+        <>
+          <span className="spacer" />
+          <Button variant="default" onClick={onCancel}>
+            {T.common.cancel}
+          </Button>
+          <Button variant={isSubmit ? "gradient" : "danger"} icon={isSubmit ? <Send /> : <RotateCcw />} loading={loading} onClick={onConfirm}>
+            {isSubmit ? T.tasks.submit : T.tasks.returnSend}
+          </Button>
+        </>
+      }
+    >
+      <div className="stack" style={{ gap: 20 }}>
+        <Field label={isSubmit ? T.tasks.submitTitle : T.tasks.returnTitle} required error={noteError}>
+          {(fid, bad) => (
+            <div style={{ position: "relative" }}>
+              <textarea
+                id={fid}
+                className="textarea"
+                aria-invalid={bad}
+                autoFocus
+                maxLength={NOTE_MAX}
+                style={{ minHeight: 136 }}
+                placeholder={isSubmit ? T.tasks.submitPh : T.tasks.returnPh}
+                value={note}
+                onChange={(e) => onNoteChange(e.target.value)}
+              />
+              <span className="small muted" style={{ position: "absolute", right: 10, bottom: 8, pointerEvents: "none" }}>
+                {T.tasks.submitCounter(note.length, NOTE_MAX)}
+              </span>
+            </div>
+          )}
+        </Field>
+        {isSubmit && (
+          <div className="stack-sm">
+            <div className="row-wrap" style={{ justifyContent: "space-between" }}>
+              <span className="field-label">{T.common.attach}</span>
+              <span className="row small muted" style={{ gap: 6 }}>
+                <Info size={14} aria-hidden /> {T.common.attachLimit}
+              </span>
+            </div>
+            <FilePicker size="lg" files={files} onChange={onFilesChange} hint={T.common.attachLimit} />
+          </div>
+        )}
+      </div>
+    </Modal>
   );
 }

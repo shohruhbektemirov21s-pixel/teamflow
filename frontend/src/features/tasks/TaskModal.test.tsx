@@ -127,4 +127,56 @@ describe("TaskModal", () => {
     expect(await screen.findByText(T.tasks.archived)).toBeTruthy();
     expect(screen.queryByRole("textbox", { name: T.common.comments })).toBeNull();
   });
+
+  describe("Tekshiruvga yuborish oynasi", () => {
+    const canSubmit = () => taskDetail({ status: "in_progress", actions: { ...taskDetail().actions, submit: true } });
+
+    it("alohida ekran: sarlavha, izoh, hisoblagich va fayllar soni", async () => {
+      mockGet({ "/tasks/1/": canSubmit() });
+      renderApp(<TaskModal id={1} submitMode />);
+
+      expect(await screen.findByText(T.tasks.submitSubtitle)).toBeTruthy();
+      expect(screen.getByText(T.tasks.submitCounter(0, 1000))).toBeTruthy();
+      expect(screen.getByText(T.common.attachedCount(0))).toBeTruthy();
+      expect(screen.queryByText(T.tasks.info)).toBeNull(); // vazifa tafsilotlari o'rnini egallagan
+    });
+
+    it("bo'sh matn bilan serverga yubormaydi, xato maydon yonida chiqadi", async () => {
+      mockGet({ "/tasks/1/": canSubmit() });
+      renderApp(<TaskModal id={1} submitMode />);
+
+      fireEvent.click(await screen.findByRole("button", { name: T.tasks.submit }));
+
+      expect(await screen.findByText(T.common.required)).toBeTruthy();
+      expect(api.post).not.toHaveBeenCalled();
+    });
+
+    it("yozilganda hisoblagich yangilanadi va xato yo'qoladi", async () => {
+      mockGet({ "/tasks/1/": canSubmit() });
+      renderApp(<TaskModal id={1} submitMode />);
+
+      fireEvent.click(await screen.findByRole("button", { name: T.tasks.submit }));
+      await screen.findByText(T.common.required);
+      fireEvent.change(screen.getByRole("textbox", { name: /Nima qildingiz/ }), { target: { value: "Tayyor" } });
+
+      expect(screen.getByText(T.tasks.submitCounter(6, 1000))).toBeTruthy();
+      expect(screen.queryByText(T.common.required)).toBeNull();
+    });
+
+    it("ruxsat etilmagan va 20 MB dan katta fayl qabul qilinmaydi", async () => {
+      mockGet({ "/tasks/1/": canSubmit() });
+      renderApp(<TaskModal id={1} submitMode />);
+      await screen.findByText(T.tasks.submitSubtitle);
+
+      const big = new File(["x"], "katta.pdf");
+      Object.defineProperty(big, "size", { value: 21 * 1024 * 1024 });
+      const ok = new File(["x"], "hisobot.pdf");
+      const input = document.querySelector<HTMLInputElement>('input[type="file"]')!;
+      fireEvent.change(input, { target: { files: [new File(["x"], "virus.exe"), big, ok] } });
+
+      expect(await screen.findByText(/Qabul qilinmadi: virus\.exe, katta\.pdf/)).toBeTruthy();
+      expect(screen.getByText("hisobot.pdf")).toBeTruthy();
+      expect(screen.getByText(T.common.attachedCount(1))).toBeTruthy();
+    });
+  });
 });
