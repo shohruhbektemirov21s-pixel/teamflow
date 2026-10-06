@@ -1,16 +1,21 @@
 """Vazifalar: kim nimani ko'radi va qila oladi — BITTA joyda."""
-from django.db.models import Q
-
-from .models import Task
+from .models import SubTask, Task, TaskAssignment
 
 
 def visible_tasks(user):
-    """PM/Boshliq — hammasi. Dasturchi — o'ziga biriktirilgan yoki sub-vazifasi bor vazifalar."""
+    """PM/Boshliq — hammasi. Dasturchi — o'ziga biriktirilgan yoki sub-vazifasi bor vazifalar.
+
+    Dasturchi uchun `id IN (… UNION …)`: ikkala qism indeks bo'yicha bir nechta qator topadi. Avvalgi
+    `JOIN … OR JOIN … DISTINCT` butun vazifalar jadvalini o'qirdi — vazifalar ko'paygan sari sekinlashardi.
+    """
     qs = Task.objects.select_related("project", "created_by")
     if user.is_manager:
         return qs
     if user.is_developer:
-        return qs.filter(Q(assignments__developer=user) | Q(subtasks__assignees=user)).distinct()
+        # .order_by(): modeldagi standart tartib UNION ichida taqiqlangan (SQLite)
+        own = TaskAssignment.objects.filter(developer=user).order_by().values("task_id")
+        via_subtask = SubTask.objects.filter(assignees=user).order_by().values("task_id")
+        return qs.filter(pk__in=own.union(via_subtask))
     return qs.none()
 
 

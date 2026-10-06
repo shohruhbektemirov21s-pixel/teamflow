@@ -14,3 +14,7 @@ frontend/dist-audit/
 .playwright-mcp/
 *.tsbuildinfo
 
+backend/db.sqlite3-wal
+backend/db.sqlite3-shm
+backend/staticfiles/
+deploy/loadtest/results/

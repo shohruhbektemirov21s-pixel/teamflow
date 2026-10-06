@@ -1,0 +1,131 @@
+# TeamFlow — prod stack (Linux server). Ishga tushirish va yangilash: deploy/README.md
+#
+#   cp deploy/.env.example deploy/.env      # sirlarni to'ldiring
+#   docker compose -f deploy/docker-compose.yml up -d --build
+#
+# Brauzer ──► nginx ──┬─ /static, SPA  (fayldan)
+#                     ├─ /api, /admin ──► web (gunicorn, WSGI) ──┐
+#                     └─ /ws ──────────► ws  (daphne, ASGI)  ───┼──► postgres (oylik partitsiyalar)
+#                                                                └──► redis (kesh, sessiya, WebSocket kanallari)
+name: teamflow
+
+x-django: &django
+  image: teamflow-app
+  build:
+    context: ..
+    dockerfile: deploy/Dockerfile
+    target: app
+  env_file: .env
+  environment: &django-env
+    DJANGO_DEBUG: "0"
+    POSTGRES_HOST: postgres
+    POSTGRES_DB: ${POSTGRES_DB:-teamflow}
+    POSTGRES_USER: ${POSTGRES_USER:-teamflow}
+    REDIS_URL: redis://redis:6379/0
+    DJANGO_NUM_PROXIES: ${DJANGO_NUM_PROXIES:-1}  # Nginx; oldida tashqi load balancer bo'lsa — 2
+  volumes:
+    - media:/app/backend/media
+  restart: unless-stopped
+  depends_on:
+    postgres: { condition: service_healthy }
+    redis: { condition: service_healthy }
+    migrate: { condition: service_completed_successfully }
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-teamflow}
+      POSTGRES_USER: ${POSTGRES_USER:-teamflow}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?deploy/.env da POSTGRES_PASSWORD yo'q}
+    # Kam xotirali server uchun (2–4 GB). Katta serverda shared_buffers ≈ RAM'ning 25%.
+    command: >
+      postgres
+      -c max_connections=${PG_MAX_CONNECTIONS:-100}
+      -c shared_buffers=${PG_SHARED_BUFFERS:-256MB}
+      -c effective_cache_size=${PG_EFFECTIVE_CACHE:-1GB}
+      -c work_mem=8MB
+      -c maintenance_work_mem=128MB
+      -c random_page_cost=1.1
+      -c wal_compression=on
+      -c checkpoint_completion_target=0.9
+      -c enable_partition_pruning=on
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    shm_size: 256mb
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    # Diskka yozmaydi (sessiyalar bazada ham bor — Redis qayta ishga tushsa hech kim chiqib ketmaydi).
+    command: redis-server --save "" --appendonly no --maxmemory ${REDIS_MAXMEMORY:-256mb} --maxmemory-policy volatile-lru
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  # Bir martalik: migratsiyalar va oylik partitsiyalar. web/ws shu tugagach ishga tushadi.
+  migrate:
+    <<: *django
+    command: sh -c "python manage.py migrate --noinput && python manage.py ensure_partitions"
+    restart: "no"
+    depends_on:
+      postgres: { condition: service_healthy }
+
+  web:
+    <<: *django
+    # gthread: har worker'da bir nechta oqim — kam xotira bilan ko'p parallel so'rov.
+    # max-requests: worker vaqti-vaqti bilan yangilanadi (xotira sekin o'sib ketmasin).
+    command: >
+      gunicorn config.wsgi:application
+      --bind 0.0.0.0:8000
+      --worker-class gthread
+      --workers ${WEB_WORKERS:-4}
+      --threads ${WEB_THREADS:-8}
+      --max-requests 5000 --max-requests-jitter 500
+      --timeout 60 --graceful-timeout 30 --keep-alive 5
+    environment:
+      <<: *django-env
+      DJANGO_DB_POOL_MAX: ${WEB_THREADS:-8}
+
+  ws:
+    <<: *django
+    # Faqat WebSocket (/ws/). Bitta jarayon minglab ochiq ulanishni ushlaydi (asyncio).
+    command: daphne --bind 0.0.0.0 --port 8001 --proxy-headers config.asgi:application
+    ulimits:
+      nofile: { soft: 65535, hard: 65535 }
+
+  # Kunlik xizmat ishlari: keyingi oylar partitsiyalari, muddati o'tgan sessiyalarni tozalash.
+  scheduler:
+    <<: *django
+    command: sh -c "while true; do python manage.py ensure_partitions; python manage.py clearsessions; sleep 86400; done"
+
+  # Telegram bot — faqat token bo'lsa: docker compose --profile telegram up -d
+  bot:
+    <<: *django
+    command: python manage.py runbot
+    profiles: ["telegram"]
+
+  nginx:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+      target: nginx
+    image: teamflow-nginx
+    ports:
+      - "${HTTP_PORT:-80}:80"
+    ulimits:
+      nofile: { soft: 65535, hard: 65535 }
+    depends_on: [web, ws]
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  media:

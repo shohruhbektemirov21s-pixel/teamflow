@@ -28,6 +28,10 @@ class NotifyTelegramTests(TestCase):
     def setUp(self):
         self.linked = make_user(Role.DEVELOPER, telegram_chat_id="111")
         self.unlinked = make_user(Role.DEVELOPER)
+        # Bu yerda faqat Telegram tekshiriladi; real vaqt hodisasi (o'z on_commit'i bilan) — test_realtime.py
+        patcher = mock.patch("apps.notifications.services.publish")
+        patcher.start()
+        self.addCleanup(patcher.stop)
 
     def test_sent_only_after_commit_and_only_to_linked_users(self):
         with mock.patch.object(telegram, "send_many") as send_many, \

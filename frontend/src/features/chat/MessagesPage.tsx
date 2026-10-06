@@ -3,6 +3,7 @@ import { ArrowLeft, MessageCircle, Search, Send } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 import { useMe } from "@/app/auth";
+import { useFallbackInterval } from "@/app/live";
 import { api, qs } from "@/shared/api";
 import { fmtDateTime } from "@/shared/format";
 import { useDebounced } from "@/shared/hooks";
@@ -23,6 +24,9 @@ export default function MessagesPage() {
   const [text, setText] = useState("");
   const chatEndRef = useRef<HTMLDivElement>(null);
   const query = useDebounced(search.trim());
+  // WebSocket ulangan bo'lsa yangi xabar hodisa bilan keladi; uzilganda — zaxira polling
+  const conversationsInterval = useFallbackInterval(15_000);
+  const messagesInterval = useFallbackInterval(5000);
 
   const peopleQuery = useQuery({
     queryKey: ["chat", "people", query],
@@ -34,7 +38,7 @@ export default function MessagesPage() {
     queryKey: ["chat", "conversations"],
     queryFn: () => api.get<ChatConversation[]>("/chat/conversations/"),
     enabled: !query,
-    refetchInterval: 15_000,
+    refetchInterval: conversationsInterval,
     refetchIntervalInBackground: false,
   });
 
@@ -42,7 +46,7 @@ export default function MessagesPage() {
     queryKey: ["chat", "messages", partnerId],
     queryFn: () => api.get<ChatMessage[]>(`/chat/messages/${qs({ partner: partnerId })}`),
     enabled: Boolean(partnerId),
-    refetchInterval: 5000,
+    refetchInterval: messagesInterval,
     refetchIntervalInBackground: false,
   });
 

@@ -1,0 +1,38 @@
+# Yuk testi — asosiy stack ustiga qo'shiladi (faqat sinov stendi). Batafsil: deploy/loadtest/README.md
+# Diqqat: nisbiy yo'llar birinchi fayl (deploy/docker-compose.yml) papkasiga nisbatan.
+services:
+  seed:
+    image: teamflow-app
+    env_file: .env
+    environment:
+      DJANGO_DEBUG: "0"
+      POSTGRES_HOST: postgres
+      POSTGRES_DB: ${POSTGRES_DB:-teamflow}
+      POSTGRES_USER: ${POSTGRES_USER:-teamflow}
+      REDIS_URL: redis://redis:6379/0
+      TEAMFLOW_LOADTEST: "1"
+      LT_USERS: ${LT_USERS:-10000}
+    volumes:
+      - ./loadtest:/loadtest:ro
+    command: python manage.py shell -c "exec(open('/loadtest/seed.py', encoding='utf-8').read())"
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+    profiles: ["loadtest"]
+
+  locust:
+    build: ./loadtest
+    image: teamflow-locust
+    volumes:
+      - ./loadtest:/mnt/locust
+    environment:
+      LT_USERS: ${LT_USERS:-10000}
+    ulimits:
+      nofile: { soft: 65535, hard: 65535 }
+    working_dir: /mnt/locust
+    command: >
+      -f /mnt/locust/locustfile.py --headless --host http://nginx
+      -u ${LT_USERS:-10000} -r ${LT_SPAWN_RATE:-25} -t ${LT_DURATION:-15m}
+      --processes ${LT_PROCESSES:-8} --csv /mnt/locust/results/lt --html /mnt/locust/results/report.html
+      --only-summary
+    depends_on: [nginx]
+    profiles: ["loadtest"]

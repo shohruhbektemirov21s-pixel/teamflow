@@ -32,7 +32,9 @@ Jamoa ishini boshqarish tizimi. Boshqarmalar buyurtma (TZ) yuboradi, loyiha mene
 | Qatlam | Tanlov |
 |---|---|
 | Backend | Python + Django + Django REST Framework |
-| Ma'lumotlar bazasi | Django standart bazasi (SQLite) |
+| Ma'lumotlar bazasi | Ishlab chiqishda SQLite; prod'da PostgreSQL 17 (bildirishnoma, chat, tarix — oylarga bo'lingan) |
+| Prod server | Linux + Docker: Nginx, gunicorn, daphne (WebSocket), Redis — `deploy/` (10 000+ foydalanuvchi) |
+| Real vaqt | WebSocket (`/ws/events/`): yangi bildirishnoma va chat xabari darrov keladi, bo'sh tab serverga so'rov yubormaydi |
 | Admin panel | Django admin (alohida admin panel yozilmaydi) |
 | Frontend | React + TypeScript (Vite). Node faqat ishlab chiqishda kerak |
 | Word (.docx) ko'rish | Brauzerda, modal ichida (`docx-preview`) |
@@ -448,7 +450,16 @@ Build'dan keyin frontend Django orqali `http://127.0.0.1:8020/` manzilida ochila
 - Frontend o'zgarsa, `npx vite build` qilish kerak.
 - Backend kodi o'zgarsa, server qayta ishga tushiriladi (avtoishga tushirish `--noreload` bilan ishlaydi): `shell:startup\TeamFlow.vbs` ni qayta bosing yoki kompyuterni qayta yoqing.
 
-### 5. Qaytarish nuqtalari (git tag)
+### 5. Prod: 10 000+ foydalanuvchi (Linux + Docker)
+
+```bash
+cp deploy/.env.example deploy/.env      # sirlarni to'ldiring
+docker compose -f deploy/docker-compose.yml up -d --build
+```
+
+Batafsil (yangilash, SQLite'dan ko'chirish, HTTPS, resurslar, zaxira, oylarni arxivlash): `deploy/README.md`. Yuk testi va natijalar: `deploy/loadtest/README.md`. Arxitektura qarorlari: `docs/ARCHITECTURE.md` 14-bo'lim.
+
+### 6. Qaytarish nuqtalari (git tag)
 
 Har doim avvalgi holatga qaytish imkoniyati saqlanadi: `v1.0-baseline`, `ui-before-restyle` (UI uslubi yangilanishidan oldin), `before-multi-assignee` (bir nechta ijrochidan oldin).
 
@@ -460,6 +471,8 @@ backend/    Django: config/ (settings, urls), apps/ (core, accounts, orders, pro
 frontend/   React + TS: src/app (marshrut, menyu, modallar), src/features (sahifalar),
             src/shared (UI komponentlar, text.ts, styles.css, types)
 docs/       ARCHITECTURE.md, FLOWS_MODALS.md
+deploy/     Prod: Dockerfile, docker-compose.yml, nginx.conf, .env.example, README.md;
+            loadtest/ (Locust ssenariysi, sinov ma'lumotlari, natijalar)
 ```
 
 - Har bir app ichidagi qatlamlar: `models`, `workflow`, `services`, `permissions`, `serializers`, `api`, `admin`, `tests` (batafsil: `docs/ARCHITECTURE.md` 3-bo'lim).
@@ -502,3 +515,12 @@ Batafsil qoidalar: `CLAUDE.md` 4-bo'lim. Dizayn oldingi loyiha skrinshotlaridan 
 | Boshqarma bosh paneli | 12 | 1 |
 
 O'lchov mavjud kichik bazada (7 vazifa, 6 loyiha), autentifikatsiya qilingan API orqali olindi. Bosh panel javob hajmi saqlandi. 243 backend va 102 frontend testi o'tdi. Chatning davriy so'rovlari faol suhbatda daqiqasiga 32 dan 16 ga kamaytirildi. Bu SQL va so'rov sarfi o'lchovi; umumiy CPU/RAM yoki brauzer tezligi foizi o'lchanmagan.
+
+### 10 000+ bir vaqtdagi foydalanuvchi (2026-10-06)
+
+Talab: 10 000+ kishi bir vaqtda kirganda tizim qulamasin, resurs kam sarflansin, ma'lumot qancha o'ssa ham baza tez ishlasin (oylarga bo'linsin). Windows ishlab chiqish rejimi o'zgarmaydi, prod — `deploy/`.
+
+- **Polling o'rniga WebSocket:** ochiq tab bildirishnoma, bosh panel va chatni faqat hodisa kelganda yangilaydi. Ulanish uzilsa avvalgi oraliqlar (30/60 s, chat 5/15 s) zaxira bo'ladi.
+- **Oylarga bo'lingan jadvallar:** bildirishnomalar, chat xabarlari, harakatlar tarixi — har oy alohida jadval, keyingi 3 oy oldindan yaratiladi, eski oy bir buyruq bilan arxivlanadi. Vazifa/loyiha/buyurtma bo'linmaydi (bog'lanishlar buziladi, tezlik oshmaydi) — ular indeks bilan tez.
+- **Login:** cheklov login nomi bo'yicha; IP bo'yicha faqat xato urinishlar sanaladi — ofis bitta IP orqali chiqsa ham xodimlar bir-birini bloklamaydi.
+- **Dasturchi vazifalari so'rovi** butun jadvalni o'qimaydi: 50 000 vazifada 36 ms → 0,9 ms.
