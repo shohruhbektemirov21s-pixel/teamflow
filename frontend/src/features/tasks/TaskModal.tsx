@@ -191,38 +191,34 @@ export default function TaskModal({ id, submitMode }: { id: number; submitMode?:
       </Modal>
     );
 
-  if ((panel === "submit" && task.actions.submit) || panel === "return") {
-    const isSubmit = panel === "submit";
-    const cancel = () => {
-      setPanel(null);
-      setNote("");
-      setFiles([]);
-      setNoteError(undefined);
-    };
-    const confirm = () => {
-      if (!note.trim()) {
-        setNoteError(T.common.required);
-        return;
-      }
-      act.mutate(isSubmit ? "submit" : "return");
-    };
-    return (
-      <TaskActionScreen
-        isSubmit={isSubmit}
-        note={note}
-        onNoteChange={(v) => {
-          setNote(v);
-          if (noteError) setNoteError(undefined);
-        }}
-        noteError={noteError}
-        files={files}
-        onFilesChange={setFiles}
-        loading={act.isPending}
-        onCancel={cancel}
-        onConfirm={confirm}
-      />
-    );
-  }
+  const actionOpen = (panel === "submit" && task.actions.submit) || panel === "return";
+  const actionScreen = actionOpen && (
+    <TaskActionScreen
+      isSubmit={panel === "submit"}
+      note={note}
+      onNoteChange={(v) => {
+        setNote(v);
+        if (noteError) setNoteError(undefined);
+      }}
+      noteError={noteError}
+      files={files}
+      onFilesChange={setFiles}
+      loading={act.isPending}
+      onCancel={() => {
+        setPanel(null);
+        setNote("");
+        setFiles([]);
+        setNoteError(undefined);
+      }}
+      onConfirm={() => {
+        if (!note.trim()) {
+          setNoteError(T.common.required);
+          return;
+        }
+        act.mutate(panel === "submit" ? "submit" : "return");
+      }}
+    />
+  );
 
   const statuses = meta.task_statuses;
   const step = statuses.findIndex((s) => s.value === task.status);
@@ -273,8 +269,10 @@ export default function TaskModal({ id, submitMode }: { id: number; submitMode?:
   })();
 
   return (
+    <>
     <Modal
       size="lg"
+      covered={actionOpen}
       title={<><CodeTag code={task.code} /> {task.title}</>}
       subtitle={
         <>
@@ -539,6 +537,8 @@ export default function TaskModal({ id, submitMode }: { id: number; submitMode?:
         </div>
       </div>
     </Modal>
+    {actionScreen}
+    </>
   );
 }
 
@@ -621,7 +621,7 @@ function PeopleEditor({
 
 const NOTE_MAX = 1000;
 
-/** "Tekshiruvga yuborish" / "Qaytarish" — alohida ekran, TaskModal o'rnini egallaydi (modal ustida modal yo'q). */
+/** "Tekshiruvga yuborish" / "Qaytarish" — vazifa oynasi ustida alohida, qora fonli modal (foydalanuvchi istisnosi, 2026-10-06). */
 function TaskActionScreen({
   isSubmit,
   note,
@@ -646,7 +646,8 @@ function TaskActionScreen({
   const dirty = Boolean(note.trim() || files.length);
   return (
     <Modal
-      size="lg"
+      size="md"
+      stacked
       title={
         <span className="row" style={{ gap: 12 }}>
           <span className="modal-icon-badge">{isSubmit ? <FileText /> : <RotateCcw />}</span>
@@ -668,7 +669,7 @@ function TaskActionScreen({
         </>
       }
     >
-      <div className="stack" style={{ gap: 20 }}>
+      <div className="stack" style={{ gap: 16 }}>
         <Field label={isSubmit ? T.tasks.submitTitle : T.tasks.returnTitle} required error={noteError}>
           {(fid, bad) => (
             <div style={{ position: "relative" }}>
@@ -678,7 +679,7 @@ function TaskActionScreen({
                 aria-invalid={bad}
                 autoFocus
                 maxLength={NOTE_MAX}
-                style={{ minHeight: 136 }}
+                style={{ minHeight: 104 }}
                 placeholder={isSubmit ? T.tasks.submitPh : T.tasks.returnPh}
                 value={note}
                 onChange={(e) => onNoteChange(e.target.value)}
