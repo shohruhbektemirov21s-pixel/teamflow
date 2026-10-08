@@ -1,17 +1,41 @@
 """Portfolio biznes amallari. Ruxsat qoidalari — `permissions.py`."""
 from django.conf import settings
 from django.db import IntegrityError, transaction
+from django.db.models import Sum
 from rest_framework.exceptions import PermissionDenied
 
+from apps.accounts.models import User
 from apps.core.api_utils import ServiceError
+from apps.projects.models import ProjectMember
 
 from .files import normalized_cover, validate_video
 from .models import Follow, PortfolioItem, PortfolioReview, PortfolioVideo
 from .permissions import can_edit_item, can_follow, can_review_item
-from .stats import invalidate_developer_ranking
+from .stats import done_assignments, invalidate_developer_ranking
+
+MB = 1024 * 1024
 
 # Faqat o'zi qo'shgan loyihada o'zgaradigan maydonlar; TeamFlow loyihasida nomi va sanalari loyihadan olinadi.
 MANUAL_ONLY_FIELDS = ("title", "start_date", "end_date")
+
+
+def membership_removed(owner_id, project_id):
+    """Dasturchi jamoadan chiqarildi (tranzaksiya tasdiqlangach chaqiriladi, `signals.py`).
+
+    Shu loyihada bajargan vazifasi bo'lsa — yozuv portfolioda qoladi (portfolio hali ochilmagan bo'lsa ham
+    yaratiladi). Bo'lmasa — yozuv videolari va baholari bilan o'chiriladi: xato bilan qo'shilgan loyiha
+    portfolioda qolib ketmasin. Natija portfolio ochilgan-ochilmaganiga bog'liq emas.
+    """
+    if ProjectMember.objects.filter(developer_id=owner_id, project_id=project_id).exists():
+        return  # qayta qo'shilgan
+    if done_assignments().filter(developer_id=owner_id, task__project_id=project_id).exists():
+        PortfolioItem.objects.bulk_create([PortfolioItem(owner_id=owner_id, project_id=project_id)],
+                                          ignore_conflicts=True)
+        return
+    with transaction.atomic():  # video fayllari tasdiqdan keyin o'chadi (signals.py)
+        for item in PortfolioItem.objects.filter(owner_id=owner_id, project_id=project_id):
+            item.delete()
+    invalidate_developer_ranking()
 
 
 def _require_owner(user, item):
@@ -73,13 +97,21 @@ def delete_item(item, user):
     invalidate_developer_ranking()
 
 
+@transaction.atomic
 def add_video(item, user, file):
     _require_owner(user, item)
+    validate_video(file)
+    # Egasi qatori qulflanadi: bir vaqtdagi ikki yuklash soni va kvota chegarasidan o'tib ketmasin.
+    User.objects.select_for_update().filter(pk=item.owner_id).first()
     if item.videos.count() >= settings.PORTFOLIO_VIDEOS_PER_ITEM:
         raise ServiceError(f"Bitta loyihaga {settings.PORTFOLIO_VIDEOS_PER_ITEM} tagacha video yuklash mumkin.",
                            field="video")
-    validate_video(file)
-    return PortfolioVideo.objects.create(item=item, file=file, original_name=file.name[:255])
+    used = PortfolioVideo.objects.filter(item__owner_id=item.owner_id).aggregate(n=Sum("size"))["n"] or 0
+    if used + file.size > settings.PORTFOLIO_VIDEO_QUOTA_MB * MB:
+        raise ServiceError(
+            f"Videolar uchun joy {settings.PORTFOLIO_VIDEO_QUOTA_MB} MB, {used / MB:.0f} MB band. "
+            "Keraksiz videoni o'chiring yoki kichikroq video yuklang.", field="video")
+    return PortfolioVideo.objects.create(item=item, file=file, original_name=file.name[:255], size=file.size)
 
 
 def delete_video(video, user):
