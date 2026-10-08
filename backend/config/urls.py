@@ -8,6 +8,7 @@ from apps.accounts import api as accounts
 from apps.notifications.api import NotificationViewSet
 from apps.orders.api import OrderViewSet
 from apps.panel import api as panel
+from apps.portfolio import api as portfolio
 from apps.projects.api import ProjectViewSet
 from apps.suggestions.api import SuggestionViewSet
 from apps.tasks.api import TaskViewSet, project_setup
@@ -53,6 +54,15 @@ api = [
     path("history/", panel.history),
     path("files/<str:kind>/<int:pk>/", panel.file_download),
     path("projects/setup/", project_setup),  # router'dagi projects/<pk>/ dan oldin turishi shart
+    path("portfolio/", portfolio.developer_list),
+    path("portfolio/<int:pk>/", portfolio.developer_detail),
+    path("portfolio/<int:pk>/follow/", portfolio.follow),
+    path("portfolio/items/", portfolio.item_create),
+    path("portfolio/items/<int:pk>/", portfolio.item),
+    path("portfolio/items/<int:pk>/reviews/", portfolio.reviews),
+    path("portfolio/items/<int:pk>/videos/", portfolio.video_upload),
+    path("portfolio/items/<int:pk>/videos/<int:video_pk>/", portfolio.video_delete),
+    path("portfolio/videos/<int:pk>/", portfolio.video_file),
     path("ai/web-agent/", WebAgentView.as_view()),
     path("ai/web-agent/<int:pk>/", WebAgentView.as_view()),
     path("", include(router.urls)),

@@ -51,6 +51,9 @@ backend/
     panel/           modelsiz yig'uvchi qatlam: dashboard, people, search, comments, history, files, meta
     ai/              WebAgentRun; services/tinyfish_service.py (tashqi provayder klienti, SSRF himoyasi),
                      services/web_agent.py (ishni boshlash va holatini yangilash); faqat core'ni import qiladi
+    portfolio/       PortfolioItem, PortfolioVideo, PortfolioReview, Follow; files.py (video validatsiyasi, Range bilan
+                     berish), stats.py (reyting, sonlar, tajriba — subquery bilan), signals.py (video fayli o'chirilishi);
+                     accounts/projects/tasks/core'ni import qiladi, uni hech kim import qilmaydi (eng yuqori domen qatlami)
 ```
 
 ### Qatlamlar (har bir app ichida)
@@ -130,6 +133,17 @@ Hisoblanadigan (saqlanmaydi): `is_overdue` = muddat o'tgan, `done` va arxivda em
 | `Comment` | author, text, target (GenericFK: Order/Project/Task), created_at |
 | `ActivityLog` | actor, verb, message, target (GenericFK), created_at — "Umumiy tarix" |
 | `Notification` | recipient, kind, message, target (GenericFK), is_read, created_at |
+
+### portfolio (2026-10-08)
+| Model | Maydonlar |
+|---|---|
+| `PortfolioItem` | owner FK (dasturchi), project FK? (TeamFlow loyihasi — bo'lsa nomi/sanalari loyihadan), title, description (2000), link (http/https), start_date?, end_date?, created_at. `unique(owner, project)` (project bo'lsa) |
+| `PortfolioVideo` | item FK, file (mp4/webm/mov, 100 MB, magic bytes tekshiruvi), original_name, created_at |
+| `PortfolioReview` | item FK, author FK, stars (1–5, CHECK), text (1000), created_at, updated_at. `unique(item, author)` |
+| `Follow` | follower FK, developer FK, created_at. `unique`, CHECK `follower != developer` |
+
+Reyting, sharhlar, kuzatuvchilar, loyihalar soni va tajriba **saqlanmaydi** — `stats.py` subquery bilan hisoblaydi (JOIN ko'payib o'rtachani buzmasin). TeamFlow loyihalari `ProjectMember` dan portfolio ochilganda `services.sync_project_items` bilan qo'shiladi (a'zolik `bulk_create` bilan yaratilgani uchun signal ishlamaydi); ro'yxatdagi loyiha soni sinxronlanmaganlarni ham sanaydi.
+**Nima uchun** video API orqali: media ochiq berilmaydi (9-bo'lim), Range (206) — brauzerda oldinga o'tkazish uchun.
 
 ### chat
 | Model | Maydonlar |
@@ -218,6 +232,16 @@ GET        /api/search/?q=...   global qidiruv (Ctrl K)
 GET        /api/history/        umumiy tarix
 GET        /api/meta/           rollar, holatlar, ruxsat etilgan o'tishlar (yagona manba)
 GET        /api/files/{kind}/{id}/?download=1   ruxsat tekshiruvi bilan fayl yuklab olish/ochish
+
+GET        /api/portfolio/?q=             dasturchilar reyting bo'yicha (sahifalangan, `rank`)
+GET        /api/portfolio/{user_id}/      portfolio: ko'rsatkichlar, tajriba, yillar, loyihalar, so'nggi vazifalar
+POST/DELETE /api/portfolio/{user_id}/follow/   kuzatish / to'xtatish (o'zini emas)
+POST       /api/portfolio/items/          o'z loyihasini qo'shish (faqat dasturchi)
+GET/PATCH/DELETE /api/portfolio/items/{id}/    PATCH/DELETE — faqat egasi; TeamFlow loyihasida nom/sana o'zgarmaydi, o'chmaydi
+GET/POST/DELETE  /api/portfolio/items/{id}/reviews/   sahifalangan sharhlar · o'z bahom {stars, text} · o'chirish
+POST       /api/portfolio/items/{id}/videos/          multipart `video` (faqat egasi)
+DELETE     /api/portfolio/items/{id}/videos/{vid}/
+GET        /api/portfolio/videos/{vid}/   video (Range 206), faqat tizimga kirganlarga
 ```
 
 Xatolar: bir xil shakl `{code, detail, fields?}`. Sahifalash: DRF `PageNumberPagination`. Har bir ro'yxat `select_related/prefetch_related` bilan (N+1 testlar bilan qamrab olinadi).
@@ -241,6 +265,7 @@ frontend/src/
     history/      HistoryPage
     notifications/ NotificationsModal (modal — qo'ng'iroq ikonkasi; sahifa emas)
     chat/          MessagesPage
+    portfolio/     PortfolioPage (reyting ro'yxati), PortfolioModal (dasturchi sahifasi), PortfolioItem (loyiha, video, baho), Stars
 ```
 
 - **Modal:** yagona `Modal` komponenti (o'lcham, sarlavha, footer). Modal holati brauzer tarixining `state` qismida (`{ modal: { task: 12 } }`), manzil satri toza qoladi (foydalanuvchi talabi). Sahifa ro'yxat bo'lib qoladi, ustida modal ochiladi; brauzer "Orqaga" tugmasi modalni yopadi, sahifa yangilansa modal qayta ochiladi. Eski `?task=12` havolalar modalni ochib, manzilni tozalaydi. Modal ustida modal ochilmaydi.

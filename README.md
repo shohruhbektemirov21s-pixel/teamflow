@@ -16,8 +16,8 @@ Jamoa ishini boshqarish tizimi. Boshqarmalar buyurtma (TZ) yuboradi, loyiha mene
 7. [Menyu va sahifalar](#7-menyu-va-sahifalar)
 8. [Telegram bildirishnomalari](#8-telegram-bildirishnomalari)
 9. [TinyFish AI web-agent](#tinyfish-ai-web-agent)
-9. [Modallar](#9-modallar-amalda-14-ta)
-10. [Flow'lar](#10-flowlar-amalda-13-ta)
+9. [Modallar](#9-modallar-amalda-16-ta)
+10. [Flow'lar](#10-flowlar-amalda-16-ta)
 11. [Qarorlar va ochiq savollar](#11-qabul-qilingan-qarorlar-va-ochiq-savollar)
 12. [Xavfsizlik](#12-xavfsizlik)
 13. [Ishga tushirish va demo loginlar](#13-ishga-tushirish-va-demo-loginlar)
@@ -178,15 +178,15 @@ Menyu guruhlarga bo'lingan: *Asosiy ish* | *Muloqot* | *Kuzatuv* (Kuzatuv faqat 
 
 | Rol | Asosiy ish | Muloqot | Kuzatuv |
 |---|---|---|---|
-| **Dasturchi** | Bosh panel · Vazifalar · Mening ishim · Taqvim | Xabarlar · Takliflar | — |
-| **PM va Boshliq** | Bosh panel · Loyihalar · Buyurtmalar (TZ) · Vazifalar · Taqvim | Xodimlar · Xabarlar · Tekshiruv navbati · Takliflar | Qilingan ishlar |
-| **Boshqarma** | Bosh panel · Buyurtmalarim | Xabarlar · Takliflar | — |
+| **Dasturchi** | Bosh panel · Vazifalar · Mening ishim · Taqvim | Xabarlar · Portfolio · Takliflar | — |
+| **PM va Boshliq** | Bosh panel · Loyihalar · Buyurtmalar (TZ) · Vazifalar · Taqvim | Xodimlar · Xabarlar · Tekshiruv navbati · Portfolio · Takliflar | Qilingan ishlar |
+| **Boshqarma** | Bosh panel · Buyurtmalarim | Xabarlar · Portfolio · Takliflar | — |
 
 - Menyu pastida foydalanuvchi kartasi (ism, rol; bosilsa Profil ochiladi) va "Chiqish".
 - Yuqorida: qidiruv (`Ctrl K`, kodlar bilan ham), tungi/kunduzgi rejim, bildirishnomalar (qo'ng'iroq ikonkasi — o'z soni bilan; bosilsa modal ochiladi, chap menyuda alohida band yo'q, barcha rolda shu yerdan ochiladi).
 - Yon panel (drawer) **ishlatilmaydi**: ko'rish, yaratish, tahrirlash — faqat modalda.
 - **Sahifalarda katta sarlavha yo'q** — sahifa nomi tepadagi panelda. Sahifa asboblar qatori bilan boshlanadi: chapda filtrlar/qidiruv, o'ngda amallar (asosiy tugma eng o'ngda).
-- Manzillar: `/`, `/vazifalar`, `/mening-ishim`, `/taqvim`, `/loyihalar`, `/buyurtmalar`, `/xodimlar`, `/tekshiruv`, `/xabarlar`, `/takliflar`, `/qilingan-ishlar`, `/profil`. Rolga tegishli bo'lmagan sahifa ochilmaydi. (Bildirishnomalar alohida sahifa emas — qo'ng'iroq ikonkasi modal ochadi, 9-bo'lim.)
+- Manzillar: `/`, `/vazifalar`, `/mening-ishim`, `/taqvim`, `/loyihalar`, `/buyurtmalar`, `/xodimlar`, `/tekshiruv`, `/xabarlar`, `/portfolio`, `/takliflar`, `/qilingan-ishlar`, `/profil`. Rolga tegishli bo'lmagan sahifa ochilmaydi. (Bildirishnomalar alohida sahifa emas — qo'ng'iroq ikonkasi modal ochadi, 9-bo'lim.)
 
 ### Bosh panel — PM va Boshliq
 - Tepada o'ngda asosiy amallar: Xodimlar, (yangi buyurtma bo'lsa) Buyurtmalar, Yangi loyiha, **Yangi vazifa** (eng o'ngda). Salomlashish matni yo'q (foydalanuvchi qarori, 2026-10-06).
@@ -276,6 +276,18 @@ Menyu guruhlarga bo'lingan: *Asosiy ish* | *Muloqot* | *Kuzatuv* (Kuzatuv faqat 
 
 **Xodimlar (Boshliq va PM):** har bir xodimning faol ishlari, loyiha nomi/raqami, holati va muddati ro'yxatda ko'rinadi. 'Profilni ko'rish' yoki ism orqali xodim profili ochiladi: barcha vazifalar, dasturchi hisoboti va biriktirilgan loyihalar. Ro'yxatda 3 ta ish va 2 ta faol loyiha qisqa ko'rsatiladi, qolganlari profilda. Ish yoki loyihani bosish mavjud tafsilot oynasini ochadi. Telefonda kartalar, kompyuterda jadval/kartalar; kunduzgi va tungi rejim.
 
+### Portfolio (`/portfolio`, hamma rol) — 2026-10-08
+Dasturchilar portfoliosi va reytingi. Menyuda barcha rollarda ("Muloqot" guruhida) bor — hamma ko'radi.
+- **Ro'yxat:** barcha faol dasturchilar **reyting bo'yicha** — eng balandi tepada, o'rni (1, 2, 3…), yulduz va o'rtacha baho, **kuzatuvchilar**, **sharhlar** va **loyihalar** soni, kuzatayotgan bo'lsangiz "Kuzatyapsiz" belgisi. Ism yoki mutaxassislik bo'yicha qidiruv. Dasturchida o'ng tomonda "Mening portfoliom".
+- **Portfolio oynasi** (qator bosilsa): avatar, ism, mutaxassislik; ko'rsatkichlar — Reyting, Kuzatuvchilar, Loyihalar, Bajarilgan vazifalar, **Tajriba** ("3 yil 7 oy", qachondan beri); **Loyihalar** kartalari; **Yillar bo'yicha** (har yili nechta loyiha va bajarilgan vazifa); **So'nggi bajarilgan vazifalar**. Pastda bitta asosiy amal: boshqalarga "Kuzatish" / "Kuzatishni to'xtatish", egasiga "Loyiha qo'shish".
+- **Avtomatik:** dasturchi a'zo bo'lgan TeamFlow loyihalari portfolioda o'zi paydo bo'ladi ("TeamFlow loyihasi" belgisi, loyiha raqami, sanalari, shu loyihada bajargan vazifalari soni). Nomi va sanalari loyihadan olinadi, o'chirilmaydi; dasturchi tavsif, havola va video qo'sha oladi. Jamoadan chiqarilsa ham portfoliodagi yozuv (baho va videolari bilan) qoladi. Tajriba — TeamFlow'ga qo'shilgan kun yoki eng erta loyiha boshlanishidan bugungacha.
+- **O'zi qo'shadi:** "Loyiha qo'shish" — nomi (majburiy), boshlanish/tugash sanasi, "Nima qildingiz?" (2000 belgigacha), loyiha havolasi (faqat `http/https`). Tahrirlash va o'chirish mumkin.
+- **Video:** har bir loyihaga video yuklash va brauzerning o'zida ko'rish (oldinga o'tkazish ishlaydi). MP4, WebM yoki MOV, 100 MB gacha, bitta loyihaga 5 tagacha. Server turini, hajmini va fayl boshidagi belgini tekshiradi. Video faqat tizimga kirganlarga `/api/portfolio/videos/<id>/` orqali beriladi.
+- **Baho va sharh:** boshqa foydalanuvchilar har bir loyihaga alohida **1–5 yulduz** va sharh (1000 belgigacha, ixtiyoriy) qo'yadi; bitta odam bitta loyihaga bitta baho — keyin yangilaydi yoki o'chiradi. O'z loyihasini baholab bo'lmaydi. Sharhlar sahifalanadi, eng yangisi tepada.
+- **Reyting:** dasturchining barcha loyihalaridagi baholar o'rtachasi (11-bo'lim).
+- **Kuzatish:** istalgan foydalanuvchi dasturchini kuzatadi; o'zini kuzata olmaydi. Kuzatuvchilar soni ro'yxatda va portfolioda ko'rinadi.
+- Ruxsatlar serverda: ko'rish — hamma tizimga kirganlar; o'zgartirish va video — faqat egasi; portfolio faqat faol dasturchilarda.
+
 ## 8. Telegram bildirishnomalari
 
 - Bot: **@taskbildirishnomasi_bot** (`https://t.me/taskbildirishnomasi_bot`). Profildagi Telegram maydoni izohida botga havola bor (bot nomi serverdan: `/api/meta/` → `telegram_bot`).
@@ -286,7 +298,7 @@ Menyu guruhlarga bo'lingan: *Asosiy ish* | *Muloqot* | *Kuzatuv* (Kuzatuv faqat 
 - Bot (`runbot`) server bilan birga avtomatik ishga tushadi (`backend/start_server.bat`, log: `backend/bot.log`). Logga token yozilmaydi.
 - Bitta token bilan faqat **bitta** bot jarayoni ishlashi mumkin: boshqa joyda ham ishlasa, logda "409" chiqadi va `/start` xabarlari o'sha joyga ketadi.
 
-## 9. Modallar (amalda: 15 ta)
+## 9. Modallar (amalda: 16 ta)
 
 Ko'rish, yaratish, tahrirlash — hammasi modalda. Batafsil: `docs/FLOWS_MODALS.md`.
 
@@ -301,8 +313,9 @@ Ko'rish, yaratish, tahrirlash — hammasi modalda. Batafsil: `docs/FLOWS_MODALS.
 | | | 13 | Vazifa amali: Tekshiruvga yuborish / Qaytarish (vazifa oynasi ustida) |
 | | | 14 | Buyurtma amali: Tasdiqlash / Rad etish / sanalar / yangi TZ / kamchilik (buyurtma oynasi ustida) |
 | | | 15 | Loyiha amali: Yakunlash izohi va fayllar (loyiha oynasi ustida) |
+| | | 16 | Portfolio (dasturchi sahifasi → loyiha → yangi loyiha; bitta modal ichida) |
 
-Word ko'rish alohida modal emas — joriy modal ichini almashtiradi ("← Orqaga").
+Word ko'rish alohida modal emas — joriy modal ichini almashtiradi ("← Orqaga"). Portfolio loyihasi va formasi ham alohida modal emas — "Portfolio" modali ichini almashtiradi.
 
 **Modal qoidalari:**
 - Tepada sarlavha va ✕, o'rtada aylanuvchi tarkib, pastda doim ko'rinadigan tugmalar paneli (asosiy amal o'ngda, xavfli amal chapda).
@@ -311,7 +324,7 @@ Word ko'rish alohida modal emas — joriy modal ichini almashtiradi ("← Orqaga
 - `Esc` yopadi, fokus modal ichida qoladi, saqlanmagan o'zgarish bo'lsa so'raydi. Telefonda butun ekran.
 - Tugmalar rolga va holatga qarab chiqadi, keraksiz tugma ko'rsatilmaydi.
 
-## 10. Flow'lar (amalda: 13 ta)
+## 10. Flow'lar (amalda: 16 ta)
 
 Cheklov: bitta bo'limda **3–4 ta flow**, istisnoda **5 ta**. Oshsa — flow'lar birlashtiriladi yoki bitta flow ichida holatga qarab UI almashadi.
 
@@ -325,6 +338,7 @@ Cheklov: bitta bo'limda **3–4 ta flow**, istisnoda **5 ta**. Oshsa — flow'la
 | suggestions (1) | Takliflar berish va ovoz |
 | history (1) | Qilingan ishlar |
 | notifications (1) | Telegram'ni ulash |
+| portfolio (3) | Portfoliolarni ko'rish va kuzatish · Portfolioni to'ldirish (loyiha, video, havola) · Loyihani baholash va sharh |
 
 Batafsil bosqichlar: `docs/FLOWS_MODALS.md`.
 
@@ -345,7 +359,13 @@ Batafsil bosqichlar: `docs/FLOWS_MODALS.md`.
 - **Vazifalar filtrida "Loyiha" va "Oy yarmi" yo'q** — o'rniga "Sanadan / Sanagacha" oralig'i.
 - **Loyihani yakunlash:** avval loyihadagi barcha faol dasturchilar bildirishnoma orqali tasdiqlashi kerak (birortasi sababli rad etsa, yakunlanmaydi). Shundan keyin: buyurtmasiz loyiha to'g'ridan-to'g'ri yakunlanadi; buyurtmadan yaratilgan loyiha avval "Tasdiqlash kutilmoqda"ga o'tadi — faqat buyurtmani yuborgan boshqarma uni Yakunlangan deb tasdiqlaydi yoki sabab bilan "Rad etildi" holatiga o'tkazadi. (Qaror: 2026-10-05.)
 
-**Ochiq savollar:** hozircha yo'q.
+- **Portfolio reytingi:** dasturchi reytingi — uning barcha portfolio loyihalariga qo'yilgan baholarning oddiy o'rtachasi; teng bo'lsa sharhlar soni, keyin kuzatuvchilar soni ko'p bo'lgan tepada. Baholanmaganlar oxirida. (Qaror: 2026-10-08.)
+
+**Ochiq savollar (portfolio, 2026-10-08 — taxmin bilan qilingan, foydalanuvchi tasdig'i kerak):**
+- Portfolioda dasturchining **bajarilgan vazifa nomlari va loyiha nomlari barcha rollarga** (boshqarma va boshqa dasturchilarga ham) ko'rinadi — "boshqa userlar ham ko'ra olsin" talabi bo'yicha. Vazifa/loyihaning ichi (fayllar, izohlar) ochilmaydi. Shunday qolsinmi?
+- Baholash va kuzatish **barcha rollarga** (Boshliq, PM, dasturchi, boshqarma) ochiq; faqat o'zini baholay/kuzata olmaydi.
+- Video chegarasi: MP4/WebM/MOV, bitta video **100 MB**, bitta loyihaga **5 tagacha**.
+- Oddiy o'rtacha reyting: 1 ta 5★ baho 100 ta 4.9 dan yuqori turishi mumkin. Kerak bo'lsa, "ishonchli reyting" (Bayes o'rtacha) ga o'tish mumkin.
 
 ## 12. Xavfsizlik
 
@@ -457,7 +477,7 @@ Har doim avvalgi holatga qaytish imkoniyati saqlanadi: `v1.0-baseline`, `ui-befo
 
 ```
 backend/    Django: config/ (settings, urls), apps/ (core, accounts, orders, projects,
-            tasks, notifications, panel, chat, suggestions, ai), start_server.bat
+            tasks, notifications, panel, chat, suggestions, ai, portfolio), start_server.bat
 frontend/   React + TS: src/app (marshrut, menyu, modallar), src/features (sahifalar),
             src/shared (UI komponentlar, text.ts, styles.css, types)
 docs/       ARCHITECTURE.md, FLOWS_MODALS.md

@@ -57,6 +57,7 @@ INSTALLED_APPS = [
     "apps.chat",
     "apps.panel",
     "apps.ai",
+    "apps.portfolio",
 ]
 
 MIDDLEWARE = [
@@ -143,6 +144,9 @@ TINYFISH_HTTP_RETRIES = int(os.environ.get("TINYFISH_HTTP_RETRIES", "2"))
 UPLOAD_ALLOWED_EXTENSIONS = ["docx", "pdf", "png", "jpg", "jpeg"]
 UPLOAD_MAX_MB = 20
 DATA_UPLOAD_MAX_MEMORY_SIZE = UPLOAD_MAX_MB * 1024 * 1024
+# Portfolio videolari (apps.portfolio.files): MP4, WebM, MOV. Nginx `client_max_body_size` bundan katta bo'lsin.
+PORTFOLIO_VIDEO_MAX_MB = 100
+PORTFOLIO_VIDEOS_PER_ITEM = 5
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": ["apps.core.authentication.SessionAuth"],

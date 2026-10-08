@@ -11,6 +11,7 @@ import {
   Lightbulb,
   CheckSquare,
   MessageCircle,
+  Trophy,
 } from "lucide-react";
 
 import { T } from "@/shared/text";
@@ -37,6 +38,8 @@ const people: NavItem = { to: "/xodimlar", label: T.nav.people, icon: Users };
 const suggestions: NavItem = { to: "/takliflar", label: T.nav.suggestions, icon: Lightbulb };
 const messages: NavItem = { to: "/xabarlar", label: T.nav.messages, icon: MessageCircle };
 const workDone: NavItem = { to: "/qilingan-ishlar", label: T.nav.workDone, icon: CheckSquare };
+// Dasturchilar portfoliosi va reytingi — barcha rollar ko'radi
+const portfolio: NavItem = { to: "/portfolio", label: T.nav.portfolio, icon: Trophy };
 
 /**
  * Yon panel rolga qarab (README, 7-bo'lim).
@@ -49,12 +52,12 @@ export function navFor(role: Role): NavGroup[] {
           title: T.nav.groupMain,
           items: [dashboard, tasks, { to: "/mening-ishim", label: T.nav.myWork, icon: KanbanSquare, counter: "myWork" }, calendar],
         },
-        { title: T.nav.groupTeam, items: [messages, suggestions] },
+        { title: T.nav.groupTeam, items: [messages, portfolio, suggestions] },
       ];
     case "department":
       return [
         { title: T.nav.groupMain, items: [dashboard, { to: "/buyurtmalar", label: T.nav.myOrders, icon: FileText }] },
-        { title: T.nav.groupTeam, items: [messages, suggestions] },
+        { title: T.nav.groupTeam, items: [messages, portfolio, suggestions] },
       ];
     default: // pm, boss
       return [
@@ -70,7 +73,7 @@ export function navFor(role: Role): NavGroup[] {
         },
         {
           title: T.nav.groupTeam,
-          items: [people, messages, { to: "/tekshiruv", label: T.nav.review, icon: ClipboardCheck, counter: "review" }, suggestions],
+          items: [people, messages, { to: "/tekshiruv", label: T.nav.review, icon: ClipboardCheck, counter: "review" }, portfolio, suggestions],
         },
         { title: T.nav.groupControl, items: [workDone] },
       ];
