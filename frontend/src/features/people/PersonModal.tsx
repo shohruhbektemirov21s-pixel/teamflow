@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
-import { Activity, BarChart, CheckCircle2, ListTodo, Plus, TrendingUp } from "lucide-react";
-import { useState } from "react";
+import { Activity, BarChart, CheckCircle2, FolderKanban, ListTodo, Plus, TrendingUp, Trophy, UserRound } from "lucide-react";
+import { type ReactNode, useState } from "react";
 
 import { useMe } from "@/app/auth";
 import { useModal } from "@/app/modals";
@@ -17,12 +17,18 @@ import { ProfileHeader } from "./ProfileHeader";
 import { PersonWork } from "./PersonWork";
 import { PersonResponsibilities } from "./PersonResponsibilities";
 
+type PersonTab = "overview" | "tasks" | "projects" | "report";
+
+/**
+ * Xodim profili (Boshliq/PM, Xodimlar sahifasidan). Sarlavhada xodim ismi — aylantirganda ham kimni ko'rayotganingiz
+ * yo'qolmaydi. Tarkib tablarga ajratilgan, amallar doim ko'rinadigan pastki panelda: chapda Portfolio, o'ngda Vazifa berish.
+ */
 export default function PersonModal({ id }: { id: number }) {
   const me = useMe();
   const isMgr = me.role === "boss" || me.role === "pm";
   const { open, close } = useModal();
 
-  const [tab, setTab] = useState<"tasks" | "report">("tasks");
+  const [tab, setTab] = useState<PersonTab>("overview");
   const [dirty, setDirty] = useState(false);
 
   const personQuery = useQuery({
@@ -30,16 +36,17 @@ export default function PersonModal({ id }: { id: number }) {
     queryFn: () => api.get<Person>(`/people/${id}/`),
   });
 
-  const tasksQuery = usePagedList<Task>(["tasks", "person", id], "/tasks/", { assignee: id }, personQuery.data?.role === "developer");
-
   const person = personQuery.data;
+  const isDev = person?.role === "developer";
+  // Vazifalar faqat "Vazifalar" yoki "Hisobot" tabi ochilganda yuklanadi
+  const tasksQuery = usePagedList<Task>(["tasks", "person", id], "/tasks/", { assignee: id }, isDev && (tab === "tasks" || tab === "report"));
   const tasks = tasksQuery.data || [];
 
   // Hisobot hisob-kitoblari
   const totalTasks = person?.report?.total ?? tasks.length;
   const doneTasks = tasks.filter((t) => t.status === "done");
   const inProgressTasks = tasks.filter((t) => t.status !== "done");
-  
+
   const doneCount = person?.report?.done ?? doneTasks.length;
   const lateDone = person?.report?.late ?? doneTasks.filter((t) => t.due_at && t.completed_at && new Date(t.completed_at) > new Date(t.due_at)).length;
   const onTimeDone = doneCount - lateDone;
@@ -48,8 +55,40 @@ export default function PersonModal({ id }: { id: number }) {
   const successRate = totalTasks > 0 ? Math.round((doneCount / totalTasks) * 100) : 0;
   const disciplineRate = doneCount > 0 ? Math.round((onTimeDone / doneCount) * 100) : 0;
 
+  const tabs: { key: PersonTab; label: ReactNode }[] = [
+    { key: "overview", label: <><UserRound size={16} /> {T.people.tabOverview}</> },
+    ...(isDev ? [{ key: "tasks" as const, label: <><ListTodo size={16} /> {T.people.tasks}</> }] : []),
+    { key: "projects", label: <><FolderKanban size={16} /> {T.people.tabProjects}</> },
+    ...(isDev ? [{ key: "report" as const, label: <><BarChart size={16} /> {T.people.report}</> }] : []),
+  ];
+  const canGiveTask = isMgr && isDev;
+  // Portfolioni dasturchi yuritadi, qolganlar ko'radi, kuzatadi va baholaydi
+  const footer = person && isDev ? (
+    <>
+      <Button icon={<Trophy size={15} />} onClick={() => open({ portfolio: person.id })}>{T.people.portfolioOpen}</Button>
+      <div className="spacer" />
+      {canGiveTask && (
+        <Button
+          variant="primary"
+          icon={<Plus size={15} />}
+          disabled={person.is_on_business_trip}
+          title={person.is_on_business_trip ? T.people.tripBlocked : undefined}
+          onClick={() => open({ new: "task", assignee: person.id })}
+        >
+          {T.people.giveTask}
+        </Button>
+      )}
+    </>
+  ) : undefined;
+
   return (
-    <Modal title={person ? T.people.profileTitle : T.common.loading} onClose={close} dirty={dirty}>
+    <Modal
+      title={person ? person.full_name : T.common.loading}
+      subtitle={person ? <span className="small muted">{T.people.profileTitle}</span> : undefined}
+      onClose={close}
+      dirty={dirty}
+      footer={footer}
+    >
       {personQuery.isLoading && <Skeleton h={200} />}
       {personQuery.error && <ErrorBox error={personQuery.error} onRetry={() => personQuery.refetch()} />}
       {person && (
@@ -58,66 +97,47 @@ export default function PersonModal({ id }: { id: number }) {
             user={person}
             subtitle={person.department_name || person.specialty || person.role_label}
             stats={
-              person.role === "developer"
+              isDev
                 ? { active: person.active_tasks, overdue: person.overdue_tasks, review: person.review_tasks, done: person.done_tasks }
                 : null
             }
           />
-          {person.is_on_business_trip && <div className="card card-pad small">{T.people.onBusinessTrip}. {T.people.tripUntil(fmtDate(person.business_trip_return_date!))}. {T.people.tripBlocked}.</div>}
-          <PersonResponsibilities key={person.id} person={person} editable={isMgr} onDirtyChange={setDirty} />
-          <div className="card card-pad"><PersonWork person={person} full /></div>
-          {isMgr && person.role === "developer" && (
-            <div
-              className="card card-pad"
-              style={{
-                background: person.active_tasks === 0 ? "var(--success-soft)" : "var(--surface-2)",
-                border: person.active_tasks === 0 ? "1px solid var(--success)" : undefined,
-              }}
-            >
-              <div className="row-wrap" style={{ justifyContent: "space-between", alignItems: "center", gap: 10 }}>
-                <div className="grow">
-                  <div style={{ fontWeight: 650, fontSize: 13.5 }}>
-                    {person.is_on_business_trip ? T.people.onBusinessTrip : person.active_tasks === 0 ? T.people.freeNow : T.people.busyNow(person.active_tasks)}
-                  </div>
-                  <div className="small muted">
-                    {person.is_on_business_trip ? T.people.tripBlocked : person.active_tasks === 0 ? T.people.freeHint : T.people.busyHint}
-                  </div>
+
+          <Tabs value={tab} onChange={setTab} tabs={tabs} />
+
+          {/* Mas'uliyat tahrirlanayotganda boshqa tabga o'tilsa matn yo'qolmasin — tab yashiriladi, o'chirilmaydi */}
+          <div hidden={tab !== "overview"}><div className="stack">
+            {person.is_on_business_trip && <div className="card card-pad small">{T.people.onBusinessTrip}. {T.people.tripUntil(fmtDate(person.business_trip_return_date!))}. {T.people.tripBlocked}.</div>}
+            {isDev && !person.is_on_business_trip && (
+              <div
+                className="card card-pad"
+                style={{
+                  background: person.active_tasks === 0 ? "var(--success-soft)" : "var(--surface-2)",
+                  border: person.active_tasks === 0 ? "1px solid var(--success)" : undefined,
+                }}
+              >
+                <div style={{ fontWeight: 650, fontSize: 13.5 }}>
+                  {person.active_tasks === 0 ? T.people.freeNow : T.people.busyNow(person.active_tasks)}
                 </div>
-                <Button
-                  size="sm"
-                  variant="primary"
-                  icon={<Plus size={14} />}
-                  disabled={person.is_on_business_trip}
-                  title={person.is_on_business_trip ? T.people.tripBlocked : undefined}
-                  onClick={() => open({ new: "task", assignee: person.id })}
-                >
-                  {T.people.giveTask}
-                </Button>
+                {canGiveTask && <div className="small muted">{person.active_tasks === 0 ? T.people.freeHint : T.people.busyHint}</div>}
               </div>
-            </div>
-          )}
+            )}
+            <PersonResponsibilities key={person.id} person={person} editable={isMgr} onDirtyChange={setDirty} />
+            {!isDev && <div className="card card-pad small muted" style={{ textAlign: "center" }}>{T.people.devOnly}</div>}
+          </div></div>
 
-          {person.role === "developer" && (
-            <Tabs
-              value={tab}
-              onChange={setTab}
-              tabs={[
-                { key: "tasks", label: <><ListTodo size={16} /> {T.people.tasks}</> },
-                { key: "report", label: <><BarChart size={16} /> {T.people.report}</> },
-              ]}
-            />
-          )}
+          {tab === "projects" && <PersonWork person={person} full />}
 
-          {person.role === "developer" && tasksQuery.error && <ErrorBox error={tasksQuery.error} onRetry={() => tasksQuery.refetch()} />}
-          {person.role === "developer" && tab === "tasks" && !tasksQuery.error && (
+          {isDev && (tab === "tasks" || tab === "report") && tasksQuery.error && <ErrorBox error={tasksQuery.error} onRetry={() => tasksQuery.refetch()} />}
+          {isDev && tab === "tasks" && !tasksQuery.error && (
             <div className="card">
               <TaskTable tasks={tasksQuery.data} loading={tasksQuery.isLoading} emptyHint={T.people.noTasksHint} />
               <Pagination data={tasksQuery.pagination} page={tasksQuery.page} onPageChange={tasksQuery.onPageChange} />
             </div>
           )}
 
-          {person.role === "developer" && tab === "report" && tasksQuery.isLoading && <Skeleton h={200} />}
-          {person.role === "developer" && tab === "report" && tasksQuery.data && !tasksQuery.error && (
+          {isDev && tab === "report" && tasksQuery.isLoading && <Skeleton h={200} />}
+          {isDev && tab === "report" && tasksQuery.data && !tasksQuery.error && (
             <div className="stack">
               <div className="grid-2">
                 <div className="card card-pad stack-sm" style={{ textAlign: "center" }}>
@@ -150,19 +170,13 @@ export default function PersonModal({ id }: { id: number }) {
                   <b style={{ color: currentlyOverdue > 0 ? "var(--danger)" : "inherit" }}>{currentlyOverdue}</b>
                 </div>
               </div>
-              
+
               <div className="card card-pad" style={{ background: "var(--surface-2)" }}>
                 <p className="small muted" style={{ margin: 0, lineHeight: 1.5 }}>
                   <Activity size={14} style={{ display: "inline", verticalAlign: "middle", marginRight: 6 }} />
                   {T.people.reportNote}
                 </p>
               </div>
-            </div>
-          )}
-
-          {person.role !== "developer" && (
-            <div className="card card-pad stack-sm" style={{ textAlign: "center", marginTop: 20 }}>
-              <div className="muted small">{T.people.devOnly}</div>
             </div>
           )}
         </div>
