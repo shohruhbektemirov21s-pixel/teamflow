@@ -276,6 +276,8 @@ Menyu guruhlarga bo'lingan: *Asosiy ish* | *Muloqot* | *Kuzatuv* (Kuzatuv faqat 
 
 **Xodimlar (Boshliq va PM):** har bir xodimning faol ishlari, loyiha nomi/raqami, holati va muddati ro'yxatda ko'rinadi. 'Profilni ko'rish' yoki ism orqali xodim profili ochiladi: barcha vazifalar, dasturchi hisoboti va biriktirilgan loyihalar. Ro'yxatda 3 ta ish va 2 ta faol loyiha qisqa ko'rsatiladi, qolganlari profilda. Ish yoki loyihani bosish mavjud tafsilot oynasini ochadi. Telefonda kartalar, kompyuterda jadval/kartalar; kunduzgi va tungi rejim.
 
+**Xodim profili tartibi (2026-10-08):** oyna sarlavhasida xodimning ismi ("Xodim profili" ostida) — pastga aylantirganda ham kim ko'rilayotgani yo'qolmaydi. Tepada avatar va 4 ko'rsatkich, ostida tablar: **Umumiy** (bandlik holati, mas'uliyatlar) · **Vazifalar** · **Loyihalar** (biriktirilgan loyihalar) · **Hisobot**. Dasturchi bo'lmagan xodimda faqat Umumiy va Loyihalar. Pastki doim ko'rinadigan panelda: chapda **Portfolio** (dasturchi portfoliosini shu oyna o'rnida ochadi, "Orqaga" profilga qaytaradi), o'ngda **Vazifa berish** (xizmat safarida o'chiq). Vazifalar ro'yxati faqat "Vazifalar"/"Hisobot" tabi ochilganda yuklanadi.
+
 ### Portfolio (`/portfolio`, hamma rol) — 2026-10-08
 Dasturchilar portfoliosi va reytingi. Menyuda barcha rollarda ("Muloqot" guruhida) bor — hamma ko'radi.
 - **Ro'yxat:** barcha faol dasturchilar **reyting bo'yicha** — eng balandi tepada, o'rni (1, 2, 3…), yulduz va o'rtacha baho, **kuzatuvchilar**, **sharhlar** va **loyihalar** soni, kuzatayotgan bo'lsangiz "Kuzatyapsiz" belgisi. Ism yoki mutaxassislik bo'yicha qidiruv. Dasturchida o'ng tomonda "Mening portfoliom".
