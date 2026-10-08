@@ -409,6 +409,7 @@ export function FilePicker({
   hint = T.common.attachHint,
   invalid,
   size = "sm",
+  maxMb = UPLOAD_MAX_MB,
 }: {
   files: File[];
   onChange: (files: File[]) => void;
@@ -419,6 +420,8 @@ export function FilePicker({
   invalid?: boolean;
   /** "lg" — katta, markazlashgan drag&drop zonasi (masalan tekshiruvga yuborish oynasida). */
   size?: "sm" | "lg";
+  /** Bitta fayl hajmi chegarasi (server chegarasi bilan bir xil bo'lsin). */
+  maxMb?: number;
 }) {
   const input = useRef<HTMLInputElement>(null);
   const [drag, setDrag] = useState(false);
@@ -426,7 +429,7 @@ export function FilePicker({
   const big = size === "lg";
   const allowed = accept.split(",").map((ext) => ext.trim().toLowerCase());
   // Server ham tekshiradi; bu yerda — drag&drop `accept`ni chetlab o'tmasligi va xato darrov ko'rinishi uchun.
-  const isValid = (f: File) => allowed.some((ext) => f.name.toLowerCase().endsWith(ext)) && f.size <= UPLOAD_MAX_MB * 1024 * 1024;
+  const isValid = (f: File) => allowed.some((ext) => f.name.toLowerCase().endsWith(ext)) && f.size <= maxMb * 1024 * 1024;
   const add = (list: FileList | null) => {
     if (!list) return;
     const incoming = Array.from(list);

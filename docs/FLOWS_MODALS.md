@@ -1,7 +1,7 @@
 # TeamFlow — Flow va Modal reestri
 
 > Yangi flow yoki modal qo'shishdan oldin shu ro'yxatni tekshir. O'xshashi bo'lsa, uni kengaytir.
-> Cheklov: bitta bo'limda **3–4 ta flow**, istisnoda **5 ta**. Modallar amalda **15 ta** (reja 8 ta edi — yangi modal kerak bo'lsa, avval mavjudini kengaytirish ko'rib chiqiladi).
+> Cheklov: bitta bo'limda **3–4 ta flow**, istisnoda **5 ta**. Modallar amalda **16 ta** (reja 8 ta edi — yangi modal kerak bo'lsa, avval mavjudini kengaytirish ko'rib chiqiladi).
 > Holat: kod to'liq yozilgan va sinovdan o'tgan (2026-09-28). Barcha flow va modallar **Faol**.
 
 ## Flow'lar
@@ -21,11 +21,14 @@
 | 10 | Takliflar berish va ovoz | suggestions | Taklif yaratish, ovoz berish, boshliq qarori | Faol |
 | 11 | Qilingan ishlar feed | history | Oxirgi bajarilgan vazifalar va tekshiruvlar reyestri (Boss, PM) | Faol |
 | 12 | Telegram'ni ulash | notifications | Ro'yxatdan o'tishda @username → botga /start → chat bog'lanadi → bildirishnomalar Telegram'ga ham keladi | Faol |
+| 13 | Portfoliolarni ko'rish va kuzatish | portfolio | Menyu "Portfolio" → dasturchilar reyting bo'yicha (eng balandi tepada, o'rni, yulduz, kuzatuvchi/sharh/loyiha soni) → qator bosiladi → "Portfolio" modali (tajriba, yillar bo'yicha, loyihalar, bajarilgan vazifalar) → "Kuzatish" / "Kuzatishni to'xtatish". Hamma rol ko'radi | Faol (2026-10-08) |
+| 14 | Portfolioni to'ldirish | portfolio | Dasturchi "Mening portfoliom" → TeamFlow loyihalari o'zi paydo bo'lgan → "Loyiha qo'shish" (nom, sanalar, tavsif, havola) → loyiha ichida video yuklash (MP4/WebM/MOV, 100 MB, 5 tagacha) / tahrirlash / o'chirish | Faol (2026-10-08) |
+| 15 | Loyihani baholash va sharh | portfolio | Boshqa foydalanuvchi loyihani ochadi → 1–5 yulduz + sharh (ixtiyoriy) → "Bahoni saqlash" (keyin yangilash/o'chirish). Dasturchi reytingi — barcha loyihalaridagi baholar o'rtachasi | Faol (2026-10-08) |
 
-Bo'limlar bo'yicha son: auth 1 · orders 3 · projects 2 · tasks 3 · profile 1 · history 1 · suggestions 1 · notifications 1. Cheklovdan oshmagan.
+Bo'limlar bo'yicha son: auth 1 · orders 3 · projects 2 · tasks 3 · profile 1 · history 1 · suggestions 1 · notifications 1 · portfolio 3. Cheklovdan oshmagan.
 Eslatma: `orders` bo'limidagi 3 flow ham UI da bitta "buyurtma holati" oqimi sifatida (holatga qarab tugma almashadi) amalga oshiriladi, alohida sahifalar ko'paytirilmaydi.
 
-## Modallar (amalda: 15 ta)
+## Modallar (amalda: 16 ta)
 
 Modal holati brauzer tarixida saqlanadi, manzil satri toza qoladi. Quyidagi "Parametr" ustuni — `useModal().open()` ga beriladigan qiymat (eski `?task=12` havolalar ham ishlaydi va tozalanadi).
 
@@ -46,6 +49,7 @@ Modal holati brauzer tarixida saqlanadi, manzil satri toza qoladi. Quyidagi "Par
 | 13 | Vazifa amali | Dasturchi (yuborish), PM/Boshliq (qaytarish) | Vazifa oynasi **ustida** qora fonli alohida modal: "Nima qildingiz?" (1000 belgi, hisoblagich), drag&drop fayl zonasi; qaytarishda — sabab. Vazifa oynasi orqada `inert` (`TaskActionScreen`, `Modal stacked`) | vazifa oynasi ichidan / `submit: true` | Faol (2026-10-06) |
 | 14 | Buyurtma amali | PM/Boshliq, Boshqarma | Buyurtma oynasi **ustida** qora fonli alohida modal: Tasdiqlash (sanalar, muhimlik, izoh), Rad etish (sabab), Sanani o'zgartirish, Yangi TZ, Kamchilik bor (`OrderModal.tsx`, `Modal stacked`) | buyurtma oynasi ichidan | Faol (2026-10-06) |
 | 15 | Loyiha yakunlash amali | PM, Boshliq | Loyiha oynasi ustida izoh va fayllarni yuborish; orqadagi loyiha ko'rinadi, inert. Mavjud yakunlash tasdiqlash jarayoni saqlanadi | loyiha oynasi ichidan | Faol (2026-10-06) |
+| 16 | Portfolio | Hamma | Bitta modal, ichida 3 ko'rinish (modal ustida modal yo'q): dasturchi sahifasi (ko'rsatkichlar, loyihalar, yillar, vazifalar, kuzatish/loyiha qo'shish) → loyiha (video, havola, baho va sharhlar; egasiga tahrirlash/video) → yangi loyiha formasi. Loyiha/forma "← Orqaga" yoki ✕ bilan dasturchi sahifasiga qaytadi (`features/portfolio/PortfolioModal.tsx`, `PortfolioItem.tsx`) | `{ portfolio: id }`, `{ portfolio, item }`, `{ portfolio, add: true }` | Faol (2026-10-08) |
 
 > Yon panellar (drawer) butunlay taqiqlangan, faqat modal va sahifalardan foydalaniladi.
 
@@ -65,6 +69,7 @@ Modal holati brauzer tarixida saqlanadi, manzil satri toza qoladi. Quyidagi "Par
 | 2026-09-30 | profile | 0 (yangi flow emas, flow 9 kengaydi) | "Rasm ko'rish" modali qo'shildi — modallar 11 ta. Foydalanuvchiga aytildi. Telegram kabi to'liq ekranli ko'rinish mavjud modal kartasiga (sarlavha + tarkib + tugmalar) sig'maydi; umumiy `useDialogBehavior` (Esc, fokus) bilan yozildi. |
 | 2026-10-05 | notifications | 0 (yangi flow emas) | "Bildirishnomalar" sahifasi (`/bildirishnomalar`, `NotificationsPage.tsx`) modalga aylantirildi (`NotificationsModal.tsx`) — modallar 12 ta. Sabab: chap menyudagi "Bildirishnomalar" bandi tepadagi qo'ng'iroq ikonkasi bilan ikki marta bir joyga havola edi (foydalanuvchi so'rovi bilan band olib tashlandi), shundan keyin qo'ng'iroq sahifaga emas, modalga ochilishi so'raldi. Mavjud modal kartasiga (sarlavha + filtr + ro'yxat + "hammasini o'qildi" tugmasi) sig'di, yangi infratuzilma kerak bo'lmadi. |
 | 2026-10-06 | tasks, orders | 0 (yangi flow emas) | Foydalanuvchi talabi bilan "modal ustida modal yo'q" qoidasidan istisno: vazifa va buyurtma oynasidagi amal panellari asosiy oyna ustida qora fonli alohida modalga aylandi — modallar 12 → 14 ta. Foydalanuvchiga aytildi. Umumiy `Modal` endi ustma-ust oynalarni qo'llaydi (Esc/Tab faqat ustdagisiga, orqadagisi `inert`). |
+| 2026-10-08 | portfolio | 3 (yangi bo'lim) | Dasturchi portfoliosi: 3 ta flow (ko'rish va kuzatish · to'ldirish · baholash). Foydalanuvchi "flow'lar 3–5 tadan oshmasin" dedi — kuzatish alohida flow emas, ko'rish ichida. Modallar 15 → 16: "Xodim profili" faqat menejerlar uchun va ichki ish ma'lumotlari bor, shuning uchun hammaga ochiq portfolio uchun kengaytirilmadi; loyiha va forma alohida modal emas, shu modal ichini almashtiradi. Foydalanuvchiga aytildi. |
 
 ## UX/UI tartibi (2026-10-06)
 

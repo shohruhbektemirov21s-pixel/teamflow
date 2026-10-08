@@ -26,6 +26,7 @@ const ProfilePage = lazy(() => import("./features/people/ProfilePage"));
 const WorkDonePage = lazy(() => import("./features/history/WorkDonePage"));
 const SuggestionsPage = lazy(() => import("./features/suggestions/SuggestionsPage"));
 const MessagesPage = lazy(() => import("./features/chat/MessagesPage"));
+const PortfolioPage = lazy(() => import("./features/portfolio/PortfolioPage"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -78,6 +79,7 @@ function AppRoutes() {
             {(manager || dept) && <Route path="buyurtmalar" element={page(<OrdersPage />)} />}
             <Route path="takliflar" element={page(<SuggestionsPage />)} />
             <Route path="xabarlar" element={page(<MessagesPage />)} />
+            <Route path="portfolio" element={page(<PortfolioPage />)} />
             <Route path="profil" element={page(<ProfilePage />)} />
             {manager && <Route path="qilingan-ishlar" element={page(<WorkDonePage />)} />}
             <Route path="*" element={<Navigate to="/" replace />} />

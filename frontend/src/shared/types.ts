@@ -272,3 +272,57 @@ export interface SuggestionDetail extends Suggestion {
   decided_at: string | null;
   actions: { decide: boolean; vote: boolean; delete: boolean };
 }
+
+// ─── Portfolio ───────────────────────────────────────────────────────────────
+export interface PortfolioDeveloper extends UserBrief {
+  specialty: string;
+  rating: number | null;
+  reviews_count: number;
+  followers_count: number;
+  projects_count: number;
+  tasks_done: number;
+  is_following: boolean;
+  /** Reyting o'rni (qidiruvsiz ro'yxatda). */
+  rank: number | null;
+}
+
+export interface PortfolioItem {
+  id: number;
+  /** TeamFlow loyihasi (avtomatik) yoki dasturchi o'zi qo'shgan. */
+  is_auto: boolean;
+  title: string;
+  link: string;
+  start_date: string | null;
+  end_date: string | null;
+  project: { code: string; stage: ProjectStage } | null;
+  tasks_done: number | null;
+  rating: number | null;
+  reviews_count: number;
+  videos_count: number;
+}
+
+export interface PortfolioDetail extends PortfolioDeveloper {
+  experience: { since: string; months: number };
+  years: { year: number; projects: number; tasks: number }[];
+  items: PortfolioItem[];
+  recent_tasks: { id: number; code: string; title: string; project: string; completed_at: string | null }[];
+  actions: { follow: boolean; add: boolean };
+}
+
+export interface PortfolioReview {
+  id: number;
+  author: UserBrief;
+  stars: number;
+  text: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PortfolioItemDetail extends PortfolioItem {
+  description: string;
+  manual: { title: string; start_date: string | null; end_date: string | null };
+  owner: UserBrief;
+  videos: FileInfo[];
+  my_review: PortfolioReview | null;
+  actions: { edit: boolean; delete: boolean; upload: boolean; review: boolean };
+}

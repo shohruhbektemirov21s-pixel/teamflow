@@ -808,3 +808,33 @@ button.list-row:focus-visible { outline-offset: -2px; }
 
 /* Sahifadagi bo'lim sarlavhasi o'z kartalariga yaqinroq turadi (guruhlash) */
 .page > .section-title { margin: 8px 0 -12px; }
+
+/* ─── Portfolio: reyting, yulduzlar, loyiha kartalari, video ─────────────── */
+.stars-row { display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.stars { display: inline-flex; gap: 2px; color: var(--border-strong); }
+.stars svg.filled, .star-input svg.filled { color: var(--warning); fill: currentColor; }
+.stars-value { font-variant-numeric: tabular-nums; }
+.star-input { display: inline-flex; gap: 4px; border-radius: var(--radius-sm); }
+.star-input.invalid { outline: 1px solid var(--danger); outline-offset: 2px; }
+.star-input button { width: 40px; height: 40px; display: grid; place-items: center; border: 0; border-radius: var(--radius-sm); background: transparent; color: var(--border-strong); cursor: pointer; transition: transform .15s var(--ease), background-color .15s var(--ease); }
+.star-input button:hover { background: var(--surface-hover); transform: scale(1.08); }
+.star-input button:focus-visible { outline: 2px solid var(--primary); outline-offset: 1px; }
+.portfolio-search { flex: 1 1 280px; }
+.portfolio-row { width: 100%; border: 0; border-bottom: 1px solid var(--border); background: transparent; color: var(--text); font: inherit; text-align: left; }
+.portfolio-row-stats { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex: none; }
+.rank-pill { width: 32px; height: 32px; flex: none; display: grid; place-items: center; border-radius: var(--radius-full); background: var(--surface-2); border: 1px solid var(--border); font-weight: 700; font-size: var(--fs-sm); font-variant-numeric: tabular-nums; color: var(--text-2); }
+.rank-pill.top { background: var(--warning-soft); border-color: transparent; color: var(--warning); }
+.portfolio-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; }
+.portfolio-stat { display: flex; align-items: center; gap: 12px; padding: 12px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface-2); min-width: 0; }
+.portfolio-items { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; }
+.portfolio-item-card { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; text-align: left; font: inherit; color: var(--text); width: 100%; }
+.portfolio-item-title { font-size: var(--fs-md, 15px); overflow-wrap: anywhere; }
+.portfolio-description { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.55; color: var(--text-2); }
+.portfolio-review { align-items: flex-start; }
+.portfolio-video-wrap { margin: 0; display: flex; flex-direction: column; gap: 8px; }
+.portfolio-video { width: 100%; max-height: 420px; border-radius: var(--radius); background: #000; }
+@media (max-width: 640px) {
+  .portfolio-row { flex-wrap: wrap; gap: 12px; }
+  .portfolio-row-stats { flex-basis: 100%; align-items: flex-start; padding-left: 44px; }
+  .portfolio-stats { grid-template-columns: 1fr 1fr; }
+}
