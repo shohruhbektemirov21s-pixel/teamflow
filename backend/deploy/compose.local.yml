@@ -1,0 +1,18 @@
+# Lokal kompyuter/LAN uchun HTTP rejim: compose.yml ustiga qo'yiladi (README "Docker bilan ishga tushirish").
+# Ishlayotgan konteynerlar loyiha papkasiga bog'liq emas: nginx sozlamasi obrazga yozilgan,
+# ma'lumotlar nomlangan volume'larda. Docker Desktop yonganda `restart: unless-stopped` ularni qayta ishga tushiradi.
+services:
+  app:
+    # Har ishga tushishda migratsiya va statik fayllar yangilanadi (bitta nusxa, poyga yo'q).
+    command: ["sh", "-c", "python manage.py migrate --noinput && python manage.py collectstatic --noinput && exec gunicorn config.wsgi:application --config gunicorn.conf.py"]
+    healthcheck:
+      start_period: 60s
+  proxy:
+    build:
+      context: .
+      dockerfile_inline: |
+        FROM nginx:1.28-alpine
+        COPY nginx.conf /etc/nginx/templates/default.conf.template
+    image: teamflow-proxy:local
+    volumes: !override
+      - static:/srv/static:ro

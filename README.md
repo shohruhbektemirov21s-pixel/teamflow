@@ -283,7 +283,7 @@ Menyu guruhlarga bo'lingan: *Asosiy ish* | *Muloqot* | *Kuzatuv* (Kuzatuv faqat 
 - Foydalanuvchi botga `/start` yozadi → akkaunti topilsa (faol, username bitta akkauntda), chat bog'lanadi.
 - Shundan keyin tizimdagi har bir bildirishnoma Telegram'ga ham yuboriladi — faqat amal bazaga muvaffaqiyatli saqlangandan keyin, vaqt chegarasi (timeout) bilan.
 - Token va bot nomi: `backend/.env` (`TELEGRAM_BOT_TOKEN`, `TELEGRAM_BOT_USERNAME`) yoki muhit o'zgaruvchilari. `.env` gitga tushmaydi va **hech qachon commit qilinmaydi**. Token bo'sh bo'lsa Telegram o'chiq, tizim odatdagidek ishlaydi.
-- Bot (`runbot`) server bilan birga avtomatik ishga tushadi (`backend/start_server.bat`, log: `backend/bot.log`). Logga token yozilmaydi.
+- Bot (`runbot`) Docker'da `teamflow-bot-1` konteynerida server bilan birga avtomatik ishga tushadi (13-bo'lim, 4-band; log: `docker logs teamflow-bot-1`). Logga token yozilmaydi.
 - Bitta token bilan faqat **bitta** bot jarayoni ishlashi mumkin: boshqa joyda ham ishlasa, logda "409" chiqadi va `/start` xabarlari o'sha joyga ketadi.
 
 ## 9. Modallar (amalda: 15 ta)
@@ -442,12 +442,20 @@ npx vite build            # frontend/dist ga yig'adi
 
 Build'dan keyin frontend Django orqali `http://127.0.0.1:8020/` manzilida ochiladi.
 
-### 4. Avtomatik ishga tushirish (Windows)
+### 4. Docker bilan ishga tushirish va avtomatik ishga tushirish (Windows, 2026-10-08)
 
-- Kompyuterga kirilganda `Startup` papkasidagi `TeamFlow.vbs` yashirin oynada `backend/start_server.bat` ni ishga tushiradi → `http://127.0.0.1:8020/`. Server logi: `backend/server.log`, bot logi: `backend/bot.log`.
-- O'chirish: `shell:startup` papkasidan `TeamFlow.vbs` ni o'chiring.
-- Frontend o'zgarsa, `npx vite build` qilish kerak.
-- Backend kodi o'zgarsa, server qayta ishga tushiriladi (avtoishga tushirish `--noreload` bilan ishlaydi): `shell:startup\TeamFlow.vbs` ni qayta bosing yoki kompyuterni qayta yoqing.
+Ish rejimi — Docker: PostgreSQL, Redis, Gunicorn, Nginx, Telegram bot va outbox worker. Manzil: `http://192.168.224.70:8020/` (LAN) va `http://127.0.0.1:8020/`. HTTPS yo'q, shuning uchun lokal rejimda xavfsiz cookie va HTTPS'ga yo'naltirish o'chiq; `DEBUG=0`.
+
+- Sozlama: `backend/deploy/local.env` (gitga tushmaydi; namuna `local.env.example`). Ichida PostgreSQL paroli, `DJANGO_SECRET_KEY`, host/CSRF ro'yxati (LAN IP bilan), Telegram token.
+- Ishga tushirish / kod o'zgargandan keyin yangilash (repo ildizidan):
+  ```powershell
+  docker compose --env-file backend/deploy/local.env -p teamflow -f backend/deploy/compose.yml -f backend/deploy/compose.local.yml --profile telegram up -d --build
+  ```
+  Ilova har ishga tushishda `migrate` va `collectstatic` bajaradi. Loglar: `docker logs teamflow-app-1` (`-bot-1`, `-telegram-1`).
+- Avtomatik ishga tushirish: Windows'ga kirilganda `shell:startup\TeamFlow-Docker.vbs` → `%LOCALAPPDATA%\TeamFlow\autostart.ps1` Docker Desktop'ni yoqadi, tayyor bo'lishini kutadi (10 daqiqagacha) va `teamflow-*` konteynerlarini ishga tushiradi (log: `%LOCALAPPDATA%\TeamFlow\autostart.log`). Faqat `restart: unless-stopped` ga ishonilmaydi: Docker Desktop to'xtatilganda konteynerlar to'xtatilgan bo'lib qoladi. Manba fayllar: `backend/deploy/autostart.ps1`, `backend/deploy/TeamFlow-Docker.vbs` — o'zgarsa qayta nusxalanadi.
+- O'chirish: `shell:startup` dan `TeamFlow-Docker.vbs` ni o'chiring.
+- Ma'lumotlar nomlangan volume'larda (`teamflow_database`, `teamflow_uploads`). `down --volumes` ishlatilmaydi. 2026-10-08 da SQLite ma'lumotlari (175 yozuv, 17 fayl) PostgreSQL'ga ko'chirildi; asl `backend/db.sqlite3` va `db.sqlite3.backup-docker-20261008` zaxira sifatida saqlanadi.
+- Eski usul (`backend/start_server.bat`, `runserver` + SQLite) qo'lda ishga tushirish uchun qoldi; uning `TeamFlow.vbs` autostarti o'chirilgan (`TeamFlow.vbs.disabled`). Ikkalasini birga ishlatmang: 8020-port va bitta bot tokeni band bo'ladi.
 
 ### 5. Qaytarish nuqtalari (git tag)
 
