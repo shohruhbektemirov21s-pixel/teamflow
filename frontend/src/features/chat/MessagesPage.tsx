@@ -11,6 +11,8 @@ import { T } from "@/shared/text";
 import type { ChatConversation, ChatMessage, UserBrief } from "@/shared/types";
 import { Avatar, Button, Empty, ErrorBox, SkeletonRows } from "@/shared/ui";
 
+import { CHAT_POLL_FAST_MS, nextChatPollDelay } from "./polling";
+
 /** Xabarlar: chapda suhbatlar (yoki qidiruv natijasi), o'ngda tanlangan suhbat.
  * Telefonda bir vaqtda bittasi ko'rinadi: ro'yxat yoki suhbat ("← Orqaga" bilan). */
 export default function MessagesPage() {
@@ -22,6 +24,7 @@ export default function MessagesPage() {
   const [search, setSearch] = useState("");
   const [text, setText] = useState("");
   const chatEndRef = useRef<HTMLDivElement>(null);
+  const pollDelayRef = useRef(CHAT_POLL_FAST_MS);
   const query = useDebounced(search.trim());
 
   const peopleQuery = useQuery({
@@ -34,7 +37,7 @@ export default function MessagesPage() {
     queryKey: ["chat", "conversations"],
     queryFn: () => api.get<ChatConversation[]>("/chat/conversations/"),
     enabled: !query,
-    refetchInterval: 15_000,
+    refetchInterval: 30_000,
     refetchIntervalInBackground: false,
   });
 
@@ -45,13 +48,18 @@ export default function MessagesPage() {
       const cached = qc.getQueryData<ChatMessage[]>(["chat", "messages", partnerId]) ?? [];
       const after = cached.length ? Math.max(...cached.map((message) => message.id)) : undefined;
       const incoming = await api.get<ChatMessage[]>(`/chat/messages/${qs({ partner: partnerId, after })}`);
+      pollDelayRef.current = nextChatPollDelay(pollDelayRef.current, incoming.length > 0);
       if (!incoming.length) return cached;
       return [...cached, ...incoming].slice(-200);
     },
     enabled: Boolean(partnerId),
-    refetchInterval: 5000,
+    refetchInterval: () => pollDelayRef.current,
     refetchIntervalInBackground: false,
   });
+
+  useEffect(() => {
+    pollDelayRef.current = CHAT_POLL_FAST_MS;
+  }, [partnerId]);
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });

@@ -37,6 +37,7 @@ class PortfolioItem(models.Model):
             models.UniqueConstraint(fields=["owner", "project"], condition=Q(project__isnull=False),
                                     name="uniq_portfolio_owner_project"),
         ]
+        indexes = [models.Index(fields=["owner", "-created_at", "-id"], name="portfolio_owner_feed_idx")]
         verbose_name = "Portfolio loyihasi"
         verbose_name_plural = "Portfolio loyihalari"
 
@@ -96,6 +97,7 @@ class PortfolioReview(models.Model):
             models.UniqueConstraint(fields=["item", "author"], name="uniq_portfolio_review"),
             models.CheckConstraint(condition=Q(stars__gte=1, stars__lte=5), name="portfolio_review_stars_1_5"),
         ]
+        indexes = [models.Index(fields=["item", "-updated_at", "-id"], name="portfolio_review_feed_idx")]
         verbose_name = "Baho va sharh"
         verbose_name_plural = "Baholar va sharhlar"
 

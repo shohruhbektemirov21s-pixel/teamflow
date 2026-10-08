@@ -35,7 +35,8 @@ class Notification(models.Model):
 
     class Meta:
         ordering = ["-created_at"]
-        indexes = [models.Index(fields=["recipient", "is_read"]),
+        indexes = [models.Index(fields=["recipient", "is_read", "-created_at", "-id"],
+                                name="notification_unread_feed_idx"),
                    models.Index(fields=["recipient", "-created_at", "-id"], name="notification_feed_idx")]
         verbose_name = "Bildirishnoma"
         verbose_name_plural = "Bildirishnomalar"

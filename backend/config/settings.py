@@ -147,6 +147,8 @@ DATA_UPLOAD_MAX_MEMORY_SIZE = UPLOAD_MAX_MB * 1024 * 1024
 # Portfolio videolari (apps.portfolio.files): MP4, WebM, MOV. Nginx `client_max_body_size` bundan katta bo'lsin.
 PORTFOLIO_VIDEO_MAX_MB = 100
 PORTFOLIO_VIDEOS_PER_ITEM = 5
+PORTFOLIO_RANKING_CACHE_SECONDS = int(os.environ.get("PORTFOLIO_RANKING_CACHE_SECONDS", "60"))
+NOTIFICATION_UNREAD_CACHE_SECONDS = int(os.environ.get("NOTIFICATION_UNREAD_CACHE_SECONDS", "60"))
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": ["apps.core.authentication.SessionAuth"],

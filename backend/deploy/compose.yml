@@ -41,8 +41,12 @@ services:
       TELEGRAM_BOT_USERNAME: ${TELEGRAM_BOT_USERNAME:-}
       TINYFISH_API_KEY: ${TINYFISH_API_KEY:-}
       TINYFISH_TIMEOUT_SECONDS: ${TINYFISH_TIMEOUT_SECONDS:-20}
-      WEB_WORKERS: ${WEB_WORKERS:-4}
-      WEB_THREADS: ${WEB_THREADS:-4}
+      PORTFOLIO_RANKING_CACHE_SECONDS: ${PORTFOLIO_RANKING_CACHE_SECONDS:-60}
+      NOTIFICATION_UNREAD_CACHE_SECONDS: ${NOTIFICATION_UNREAD_CACHE_SECONDS:-60}
+      # Measured 10k-session profile: 12 gthread workers x 2 threads.
+      # Override only after measuring the selected host and workload.
+      WEB_WORKERS: ${WEB_WORKERS:-12}
+      WEB_THREADS: ${WEB_THREADS:-2}
       WEB_MAX_REQUESTS: ${WEB_MAX_REQUESTS:-0}
       SCALE_TEST_MODE: ${SCALE_TEST_MODE:-0}
       DJANGO_SECURE_SSL_REDIRECT: ${DJANGO_SECURE_SSL_REDIRECT:-1}
@@ -52,7 +56,7 @@ services:
       redis: {condition: service_healthy}
     volumes: ["uploads:/app/backend/media", "static:/app/backend/staticfiles"]
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/healthz/live/', timeout=3)"]
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/healthz/ready/', timeout=3)"]
       interval: 15s
       timeout: 5s
       retries: 5

@@ -71,7 +71,8 @@ def create_project(user, *, code, name="", description="", start_date=None, end_
         stage=S.PLANNED if order is not None and stage == S.DONE else stage,
         order=order, created_by=user,
     )
-    ProjectMember.objects.bulk_create(ProjectMember(project=project, developer=d) for d in _developers(member_ids))
+    for developer in _developers(member_ids):
+        ProjectMember.objects.create(project=project, developer=developer)
 
     if order is not None:
         # Buyurtmaning tasdiqlangan TZ fayli loyihaga ulanadi (fayl nusxalanmaydi — bir xil saqlangan fayl).
@@ -286,9 +287,9 @@ def set_members(project, user, member_ids):
     if removed:
         _release_developers(project, removed)
     project.memberships.exclude(developer_id__in=wanted).delete()
-    ProjectMember.objects.bulk_create(
-        ProjectMember(project=project, developer=d) for pk, d in wanted.items() if pk not in current
-    )
+    for pk, developer in wanted.items():
+        if pk not in current:
+            ProjectMember.objects.create(project=project, developer=developer)
     if project.completion_requested_at:
         # Jamoa o'zgargach eski yakunlash so'rovi eskirib qoladi (yangi a'zo so'rovsiz qolmasin) —
         # bekor qilinadi, PM qayta so'raganda hammadan yangidan so'raladi.
@@ -327,7 +328,8 @@ def ensure_members(project, developers):
     Ruxsat chaqiruvchi xizmatda (tasks.services) tekshiriladi. Qo'shilganlar ro'yxati qaytadi."""
     current = set(project.memberships.values_list("developer_id", flat=True))
     added = [d for d in developers if d.pk not in current]
-    ProjectMember.objects.bulk_create(ProjectMember(project=project, developer=d) for d in added)
+    for developer in added:
+        ProjectMember.objects.create(project=project, developer=developer)
     return added
 
 

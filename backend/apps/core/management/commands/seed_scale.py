@@ -5,6 +5,7 @@ import random
 from datetime import timedelta
 from pathlib import Path
 
+from django.apps import apps
 from django.conf import settings
 from django.contrib.auth import BACKEND_SESSION_KEY, HASH_SESSION_KEY, SESSION_KEY
 from django.contrib.sessions.backends.db import SessionStore
@@ -78,6 +79,11 @@ class Command(BaseCommand):
                     active_task.setdefault(dev.pk, task.pk)
             TaskAssignment.objects.bulk_create(assignments, batch_size=1000)
             ProjectMember.objects.bulk_create([ProjectMember(project_id=p, developer_id=d) for p, d in memberships], batch_size=1000)
+            PortfolioItem = apps.get_model("portfolio", "PortfolioItem")
+            PortfolioItem.objects.bulk_create(
+                [PortfolioItem(owner_id=d, project_id=p) for p, d in memberships], batch_size=1000,
+                ignore_conflicts=True,
+            )
             SubTask.objects.bulk_create([SubTask(task=task, title="Synthetic step", position=0) for task in tasks], batch_size=1000)
             Notification.objects.bulk_create([
                 Notification(recipient=u, kind="comment", message="Synthetic notification")

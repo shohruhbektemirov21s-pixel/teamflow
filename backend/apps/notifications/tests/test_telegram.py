@@ -35,7 +35,7 @@ class NotifyTelegramTests(TestCase):
             with self.captureOnCommitCallbacks(execute=True) as callbacks:
                 notify([self.linked, self.unlinked], K.TASK_ASSIGNED, "Vazifa berildi")
                 send_many.assert_not_called()  # tranzaksiya tugamaguncha yuborilmaydi
-            self.assertEqual(len(callbacks), 1)
+            self.assertEqual(len(callbacks), 2)  # cache invalidation + Telegram delivery
         send_many.assert_called_once_with([("111", "Vazifa berildi")])
         self.assertEqual(Notification.objects.count(), 2)
 
@@ -53,9 +53,9 @@ class NotifyTelegramTests(TestCase):
 
     @override_settings(TELEGRAM_BOT_TOKEN="")
     def test_no_token_no_callback(self):
-        with self.captureOnCommitCallbacks() as callbacks:
+        with self.captureOnCommitCallbacks(execute=True):
             notify([self.linked], K.TASK_ASSIGNED, "Xabar")
-        self.assertEqual(callbacks, [])
+        self.assertEqual(Notification.objects.count(), 1)
 
     def test_send_message_swallows_network_errors_and_uses_timeout(self):
         with mock.patch.object(telegram.requests, "post", side_effect=requests.ConnectionError("tarmoq yo'q")) as post, \

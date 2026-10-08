@@ -4,27 +4,14 @@ from django.db import IntegrityError, transaction
 from rest_framework.exceptions import PermissionDenied
 
 from apps.core.api_utils import ServiceError
-from apps.projects.models import ProjectMember
 
 from .files import validate_video
 from .models import Follow, PortfolioItem, PortfolioReview, PortfolioVideo
 from .permissions import can_edit_item, can_follow, can_review_item
+from .stats import invalidate_developer_ranking
 
 # Faqat o'zi qo'shgan loyihada o'zgaradigan maydonlar; TeamFlow loyihasida nomi va sanalari loyihadan olinadi.
 MANUAL_ONLY_FIELDS = ("title", "start_date", "end_date")
-
-
-def sync_project_items(owner):
-    """TeamFlow'dagi loyihalar portfolioda avtomatik paydo bo'ladi: a'zo bo'lgan har bir loyiha uchun bitta yozuv.
-
-    A'zolik bir nechta joyda `bulk_create` bilan yaratilgani uchun (signal ishlamaydi) portfolio ochilganda
-    yetishmaganlari qo'shiladi. Jamoadan chiqarilsa ham yozuv (baho va videolari bilan) saqlanadi.
-    """
-    existing = PortfolioItem.objects.filter(owner=owner, project__isnull=False).values("project_id")
-    missing = (ProjectMember.objects.filter(developer=owner).exclude(project_id__in=existing)
-               .values_list("project_id", flat=True))
-    PortfolioItem.objects.bulk_create([PortfolioItem(owner=owner, project_id=pk) for pk in missing],
-                                      ignore_conflicts=True)
 
 
 def _require_owner(user, item):
@@ -38,6 +25,7 @@ def create_item(user, **data):
     item = PortfolioItem(owner=user, **data)
     item.full_clean()
     item.save()
+    invalidate_developer_ranking()
     return item
 
 
@@ -57,6 +45,7 @@ def delete_item(item, user):
     if item.is_auto:
         raise ServiceError("TeamFlow loyihasi portfoliodan o'chirilmaydi.")
     item.delete()  # videolar fayli bilan birga o'chadi (signals.py)
+    invalidate_developer_ranking()
 
 
 def add_video(item, user, file):
@@ -78,11 +67,14 @@ def save_review(item, user, *, stars, text=""):
         raise PermissionDenied("O'z loyihangizni baholay olmaysiz.")
     review, _ = PortfolioReview.objects.update_or_create(
         item=item, author=user, defaults={"stars": stars, "text": text.strip()})
+    invalidate_developer_ranking()
     return review
 
 
 def delete_review(item, user):
-    PortfolioReview.objects.filter(item=item, author=user).delete()
+    deleted, _ = PortfolioReview.objects.filter(item=item, author=user).delete()
+    if deleted:
+        invalidate_developer_ranking()
 
 
 def follow(user, developer):
@@ -90,10 +82,15 @@ def follow(user, developer):
         raise ServiceError("O'zingizni kuzata olmaysiz.")
     try:
         with transaction.atomic():
-            Follow.objects.get_or_create(follower=user, developer=developer)
+            _, created = Follow.objects.get_or_create(follower=user, developer=developer)
     except IntegrityError:
         pass  # parallel ikki so'rov — kuzatuv baribir bor
+    else:
+        if created:
+            invalidate_developer_ranking()
 
 
 def unfollow(user, developer):
-    Follow.objects.filter(follower=user, developer=developer).delete()
+    deleted, _ = Follow.objects.filter(follower=user, developer=developer).delete()
+    if deleted:
+        invalidate_developer_ranking()

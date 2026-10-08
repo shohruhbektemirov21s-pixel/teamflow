@@ -85,6 +85,12 @@ core  ←  accounts  ←  orders  ←  projects  ←  tasks
 - Telegram'ga yuborish `transaction.on_commit` da, bitta fon oqimida, 5 soniya timeout bilan. **Nima uchun:** amal bekor bo'lsa xabar ketmasin, so'rov Telegram'ni kutib qolmasin. Token `TELEGRAM_BOT_TOKEN` (va havola uchun `TELEGRAM_BOT_USERNAME`) — `backend/.env` da yoki muhit o'zgaruvchisida; `.env` ni `config/settings.py` kutubxonasiz o'qiydi, haqiqiy muhit o'zgaruvchisi ustun. **Nima uchun:** token gitga tushmasin, autostart (`start_server.bat`) ham uni topsin. Xato loglarida URL (demak token) yozilmaydi — faqat holat kodi.
 - Taqvim loyihalarni `GET /api/projects/?end_from=&end_to=&all=1` bilan oladi (`all=1` — sahifalanmaydi, `visible_projects` bilan cheklangan); kun modali vazifalarni `GET /api/tasks/?date=&all=1` bilan oladi.
 
+### 3.1. 10 000 faol foydalanuvchi uchun ishlash chegaralari
+
+Production oqimi bitta Django jarayoniga bog'lanmaydi: Nginx → Gunicorn (measured profile: 12 worker × 2 thread) → PostgreSQL/Redis. Bildirishnoma unread soni Redis'da 60 soniya keshlanadi va xabar yaratish/o'qish tranzaksiyasi commit bo'lgach invalidatsiya qilinadi. Portfolio reytingi standart birinchi sahifada 60 soniya keshlanadi; viewerga bog'liq follow holati alohida olinadi. Chat xabarlari yangi xabar bo'lmasa 5 → 10 → 20 → 40 → 60 soniyagacha adaptive polling qiladi, suhbatlar ro'yxati 30 soniyada yangilanadi, yashirin tabda polling to'xtaydi. Sessiyalar `cached_db` orqali PostgreSQL'da saqlanadi; `clearsessions` har kuni bajariladi.
+
+2026-10-06 dagi 10k hisobot oldingi schema va synthetic workload uchun o'lchangan: u portfolio, login burst, fayl uploadi, browser polling va uzoq soakni to'liq qamramaydi. Shuning uchun bu arxitektura resurslarni kamaytiradi, lekin joriy mahsulot uchun yakuniy sig'im raqami faqat aynan tanlangan serverda yangilangan capacity harness bilan tasdiqlanadi.
+
 ## 4. Ma'lumotlar modeli
 
 ### accounts
@@ -142,7 +148,7 @@ Hisoblanadigan (saqlanmaydi): `is_overdue` = muddat o'tgan, `done` va arxivda em
 | `PortfolioReview` | item FK, author FK, stars (1–5, CHECK), text (1000), created_at, updated_at. `unique(item, author)` |
 | `Follow` | follower FK, developer FK, created_at. `unique`, CHECK `follower != developer` |
 
-Reyting, sharhlar, kuzatuvchilar, loyihalar soni va tajriba **saqlanmaydi** — `stats.py` subquery bilan hisoblaydi (JOIN ko'payib o'rtachani buzmasin). TeamFlow loyihalari `ProjectMember` dan portfolio ochilganda `services.sync_project_items` bilan qo'shiladi (a'zolik `bulk_create` bilan yaratilgani uchun signal ishlamaydi); ro'yxatdagi loyiha soni sinxronlanmaganlarni ham sanaydi.
+Reyting, sharhlar, kuzatuvchilar, loyihalar soni va tajriba **saqlanmaydi** — `stats.py` subquery bilan hisoblaydi (JOIN ko'payib o'rtachani buzmasin). `ProjectMember` yaratilganda signal `PortfolioItem`ni idempotent tarzda materializatsiya qiladi; 0002 migratsiyasi eski a'zoliklar uchun backfill qiladi. Shuning uchun portfolio GET endi yozuv bajarmaydi. Reyting ro'yxatining standart birinchi sahifasi Redis'da 60 soniya saqlanadi, joriy foydalanuvchining `Follow` holati esa alohida indekslangan so'rov bilan qo'shiladi. `PortfolioItem(owner, -created_at, -id)` va `PortfolioReview(item, -updated_at, -id)` feed indekslari sahifalashni barqaror qiladi.
 **Nima uchun** video API orqali: media ochiq berilmaydi (9-bo'lim), Range (206) — brauzerda oldinga o'tkazish uchun.
 
 ### chat

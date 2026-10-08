@@ -3,7 +3,8 @@
 Hisoblanadi, saqlanmaydi (holatdan kelib chiqadigan qiymatni saqlash — nomuvofiqlik manbai).
 Sonlar subquery bilan olinadi: bir nechta JOIN bir-birini ko'paytirib, o'rtacha bahoni buzmasin.
 """
-from django.db.models import Avg, Count, Exists, F, IntegerField, OuterRef, Subquery, Value
+from django.core.cache import cache
+from django.db.models import Avg, BooleanField, Count, Exists, F, IntegerField, OuterRef, Subquery, Value
 from django.db.models.functions import Coalesce, ExtractYear
 from django.utils import timezone
 
@@ -12,6 +13,13 @@ from apps.tasks.models import Task, TaskAssignment
 
 from .models import Follow, PortfolioItem, PortfolioReview
 from .permissions import portfolio_owners
+
+
+DEVELOPER_RANKING_CACHE_KEY = "portfolio:developer-ranking:default"
+
+
+def invalidate_developer_ranking():
+    cache.delete(DEVELOPER_RANKING_CACHE_KEY)
 
 
 def _count(qs, group):
@@ -36,7 +44,10 @@ def developers_with_stats(viewer):
         followers_count=_count(Follow.objects.filter(developer=OuterRef("pk")), "developer"),
         projects_count=_count(items, "owner") + _count(unsynced, "developer"),
         tasks_done=_count(done_assignments().filter(developer=OuterRef("pk")), "developer"),
-        is_following=Exists(Follow.objects.filter(follower=viewer.pk, developer=OuterRef("pk"))),
+        is_following=(
+            Exists(Follow.objects.filter(follower=viewer.pk, developer=OuterRef("pk")))
+            if viewer is not None else Value(False, output_field=BooleanField())
+        ),
     ).order_by(F("rating").desc(nulls_last=True), "-reviews_count", "-followers_count",
                "first_name", "last_name", "pk")
 

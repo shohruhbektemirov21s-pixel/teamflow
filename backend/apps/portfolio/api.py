@@ -1,4 +1,6 @@
 """Portfolio API — yupqa qatlam: kirishni tekshiradi, servis va ko'rsatkichlarni chaqiradi."""
+from django.conf import settings
+from django.core.cache import cache
 from django.db.models import Q
 from django.http import Http404
 from django.shortcuts import get_object_or_404
@@ -11,10 +13,10 @@ from apps.core.pagination import BoundedPagination
 
 from . import services
 from .files import video_response
-from .models import PortfolioReview, PortfolioVideo
+from .models import Follow, PortfolioReview, PortfolioVideo
 from .permissions import can_follow, portfolio_owners
 from .serializers import ItemInput, ReviewInput, developer_row, item_detail, item_row, review_row, video_row
-from .stats import developers_with_stats, experience, items_with_stats, recent_tasks, tasks_done_by_project, years
+from .stats import DEVELOPER_RANKING_CACHE_KEY, developers_with_stats, experience, items_with_stats, recent_tasks, tasks_done_by_project, years
 
 
 def _item(pk):
@@ -31,8 +33,25 @@ def _item_payload(item, user):
 @api_view(["GET"])
 def developer_list(request):
     """Barcha dasturchilar reyting bo'yicha (eng balandi tepada). `q` — ism, familiya yoki mutaxassislik."""
-    qs = developers_with_stats(request.user)
     q = request.query_params.get("q", "").strip()[:200]
+    if not q and "page" not in request.query_params and "page_size" not in request.query_params:
+        payload = cache.get(DEVELOPER_RANKING_CACHE_KEY)
+        if payload is None:
+            paginator = BoundedPagination()
+            page = paginator.paginate_queryset(developers_with_stats(None), request)
+            payload = {
+                "count": paginator.page.paginator.count,
+                "rows": [developer_row(user, paginator.page.start_index() + i) for i, user in enumerate(page)],
+            }
+            cache.set(DEVELOPER_RANKING_CACHE_KEY, payload, settings.PORTFOLIO_RANKING_CACHE_SECONDS)
+        developer_ids = [row["id"] for row in payload["rows"]]
+        following = set(Follow.objects.filter(follower=request.user.pk, developer_id__in=developer_ids)
+                        .values_list("developer_id", flat=True))
+        rows = [{**row, "is_following": row["id"] in following} for row in payload["rows"]]
+        next_link = f"{request.path}?page=2" if payload["count"] > len(rows) else None
+        return Response({"count": payload["count"], "next": next_link, "previous": None, "results": rows})
+
+    qs = developers_with_stats(request.user)
     if q:
         qs = qs.filter(Q(first_name__icontains=q) | Q(last_name__icontains=q) | Q(specialty__name__icontains=q))
     paginator = BoundedPagination()
@@ -45,7 +64,6 @@ def developer_list(request):
 @api_view(["GET"])
 def developer_detail(request, pk):
     owner = get_object_or_404(portfolio_owners(), pk=pk)
-    services.sync_project_items(owner)
     row = developer_row(developers_with_stats(request.user).get(pk=owner.pk))
     items = list(items_with_stats(owner).order_by("-created_at", "-id"))
     done = tasks_done_by_project(owner, [i.project_id for i in items if i.is_auto])
