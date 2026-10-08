@@ -3,9 +3,10 @@ from django.db.models import Q
 from django.http import Http404
 from django.shortcuts import get_object_or_404
 from rest_framework import status
-from rest_framework.decorators import api_view, parser_classes
+from rest_framework.decorators import api_view, parser_classes, throttle_classes
 from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 from rest_framework.response import Response
+from rest_framework.throttling import UserRateThrottle
 
 from apps.core.pagination import BoundedPagination
 
@@ -109,8 +110,15 @@ def reviews(request, pk):
     return Response(_item_payload(_item(pk), request.user))
 
 
+class UploadThrottle(UserRateThrottle):
+    """Video yuklash tezligi cheklanadi (umumiy joy chegarasi — `services.add_video`)."""
+
+    scope = "portfolio_upload"
+
+
 @api_view(["POST"])
 @parser_classes([MultiPartParser, FormParser, JSONParser])
+@throttle_classes([UploadThrottle])
 def video_upload(request, pk):
     obj = _item(pk)
     file = request.FILES.get("video")

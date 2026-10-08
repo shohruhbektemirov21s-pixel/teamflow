@@ -69,6 +69,8 @@ class PortfolioVideo(models.Model):
     item = models.ForeignKey(PortfolioItem, on_delete=models.CASCADE, related_name="videos")
     file = models.FileField(upload_to=UploadTo("portfolio/videos"), validators=[validate_video])
     original_name = models.CharField("Asl fayl nomi", max_length=255)
+    # Baytlarda; dasturchining umumiy video kvotasi shundan hisoblanadi (diskka murojaat qilmasdan).
+    size = models.PositiveBigIntegerField("Hajmi", default=0)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

@@ -138,11 +138,11 @@ Hisoblanadigan (saqlanmaydi): `is_overdue` = muddat o'tgan, `done` va arxivda em
 | Model | Maydonlar |
 |---|---|
 | `PortfolioItem` | owner FK (dasturchi), project FK? (TeamFlow loyihasi — bo'lsa nomi/sanalari loyihadan), title, description (2000), link (http/https), start_date?, end_date?, created_at. `unique(owner, project)` (project bo'lsa) |
-| `PortfolioVideo` | item FK, file (mp4/webm/mov, 100 MB, magic bytes tekshiruvi), original_name, created_at |
+| `PortfolioVideo` | item FK, file (mp4/webm/mov, 100 MB, magic bytes tekshiruvi), original_name, size (bayt — dasturchiga jami `PORTFOLIO_VIDEO_QUOTA_MB` kvotasi shundan), created_at |
 | `PortfolioReview` | item FK, author FK, stars (1–5, CHECK), text (1000), created_at, updated_at. `unique(item, author)` |
 | `Follow` | follower FK, developer FK, created_at. `unique`, CHECK `follower != developer` |
 
-Reyting, sharhlar, kuzatuvchilar, loyihalar soni va tajriba **saqlanmaydi** — `stats.py` subquery bilan hisoblaydi (JOIN ko'payib o'rtachani buzmasin). TeamFlow loyihalari `ProjectMember` dan portfolio ochilganda `services.sync_project_items` bilan qo'shiladi (a'zolik `bulk_create` bilan yaratilgani uchun signal ishlamaydi); ro'yxatdagi loyiha soni sinxronlanmaganlarni ham sanaydi.
+Reyting, sharhlar, kuzatuvchilar, loyihalar soni va tajriba **saqlanmaydi** — `stats.py` subquery bilan hisoblaydi (JOIN ko'payib o'rtachani buzmasin). TeamFlow loyihalari `ProjectMember` dan portfolio ochilganda `services.sync_project_items` bilan qo'shiladi (a'zolik `bulk_create` bilan yaratilgani uchun signal ishlamaydi); ro'yxatdagi loyiha soni sinxronlanmaganlarni ham sanaydi. Jamoadan chiqarilganda (`ProjectMember` `post_delete` signali, tranzaksiya tasdiqlangach) `services.membership_removed`: bajarilgan vazifasi bo'lsa yozuv qoladi/yaratiladi, bo'lmasa o'chadi — projects app portfolio'ni import qilmaydi. Video yuklash: `portfolio_upload` throttle (30/soat), egasi qatori `select_for_update` bilan qulflanib son va kvota tekshiriladi.
 **Nima uchun** video API orqali: media ochiq berilmaydi (9-bo'lim), Range (206) — brauzerda oldinga o'tkazish uchun.
 
 ### chat
@@ -239,7 +239,7 @@ POST/DELETE /api/portfolio/{user_id}/follow/   kuzatish / to'xtatish (o'zini ema
 POST       /api/portfolio/items/          o'z loyihasini qo'shish (faqat dasturchi)
 GET/PATCH/DELETE /api/portfolio/items/{id}/    PATCH/DELETE — faqat egasi; TeamFlow loyihasida nom/sana o'zgarmaydi, o'chmaydi
 GET/POST/DELETE  /api/portfolio/items/{id}/reviews/   sahifalangan sharhlar · o'z bahom {stars, text} · o'chirish
-POST       /api/portfolio/items/{id}/videos/          multipart `video` (faqat egasi)
+POST       /api/portfolio/items/{id}/videos/          multipart `video` (faqat egasi; 30/soat, jami 1 GB)
 DELETE     /api/portfolio/items/{id}/videos/{vid}/
 GET        /api/portfolio/videos/{vid}/   video (Range 206), faqat tizimga kirganlarga
 ```

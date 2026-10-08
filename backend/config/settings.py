@@ -147,6 +147,8 @@ DATA_UPLOAD_MAX_MEMORY_SIZE = UPLOAD_MAX_MB * 1024 * 1024
 # Portfolio videolari (apps.portfolio.files): MP4, WebM, MOV. Nginx `client_max_body_size` bundan katta bo'lsin.
 PORTFOLIO_VIDEO_MAX_MB = 100
 PORTFOLIO_VIDEOS_PER_ITEM = 5
+# Bitta dasturchining barcha videolari uchun umumiy joy — disk to'lib, butun tizim to'xtamasin.
+PORTFOLIO_VIDEO_QUOTA_MB = 1024
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": ["apps.core.authentication.SessionAuth"],
@@ -154,7 +156,7 @@ REST_FRAMEWORK = {
     "DEFAULT_PAGINATION_CLASS": "apps.core.pagination.BoundedPagination",
     "PAGE_SIZE": 50,
     "EXCEPTION_HANDLER": "apps.core.api_utils.api_exception_handler",
-    "DEFAULT_THROTTLE_RATES": {"auth": "20/min", "ai_web_agent": "5/hour"},
+    "DEFAULT_THROTTLE_RATES": {"auth": "20/min", "ai_web_agent": "5/hour", "portfolio_upload": "30/hour"},
 }
 
 SESSION_COOKIE_HTTPONLY = True

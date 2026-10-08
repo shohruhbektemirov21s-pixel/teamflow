@@ -1,6 +1,8 @@
 ﻿"""Portfolio: ko'rish, to'ldirish, video, baho/sharh, kuzatish va reyting tartibi."""
 from datetime import timedelta
+from unittest.mock import patch
 
+from django.core.cache import cache
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import connection
 from django.test import TestCase, override_settings
@@ -10,8 +12,10 @@ from django.utils import timezone
 from apps.accounts.models import Role
 from apps.panel.tests.factories import client_for, make_user, today
 from apps.projects.models import Project, ProjectMember
+from apps.projects.services import set_members
 from apps.tasks.models import Task, TaskAssignment
 
+from ..api import UploadThrottle
 from ..models import Follow, PortfolioItem, PortfolioReview, PortfolioVideo
 
 MP4 = b"\x00\x00\x00\x18ftypmp42" + b"\x00" * 200
@@ -23,6 +27,7 @@ def mp4(name="demo.mp4", data=MP4):
 
 class PortfolioTestCase(TestCase):
     def setUp(self):
+        cache.clear()  # yuklash throttle hisoblagichi
         self.pm = make_user(Role.PM)
         self.dev = make_user(Role.DEVELOPER)
         self.other = make_user(Role.DEVELOPER)
@@ -209,6 +214,76 @@ class VideoTests(PortfolioTestCase):
         client = client_for(self.dev)
         self.assertEqual(client.post(f"/api/portfolio/items/{item.pk}/videos/", {"video": mp4()}).status_code, 201)
         self.assertEqual(client.post(f"/api/portfolio/items/{item.pk}/videos/", {"video": mp4()}).status_code, 400)
+
+    def test_video_quota_per_developer_across_items(self):
+        """Umumiy joy barcha loyihalar bo'yicha hisoblanadi; boshqa dasturchining videolari hisobga kirmaydi."""
+        first, second = self.manual_item(), self.manual_item(title="Ikkinchi")
+        client = client_for(self.dev)
+        self.assertEqual(client.post(f"/api/portfolio/items/{first.pk}/videos/", {"video": mp4()}).status_code, 201)
+        self.assertEqual(PortfolioVideo.objects.get().size, len(MP4))
+        quota_mb = (2 * len(MP4) - 1) / (1024 * 1024)  # ikkinchi video sig'maydi
+        with override_settings(PORTFOLIO_VIDEO_QUOTA_MB=quota_mb):
+            res = client.post(f"/api/portfolio/items/{second.pk}/videos/", {"video": mp4()})
+            self.assertEqual(res.status_code, 400)
+            self.assertIn("video", res.data["fields"])
+            other_item = self.manual_item(owner=self.other)
+            res = client_for(self.other).post(f"/api/portfolio/items/{other_item.pk}/videos/", {"video": mp4()})
+            self.assertEqual(res.status_code, 201)
+        self.assertEqual(PortfolioVideo.objects.filter(item__owner=self.dev).count(), 1)
+
+    def test_video_upload_is_rate_limited(self):
+        item = self.manual_item()
+        client = client_for(self.dev)
+        with patch.object(UploadThrottle, "THROTTLE_RATES", {"portfolio_upload": "1/hour"}):
+            self.assertEqual(client.post(f"/api/portfolio/items/{item.pk}/videos/", {"video": mp4()}).status_code, 201)
+            self.assertEqual(client.post(f"/api/portfolio/items/{item.pk}/videos/", {"video": mp4()}).status_code, 429)
+
+
+class MembershipRemovalTests(PortfolioTestCase):
+    """Jamoadan chiqarilganda: bajargan vazifasi bo'lmasa yozuv o'chadi, bo'lsa — qoladi.
+    Natija portfolio ochilgan-ochilmaganiga bog'liq emas."""
+
+    def done_task(self):
+        task = Task.objects.create(project=self.project, title="Kirish", created_by=self.pm,
+                                   status=Task.Status.DONE, completed_at=timezone.now())
+        TaskAssignment.objects.create(task=task, developer=self.dev)
+
+    def remove_dev(self):
+        with self.captureOnCommitCallbacks(execute=True):
+            set_members(self.project, self.pm, [self.other.pk])
+
+    def test_removed_without_tasks_item_and_video_deleted(self):
+        client_for(self.dept).get(f"/api/portfolio/{self.dev.pk}/")  # yozuv yaratildi
+        item = PortfolioItem.objects.get(owner=self.dev, project=self.project)
+        video = PortfolioVideo.objects.create(item=item, file=mp4(), original_name="a.mp4", size=len(MP4))
+        storage, name = video.file.storage, video.file.name
+        self.remove_dev()
+        self.assertFalse(PortfolioItem.objects.filter(owner=self.dev, project=self.project).exists())
+        self.assertFalse(storage.exists(name))
+        # Qayta ochilganda ham paydo bo'lmaydi
+        res = client_for(self.dept).get(f"/api/portfolio/{self.dev.pk}/")
+        self.assertEqual(res.data["items"], [])
+        self.assertEqual(res.data["projects_count"], 0)
+
+    def test_removed_with_done_task_keeps_item(self):
+        self.done_task()
+        client_for(self.dept).get(f"/api/portfolio/{self.dev.pk}/")
+        self.remove_dev()
+        self.assertTrue(PortfolioItem.objects.filter(owner=self.dev, project=self.project).exists())
+
+    def test_removed_with_done_task_before_portfolio_opened_creates_item(self):
+        self.done_task()
+        self.assertFalse(PortfolioItem.objects.exists())
+        self.remove_dev()
+        res = client_for(self.dept).get(f"/api/portfolio/{self.dev.pk}/")
+        self.assertEqual([i["title"] for i in res.data["items"]], ["Portal"])
+
+    def test_readded_in_same_transaction_keeps_item(self):
+        client_for(self.dept).get(f"/api/portfolio/{self.dev.pk}/")
+        with self.captureOnCommitCallbacks(execute=True):
+            ProjectMember.objects.filter(project=self.project, developer=self.dev).delete()
+            ProjectMember.objects.create(project=self.project, developer=self.dev)
+        self.assertTrue(PortfolioItem.objects.filter(owner=self.dev, project=self.project).exists())
 
 
 class ReviewTests(PortfolioTestCase):
