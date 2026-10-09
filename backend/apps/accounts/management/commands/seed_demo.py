@@ -44,6 +44,7 @@ class Command(BaseCommand):
         dev1 = user("jasur", "Jasur", "Alimov", Role.DEVELOPER, "Backend dasturchi")
         dev2 = user("malika", "Malika", "Karimova", Role.DEVELOPER, "Frontend dasturchi")
         user("bobur", "Bobur", "Rahimov", Role.DEVELOPER, "Mobil dasturchi")
+        user("oddiy", "Oddiy", "Foydalanuvchi", Role.USER, "Boshqaruv")
         dept = user("it_boshqarma", "Shoxrux", "Hamidov", Role.DEPARTMENT, "Boshqaruv",
                     department_name="Axborot texnologiyalari boshqarmasi")
 
@@ -81,6 +82,7 @@ class Command(BaseCommand):
                                     priority="urgent", requested_due_date=today + timedelta(days=45),
                                     file=ContentFile(b"demo", name="TZ-hujjat-aylanishi.docx"))
         self.stdout.write(self.style.SUCCESS(
-            f"Tayyor. Loginlar: boshliq, pm, jasur, malika, bobur, it_boshqarma. Parol: {PASSWORD}. "
+            f"Tayyor. Loginlar: boshliq, pm, jasur, malika, bobur, oddiy, it_boshqarma. Parol: {PASSWORD}. "
             f"Buyurtma #{order.pk} tasdiqlanishini kutmoqda."
         ))
+

@@ -51,6 +51,7 @@ Barcha ma'lumotlar bazadan olinadi. Butun interfeys bitta Design System (ranglar
 | **Loyiha menejeri (PM)** | Ro'yxatdan o'tadi, admin tasdiqlaydi | Buyurtmani tasdiqlaydi yoki rad etadi, loyiha yaratadi, dasturchi biriktiradi, vazifa beradi, ishni tekshiradi |
 | **Dasturchi** | Ro'yxatdan o'tadi, admin tasdiqlaydi | O'ziga berilgan vazifani bajaradi va tekshiruvga yuboradi |
 | **Boshqarma** | Ro'yxatdan o'tadi (boshqarma nomi bilan), admin tasdiqlaydi | Buyurtma (TZ) yuboradi |
+| **Oddiy foydalanuvchi** | Ro'yxatdan o'tadi, admin tasdiqlaydi | Dasturchilarning portfoliolarini ko'radi va ularni baholaydi (Instagram uslubidagi feed orqali) |
 
 ### Ruxsatlar jadvali
 
@@ -538,3 +539,4 @@ Tekshiruv: 247 backend, 103 frontend testi (bitta worker), TypeScript va product
 - **2026-10-06 (10 000+ foydalanuvchi):** Foydalanuvchi bir vaqtda faol 10 000+ foydalanuvchini aniqlashtirdi; server hali tanlanmagan. Production PostgreSQL/Redis, Gunicorn/Nginx, sahifalash va Telegram outbox tayyorlandi. 4 jarayonli Locust bilan 10 000 alohida sessiya, 250 soniya peak, 501,96 so'rov/soniya, 135 349 so'rov, 0 xato, p95 110 ms; aniq profil va chegaralar docs/performance/2026-10-06/REPORT.md da. 269 PostgreSQL backend, 104 frontend testi hamda 60 haqiqiy brauzer holati o'tdi.
 - **2026-10-08 (10k arxitekturasi):** Portfolio reytingining standart sahifasi va unread soni Redis'da 60 soniyaga keshlanadi; tegishli yozish/o'qish commitidan keyin invalidatsiya qilinadi. `ProjectMember` signali va backfill migratsiyasi portfolio GET ichidagi yozuvni olib tashladi; portfolio feed indekslari qo'shildi. Chat bo'sh paytda 5 → 60 soniyagacha adaptive polling qiladi, suhbatlar 30 soniyada yangilanadi. Compose default o'lchangan profilga (12 worker × 2 thread), healthcheck readiness endpointiga o'tkazildi. Eski 10k hisobot portfolio, login burst, upload, browser polling va soakni qamramaydi; joriy mahsulot sig'imi tanlangan serverda qayta o'lchanadi.
 - **2026-10-06 (tozalash va GitHub):** Foydalanuvchi testdan keyin kiritilgan ma'lumotlarni tozalashni va oxirida GitHub'ga yuklashni aniq buyurdi. Ushbu ish uchun commit/push ruxsati mavjud. Testlar alohida teamflow-scale-test Docker loyihasi va teamflow_scale PostgreSQL bazasida; haqiqiy SQLite biznes ma'lumotlari saqlanadi. Test konteyner/baza/volume va maxfiy fixturelar yakunda olib tashlanadi. Deployment qo'llanmasi backend/deploy/README.md da; haqiqiy server/TLS va SQLite data cutover hali bajarilmagan.
+

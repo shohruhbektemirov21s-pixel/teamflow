@@ -11,6 +11,7 @@ class Role(models.TextChoices):
     PM = "pm", "Loyiha menejeri"
     DEVELOPER = "developer", "Dasturchi"
     DEPARTMENT = "department", "Boshqarma"
+    USER = "user", "Oddiy foydalanuvchi"
 
 
 class Specialty(models.Model):
@@ -92,5 +93,10 @@ class User(AbstractUser):
     def is_on_business_trip(self):
         return bool(self.business_trip_return_date and self.business_trip_return_date > timezone.localdate())
 
+    @property
+    def is_ordinary_user(self):
+        return self.role == Role.USER
+
     def __str__(self):
         return self.full_name
+

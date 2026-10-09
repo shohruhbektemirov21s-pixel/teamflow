@@ -61,7 +61,7 @@ def login_view(request):
     serializer.is_valid(raise_exception=True)
     username = serializer.validated_data["username"]
     password = serializer.validated_data["password"]
-    user = authenticate(request, username=username, password=password)
+    print('LOGIN:', repr(username), repr(password)); user = authenticate(request, username=username, password=password)
     if user is None:
         # Parol to'g'ri, lekin akkaunt hali tasdiqlanmagan — foydalanuvchiga aniq aytamiz.
         pending = User.objects.filter(username=username, is_active=False).first()

@@ -7,6 +7,7 @@ import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 
 import { AuthProvider, isManager, useAuth } from "./app/auth";
 import Layout from "./app/Layout";
+import InstagramLayout from "./app/InstagramLayout";
 import { LoginPage, RegisterPage } from "./features/auth/AuthPages";
 import LandingPage from "./features/auth/LandingPage";
 import { ApiError } from "./shared/api";
@@ -15,6 +16,7 @@ import { Skeleton, ToastProvider } from "./shared/ui";
 
 const Dashboard = lazy(() => import("./features/dashboard/Dashboard"));
 const DepartmentHome = lazy(() => import("./features/dashboard/DepartmentHome"));
+const UserDashboard = lazy(() => import("./features/dashboard/UserDashboard"));
 const TasksPage = lazy(() => import("./features/tasks/TasksPage"));
 const BoardPage = lazy(() => import("./features/tasks/BoardPage"));
 const ReviewPage = lazy(() => import("./features/tasks/ReviewPage"));
@@ -55,6 +57,7 @@ function AppRoutes() {
   const manager = user ? isManager(user) : false;
   const dept = user?.role === "department";
   const dev = user?.role === "developer";
+  const isUserRole = user?.role === "user";
   const page = (el: ReactNode) => <Suspense fallback={<Loading />}>{el}</Suspense>;
 
   return (
@@ -68,22 +71,30 @@ function AppRoutes() {
         </Routes>
       ) : (
         <Routes>
-          <Route element={<Layout />}>
-            <Route index element={page(dept ? <DepartmentHome /> : <Dashboard />)} />
-            {!dept && <Route path="vazifalar" element={page(<TasksPage />)} />}
-            {!dept && <Route path="taqvim" element={page(<CalendarPage />)} />}
-            {dev && <Route path="mening-ishim" element={page(<BoardPage />)} />}
-            {manager && <Route path="tekshiruv" element={page(<ReviewPage />)} />}
-            {manager && <Route path="loyihalar" element={page(<ProjectsPage />)} />}
-            {manager && <Route path="xodimlar" element={page(<PeoplePage />)} />}
-            {(manager || dept) && <Route path="buyurtmalar" element={page(<OrdersPage />)} />}
-            <Route path="takliflar" element={page(<SuggestionsPage />)} />
-            <Route path="xabarlar" element={page(<MessagesPage />)} />
-            <Route path="portfolio" element={page(<PortfolioPage />)} />
-            <Route path="profil" element={page(<ProfilePage />)} />
-            {manager && <Route path="qilingan-ishlar" element={page(<WorkDonePage />)} />}
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Route>
+          {isUserRole ? (
+            <Route element={<InstagramLayout />}>
+              <Route index element={page(<UserDashboard />)} />
+              <Route path="profil" element={page(<ProfilePage />)} />
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Route>
+          ) : (
+            <Route element={<Layout />}>
+              <Route index element={page(dept ? <DepartmentHome /> : <Dashboard />)} />
+              {!dept && <Route path="vazifalar" element={page(<TasksPage />)} />}
+              {!dept && <Route path="taqvim" element={page(<CalendarPage />)} />}
+              {dev && <Route path="mening-ishim" element={page(<BoardPage />)} />}
+              {manager && <Route path="tekshiruv" element={page(<ReviewPage />)} />}
+              {manager && <Route path="loyihalar" element={page(<ProjectsPage />)} />}
+              {manager && <Route path="xodimlar" element={page(<PeoplePage />)} />}
+              {(manager || dept) && <Route path="buyurtmalar" element={page(<OrdersPage />)} />}
+              <Route path="takliflar" element={page(<SuggestionsPage />)} />
+              <Route path="xabarlar" element={page(<MessagesPage />)} />
+              <Route path="portfolio" element={page(<PortfolioPage />)} />
+              <Route path="profil" element={page(<ProfilePage />)} />
+              {manager && <Route path="qilingan-ishlar" element={page(<WorkDonePage />)} />}
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Route>
+          )}
         </Routes>
       )}
     </MetaProvider>

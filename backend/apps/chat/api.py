@@ -37,3 +37,5 @@ class ChatViewSet(viewsets.GenericViewSet):
         serializer.is_valid(raise_exception=True)
         message = send_message(request.user, serializer.validated_data["partner"], serializer.validated_data["text"])
         return Response(ChatMessageSerializer(message).data, status=201)
+
+   

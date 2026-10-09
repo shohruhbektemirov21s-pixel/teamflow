@@ -1,4 +1,4 @@
-export type Role = "boss" | "pm" | "developer" | "department";
+export type Role = "boss" | "pm" | "developer" | "department" | "user";
 export type TaskStatus = "control" | "in_progress" | "in_review" | "done";
 export type OrderStatus = "submitted" | "approved" | "rejected" | "project_created";
 export type ProjectStage = "planned" | "started" | "needs_fix" | "rejected" | "pending_approval" | "done";
