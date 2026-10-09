@@ -2,7 +2,7 @@
 from django.conf import settings
 from django.core.cache import cache
 from django.db.models import Q
-from django.http import Http404
+from django.http import FileResponse, Http404
 from django.shortcuts import get_object_or_404
 from rest_framework import status
 from rest_framework.decorators import api_view, parser_classes
@@ -13,7 +13,7 @@ from apps.core.pagination import BoundedPagination
 
 from . import services
 from .files import video_response
-from .models import Follow, PortfolioReview, PortfolioVideo
+from .models import Follow, PortfolioItem, PortfolioReview, PortfolioVideo
 from .permissions import can_follow, portfolio_owners
 from .serializers import ItemInput, ReviewInput, developer_row, item_detail, item_row, review_row, video_row
 from .stats import DEVELOPER_RANKING_CACHE_KEY, developers_with_stats, experience, items_with_stats, recent_tasks, tasks_done_by_project, years
@@ -125,6 +125,37 @@ def reviews(request, pk):
     else:
         services.delete_review(obj, request.user)
     return Response(_item_payload(_item(pk), request.user))
+
+
+@api_view(["POST", "DELETE"])
+@parser_classes([MultiPartParser, FormParser, JSONParser])
+def cover(request, pk):
+    """Muqova rasmi: POST (multipart `cover`) — yuklash/almashtirish, DELETE — o'chirish. Faqat egasi."""
+    obj = _item(pk)
+    if request.method == "DELETE":
+        services.remove_cover(obj, request.user)
+    else:
+        upload = request.FILES.get("cover")
+        if upload is None:
+            return Response({"detail": "Rasm tanlang.", "fields": {"cover": ["Rasm tanlang."]}}, status=400)
+        services.set_cover(obj, request.user, upload)
+    return Response(_item_payload(_item(pk), request.user))
+
+
+@api_view(["GET"])
+def cover_file(request, pk):
+    """Muqova rasmi — faqat tizimga kirganlarga (media papkasi ochiq berilmaydi)."""
+    obj = get_object_or_404(PortfolioItem, pk=pk, owner__in=portfolio_owners())
+    if not obj.cover:
+        raise Http404
+    try:
+        handle = obj.cover.open("rb")
+    except (FileNotFoundError, ValueError):
+        raise Http404
+    response = FileResponse(handle, content_type="image/jpeg")
+    response["X-Content-Type-Options"] = "nosniff"
+    response["Cache-Control"] = "private, max-age=86400"  # `?v=` almashadi — eski rasm keshda qolmaydi
+    return response
 
 
 @api_view(["POST"])

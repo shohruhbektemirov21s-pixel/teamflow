@@ -1,14 +1,19 @@
 """Portfolio biznes amallari. Ruxsat qoidalari — `permissions.py`."""
 from django.conf import settings
+from django.core.files.base import ContentFile
 from django.db import IntegrityError, transaction
 from rest_framework.exceptions import PermissionDenied
 
 from apps.core.api_utils import ServiceError
+from apps.core.images import normalize_image
 
 from .files import validate_video
 from .models import Follow, PortfolioItem, PortfolioReview, PortfolioVideo
 from .permissions import can_edit_item, can_follow, can_review_item
 from .stats import invalidate_developer_ranking
+
+COVER_MAX_MB = 5
+COVER_SIZE = 1080  # px, eng uzun tomoni — setkada va loyiha oynasida tiniq
 
 # Faqat o'zi qo'shgan loyihada o'zgaradigan maydonlar; TeamFlow loyihasida nomi va sanalari loyihadan olinadi.
 MANUAL_ONLY_FIELDS = ("title", "start_date", "end_date")
@@ -46,6 +51,34 @@ def delete_item(item, user):
         raise ServiceError("TeamFlow loyihasi portfoliodan o'chirilmaydi.")
     item.delete()  # videolar fayli bilan birga o'chadi (signals.py)
     invalidate_developer_ranking()
+
+
+def _delete_file_after_commit(field_file):
+    storage, name = field_file.storage, field_file.name
+    transaction.on_commit(lambda: storage.delete(name))
+
+
+def set_cover(item, user, upload):
+    """Muqova rasmi (TeamFlow loyihasida ham). Eski rasm tranzaksiya tasdiqlangach o'chiriladi."""
+    _require_owner(user, item)
+    data = normalize_image(upload, max_side=COVER_SIZE, max_mb=COVER_MAX_MB, field="cover")
+    old = item.cover if item.cover else None
+    old_name = old.name if old else None
+    item.cover.save("cover.jpg", ContentFile(data), save=False)
+    item.save(update_fields=["cover", "updated_at"])
+    if old_name:
+        storage = item.cover.storage
+        transaction.on_commit(lambda: storage.delete(old_name))
+    return item
+
+
+def remove_cover(item, user):
+    _require_owner(user, item)
+    if item.cover:
+        _delete_file_after_commit(item.cover)
+        item.cover = ""
+        item.save(update_fields=["cover", "updated_at"])
+    return item
 
 
 def add_video(item, user, file):

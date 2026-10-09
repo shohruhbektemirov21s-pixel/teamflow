@@ -1,4 +1,5 @@
-"""Video yozuvi qaysi yo'l bilan o'chirilmasin (o'zi, loyiha, foydalanuvchi — CASCADE), fayli diskda qolmaydi.
+"""Video yoki loyiha yozuvi qaysi yo'l bilan o'chirilmasin (o'zi, loyiha, foydalanuvchi — CASCADE), fayli
+(video, muqova rasmi) diskda qolmaydi.
 Fayl tranzaksiya tasdiqlangandan keyin o'chiriladi: amal bekor bo'lsa, video yo'qolmaydi."""
 from django.db import transaction
 from django.db.models.signals import post_delete, post_save
@@ -17,6 +18,13 @@ def materialize_project_portfolio_item(sender, instance, created, **kwargs):
     _, item_created = PortfolioItem.objects.get_or_create(owner_id=instance.developer_id, project_id=instance.project_id)
     if item_created:
         invalidate_developer_ranking()
+
+
+@receiver(post_delete, sender=PortfolioItem)
+def delete_cover_file(sender, instance, **kwargs):
+    if instance.cover:
+        storage, name = instance.cover.storage, instance.cover.name
+        transaction.on_commit(lambda: storage.delete(name))
 
 
 @receiver(post_delete, sender=PortfolioVideo)
