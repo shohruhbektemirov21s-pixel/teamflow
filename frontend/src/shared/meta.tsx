@@ -20,6 +20,7 @@ export interface MetaData {
   task_statuses: Choice[];
   order_statuses: Choice[];
   project_stages: Choice[];
+  portfolio_project_types: Choice[];
   task_moves: { from: string; to: string }[];
   /** Telegram bot username'i (`@` siz); bot ulanmagan bo'lsa bo'sh */
   telegram_bot: string;

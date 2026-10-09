@@ -27,6 +27,7 @@ from apps.notifications.services import notify
 from apps.orders.filters import department_dashboard
 from apps.orders.models import Order, OrderVersion
 from apps.orders.permissions import can_view_order, visible_orders
+from apps.portfolio.models import ProjectType as PortfolioProjectType
 from apps.projects.models import Project, ProjectFile
 from apps.projects.permissions import can_view_project, visible_projects
 from apps.tasks.filters import ACTIVE, dashboard_counts
@@ -63,6 +64,7 @@ def meta(request):
         "task_statuses": _choices(Task.Status),
         "order_statuses": _choices(Order.Status),
         "project_stages": _choices(Project.Stage),
+        "portfolio_project_types": _choices(PortfolioProjectType),
         "task_moves": moves,
         # Bot ulangan bo'lsagina havola beriladi (token bo'lmasa bot javob bermaydi)
         "telegram_bot": settings.TELEGRAM_BOT_USERNAME if settings.TELEGRAM_BOT_TOKEN else "",

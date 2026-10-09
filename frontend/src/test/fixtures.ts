@@ -43,6 +43,12 @@ export const META: MetaData = {
   ],
   order_statuses: [],
   project_stages: [],
+  portfolio_project_types: [
+    { value: "website", label: "Veb-sayt" },
+    { value: "mobile", label: "Mobil ilova" },
+    { value: "backend", label: "Backend / API" },
+    { value: "other", label: "Boshqa" },
+  ],
   task_moves: [],
   telegram_bot: "teamflow_test_bot",
 };

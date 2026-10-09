@@ -9,7 +9,7 @@ class MetaTests(TestCase):
     def test_anonymous_gets_lists_without_moves(self):
         r = APIClient().get("/api/meta/")
         self.assertEqual(r.status_code, 200)
-        self.assertEqual([x["value"] for x in r.data["register_roles"]], ["pm", "developer", "department"])
+        self.assertEqual([x["value"] for x in r.data["register_roles"]], ["pm", "developer", "department", "user"])
         self.assertEqual([x["value"] for x in r.data["task_statuses"]], ["control", "in_progress", "in_review", "done"])
         self.assertEqual(r.data["task_moves"], [])
 

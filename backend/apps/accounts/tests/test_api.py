@@ -43,6 +43,22 @@ class RegisterLoginTests(TestCase):
         self.c.post("/api/auth/register/", self.payload(department_name="X"), format="json")
         self.assertEqual(User.objects.get(username="ali").department_name, "")
 
+    def test_plain_user_role_does_not_require_specialty(self):
+        payload = self.payload(role="user")
+        payload.pop("specialty")
+        r = self.c.post("/api/auth/register/", payload, format="json")
+        self.assertEqual(r.status_code, 201)
+        user = User.objects.get(username="ali")
+        self.assertEqual(user.role, Role.USER)
+        self.assertIsNone(user.specialty)
+
+    def test_developer_still_requires_specialty(self):
+        payload = self.payload()
+        payload.pop("specialty")
+        r = self.c.post("/api/auth/register/", payload, format="json")
+        self.assertEqual(r.status_code, 400)
+        self.assertIn("specialty", r.data["fields"])
+
     def test_duplicate_username(self):
         make_user(Role.PM, username="ali")
         r = self.c.post("/api/auth/register/", self.payload(), format="json")

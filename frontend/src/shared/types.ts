@@ -1,4 +1,4 @@
-export type Role = "boss" | "pm" | "developer" | "department";
+export type Role = "boss" | "pm" | "developer" | "department" | "user";
 export type TaskStatus = "control" | "in_progress" | "in_review" | "done";
 export type OrderStatus = "submitted" | "approved" | "rejected" | "project_created";
 export type ProjectStage = "planned" | "started" | "needs_fix" | "rejected" | "pending_approval" | "done";
@@ -16,6 +16,7 @@ export interface Me {
   department_name: string;
   telegram_username: string;
   avatar?: string | null;
+  technologies?: string;
 }
 
 export interface Profile extends Me {
@@ -276,6 +277,7 @@ export interface SuggestionDetail extends Suggestion {
 // ─── Portfolio ───────────────────────────────────────────────────────────────
 export interface PortfolioDeveloper extends UserBrief {
   specialty: string;
+  technologies: string;
   rating: number | null;
   reviews_count: number;
   followers_count: number;
@@ -286,6 +288,8 @@ export interface PortfolioDeveloper extends UserBrief {
   rank: number | null;
 }
 
+export type ProjectType = "website" | "mobile" | "backend" | "other" | "";
+
 export interface PortfolioItem {
   id: number;
   /** TeamFlow loyihasi (avtomatik) yoki dasturchi o'zi qo'shgan. */
@@ -294,19 +298,33 @@ export interface PortfolioItem {
   link: string;
   start_date: string | null;
   end_date: string | null;
+  project_type: ProjectType;
+  project_type_label: string;
+  preview_image: string | null;
   project: { code: string; stage: ProjectStage } | null;
   tasks_done: number | null;
   rating: number | null;
   reviews_count: number;
   videos_count: number;
+  /** Faqat mustaqil "Loyihalar" grid ro'yxatida (`with_owner=true`). */
+  owner?: UserBrief;
 }
 
 export interface PortfolioDetail extends PortfolioDeveloper {
   experience: { since: string; months: number };
   years: { year: number; projects: number; tasks: number }[];
+  months: { year: number; month: number; tasks: number }[];
+  weeks: { week_start: string; tasks: number }[];
+  tasks_late: number;
   items: PortfolioItem[];
   recent_tasks: { id: number; code: string; title: string; project: string; completed_at: string | null }[];
   actions: { follow: boolean; add: boolean };
+}
+
+export interface PortfolioSummary {
+  developers_count: number;
+  avg_rating: number | null;
+  rated_items_count: number;
 }
 
 export interface PortfolioReview {

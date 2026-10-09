@@ -66,6 +66,7 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "apps.core.middleware.PortfolioOnlyUserMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
@@ -149,6 +150,9 @@ PORTFOLIO_VIDEO_MAX_MB = 100
 PORTFOLIO_VIDEOS_PER_ITEM = 5
 # Bitta dasturchining barcha videolari uchun umumiy joy — disk to'lib, butun tizim to'xtamasin.
 PORTFOLIO_VIDEO_QUOTA_MB = 1024
+# Loyiha preview rasmi: avatar kabi Pillow bilan siqiladi (apps.portfolio.services.set_preview_image)
+PORTFOLIO_PREVIEW_MAX_MB = 8
+PORTFOLIO_PREVIEW_SIZE = 1280
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": ["apps.core.authentication.SessionAuth"],

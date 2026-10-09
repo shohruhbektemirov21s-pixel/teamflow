@@ -678,7 +678,7 @@ button.list-row:focus-visible { outline-offset: -2px; }
 .auth-side li svg { width: 20px; height: 20px; flex: none; }
 .auth-main { display: grid; place-items: center; padding: 32px 20px; }
 .auth-card { width: 100%; max-width: 440px; display: flex; flex-direction: column; gap: 20px; }
-.role-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.role-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 8px; }
 .role-card { border: 1.5px solid var(--border-strong); border-radius: 10px; padding: 12px; text-align: left; background: var(--surface); color: var(--text); cursor: pointer; display: flex; flex-direction: column; gap: 4px; transition: border-color .15s var(--ease), background-color .15s var(--ease); }
 .role-card:hover { border-color: var(--muted); }
 .role-card[aria-pressed="true"] { border-color: var(--primary); background: var(--primary-soft); }
@@ -834,8 +834,42 @@ button.list-row:focus-visible { outline-offset: -2px; }
 .portfolio-review { align-items: flex-start; }
 .portfolio-video-wrap { margin: 0; display: flex; flex-direction: column; gap: 8px; }
 .portfolio-video { width: 100%; max-height: 420px; border-radius: var(--radius); background: #000; }
+
+/* Instagram uslubidagi dasturchilar grid */
+.portfolio-dev-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; }
+.portfolio-dev-card { position: relative; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 8px; padding: 24px 16px 20px; }
+.portfolio-dev-card .rank-pill { position: absolute; top: 12px; left: 12px; }
+.portfolio-dev-tech { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px; }
+.tech-chip { font-size: 11px; line-height: 1.6; padding: 1px 9px; border-radius: var(--radius-full); background: var(--violet-soft); color: var(--violet); }
+.portfolio-dev-card-cta { margin-top: 4px; }
+
+/* Instagram uslubidagi loyihalar ("post") grid */
+.portfolio-post-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 12px; }
+.portfolio-post-tile {
+  position: relative; aspect-ratio: 1 / 1; border-radius: var(--radius-lg); overflow: hidden; padding: 0;
+  border: 1px solid var(--border); background: var(--surface-2) center / cover no-repeat; cursor: pointer; display: block;
+}
+.portfolio-post-placeholder { position: absolute; inset: 0; display: grid; place-items: center; color: var(--placeholder); }
+.portfolio-post-rating {
+  position: absolute; top: 8px; right: 8px; background: rgba(0, 0, 0, .6); color: #fff; font-size: 12px;
+  font-weight: 600; padding: 3px 9px; border-radius: var(--radius-full); display: flex; align-items: center; gap: 3px;
+}
+.portfolio-post-overlay {
+  position: absolute; left: 0; right: 0; bottom: 0; padding: 10px;
+  background: linear-gradient(180deg, transparent, rgba(0, 0, 0, .65)); color: #fff; text-align: left;
+  display: flex; flex-direction: column; gap: 1px;
+}
+.portfolio-post-overlay b { font-size: 12.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.portfolio-post-overlay span { font-size: 11px; opacity: .85; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.portfolio-preview-pick { position: relative; aspect-ratio: 16 / 9; width: 100%; max-width: 320px; border-radius: var(--radius); overflow: hidden; background: var(--surface-2); border: 1px solid var(--border); }
+.portfolio-preview-pick img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.portfolio-sparkline { display: flex; align-items: flex-end; gap: 3px; height: 48px; padding: 8px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface-2); }
+.portfolio-sparkline-bar { flex: 1; min-height: 4px; background: var(--violet); border-radius: 2px 2px 0 0; }
+
 @media (max-width: 640px) {
   .portfolio-row { flex-wrap: wrap; gap: 12px; }
   .portfolio-row-stats { flex-basis: 100%; align-items: flex-start; padding-left: 44px; }
   .portfolio-stats { grid-template-columns: 1fr 1fr; }
+  .portfolio-dev-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
+  .portfolio-post-grid { grid-template-columns: repeat(3, 1fr); gap: 6px; }
 }

@@ -1,7 +1,11 @@
 """Portfolio biznes amallari. Ruxsat qoidalari — `permissions.py`."""
+import io
+
 from django.conf import settings
+from django.core.files.base import ContentFile
 from django.db import IntegrityError, transaction
 from django.db.models import Sum
+from PIL import Image, ImageOps, UnidentifiedImageError
 from rest_framework.exceptions import PermissionDenied
 
 from apps.accounts.models import User
@@ -102,6 +106,42 @@ def add_video(item, user, file):
 def delete_video(video, user):
     _require_owner(user, video.item)
     video.delete()
+
+
+def set_preview_image(item, user, upload):
+    """Loyiha preview rasmi — avatar kabi Pillow bilan ochiladi (kengaytmaga ishonilmaydi),
+    siqiladi va JPEG qilib qayta saqlanadi; EXIF o'chadi, eski rasm o'chiriladi."""
+    _require_owner(user, item)
+    if upload.size > settings.PORTFOLIO_PREVIEW_MAX_MB * MB:
+        raise ServiceError(f"Rasm hajmi {settings.PORTFOLIO_PREVIEW_MAX_MB} MB dan oshmasligi kerak.", "preview_image")
+    try:
+        image = Image.open(upload)
+        if image.format not in ("JPEG", "PNG", "WEBP"):
+            raise ServiceError("Faqat JPG, PNG yoki WEBP rasm yuklang.", "preview_image")
+        image = ImageOps.exif_transpose(image)
+        image.thumbnail((settings.PORTFOLIO_PREVIEW_SIZE, settings.PORTFOLIO_PREVIEW_SIZE))
+        if image.mode != "RGB":
+            background = Image.new("RGB", image.size, "white")
+            background.paste(image, mask=image.convert("RGBA").split()[-1])
+            image = background
+    except (UnidentifiedImageError, OSError, Image.DecompressionBombError) as exc:
+        raise ServiceError("Bu fayl rasm emas yoki buzilgan. Boshqa rasm tanlang.", "preview_image") from exc
+    buffer = io.BytesIO()
+    image.save(buffer, "JPEG", quality=85)
+    old = item.preview_image.name
+    item.preview_image.save("preview.jpg", ContentFile(buffer.getvalue()), save=False)
+    item.save(update_fields=["preview_image"])
+    if old:
+        item.preview_image.storage.delete(old)
+    return item
+
+
+def delete_preview_image(item, user):
+    _require_owner(user, item)
+    if item.preview_image:
+        item.preview_image.delete(save=False)
+        item.save(update_fields=["preview_image"])
+    return item
 
 
 def save_review(item, user, *, stars, text=""):

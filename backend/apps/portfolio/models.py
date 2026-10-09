@@ -13,6 +13,13 @@ from apps.core.files import UploadTo
 from .files import validate_video
 
 
+class ProjectType(models.TextChoices):
+    WEBSITE = "website", "Veb-sayt"
+    MOBILE = "mobile", "Mobil ilova"
+    BACKEND = "backend", "Backend / API"
+    OTHER = "other", "Boshqa"
+
+
 class PortfolioItem(models.Model):
     """Portfoliodagi bitta loyiha.
 
@@ -28,6 +35,8 @@ class PortfolioItem(models.Model):
     link = models.URLField("Havola", max_length=500, blank=True, validators=[URLValidator(schemes=["http", "https"])])
     start_date = models.DateField("Boshlanish", null=True, blank=True)
     end_date = models.DateField("Tugash", null=True, blank=True)
+    project_type = models.CharField("Loyiha turi", max_length=20, choices=ProjectType.choices, blank=True)
+    preview_image = models.ImageField("Preview rasm", upload_to=UploadTo("portfolio/previews"), blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

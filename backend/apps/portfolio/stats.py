@@ -3,8 +3,10 @@
 Hisoblanadi, saqlanmaydi (holatdan kelib chiqadigan qiymatni saqlash — nomuvofiqlik manbai).
 Sonlar subquery bilan olinadi: bir nechta JOIN bir-birini ko'paytirib, o'rtacha bahoni buzmasin.
 """
+from datetime import timedelta
+
 from django.db.models import Avg, Count, Exists, F, IntegerField, OuterRef, Subquery, Value
-from django.db.models.functions import Coalesce, ExtractYear
+from django.db.models.functions import Coalesce, ExtractMonth, ExtractYear
 from django.utils import timezone
 
 from apps.projects.models import ProjectMember
@@ -91,6 +93,59 @@ def recent_tasks(owner, limit=10):
             .order_by(F("task__completed_at").desc(nulls_last=True), "-task_id")[:limit])
     return [{"id": a.task_id, "code": a.task.code, "title": a.task.title, "project": a.task.project.name,
              "completed_at": a.task.completed_at} for a in rows]
+
+
+def tasks_late(owner):
+    """Kechikib bajarilgan vazifalar soni — `tasks.filters.bucket_condition("late")` bilan bir xil qoida."""
+    return done_assignments().filter(developer=owner, task__completed_at__gt=F("task__due_at")).count()
+
+
+def months(owner, limit=12):
+    """So'nggi oylar bo'yicha bajarilgan vazifalar soni (joriy oy tepada)."""
+    rows = (done_assignments().filter(developer=owner, task__completed_at__isnull=False)
+            .annotate(y=ExtractYear("task__completed_at"), m=ExtractMonth("task__completed_at"))
+            .values("y", "m").annotate(n=Count("pk")))
+    counts = {(r["y"], r["m"]): r["n"] for r in rows}
+    today = timezone.localdate()
+    result = []
+    y, m = today.year, today.month
+    for _ in range(limit):
+        result.append({"year": y, "month": m, "tasks": counts.get((y, m), 0)})
+        m -= 1
+        if m == 0:
+            m, y = 12, y - 1
+    return result
+
+
+def weeks(owner, limit=8):
+    """So'nggi haftalar bo'yicha bajarilgan vazifalar soni (dushanbadan boshlab, joriy hafta tepada)."""
+    today = timezone.localdate()
+    since = today - timedelta(weeks=limit - 1, days=today.weekday())
+    rows = done_assignments().filter(developer=owner, task__completed_at__date__gte=since).values_list(
+        "task__completed_at", flat=True)
+    counts = {}
+    for completed_at in rows:
+        d = timezone.localtime(completed_at).date()
+        week_start = d - timedelta(days=d.weekday())
+        counts[week_start] = counts.get(week_start, 0) + 1
+    result = []
+    cur = today - timedelta(days=today.weekday())
+    for _ in range(limit):
+        result.append({"week_start": cur, "tasks": counts.get(cur, 0)})
+        cur -= timedelta(weeks=1)
+    return result
+
+
+def summary():
+    """Portfolio sahifasi tepasidagi 3 ta statistika kartasi — barcha dasturchilar bo'yicha."""
+    owners = portfolio_owners()
+    avg_rating = PortfolioReview.objects.filter(item__owner__in=owners).aggregate(a=Avg("stars"))["a"]
+    rated_items = PortfolioItem.objects.filter(owner__in=owners, reviews__isnull=False).distinct().count()
+    return {
+        "developers_count": owners.count(),
+        "avg_rating": round_rating(avg_rating),
+        "rated_items_count": rated_items,
+    }
 
 
 def round_rating(value):

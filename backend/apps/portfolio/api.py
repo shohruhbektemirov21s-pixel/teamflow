@@ -1,6 +1,6 @@
 """Portfolio API — yupqa qatlam: kirishni tekshiradi, servis va ko'rsatkichlarni chaqiradi."""
-from django.db.models import Q
-from django.http import Http404
+from django.db.models import F, Q
+from django.http import FileResponse, Http404
 from django.shortcuts import get_object_or_404
 from rest_framework import status
 from rest_framework.decorators import api_view, parser_classes, throttle_classes
@@ -12,10 +12,13 @@ from apps.core.pagination import BoundedPagination
 
 from . import services
 from .files import video_response
-from .models import PortfolioReview, PortfolioVideo
+from .models import PortfolioItem, PortfolioReview, PortfolioVideo
 from .permissions import can_follow, portfolio_owners
 from .serializers import ItemInput, ReviewInput, developer_row, item_detail, item_row, review_row, video_row
-from .stats import developers_with_stats, experience, items_with_stats, recent_tasks, tasks_done_by_project, years
+from .stats import (
+    developers_with_stats, experience, items_with_stats, months, recent_tasks, summary, tasks_done_by_project,
+    tasks_late, weeks, years,
+)
 
 
 def _item(pk):
@@ -30,16 +33,46 @@ def _item_payload(item, user):
 
 
 @api_view(["GET"])
+def portfolio_summary(request):
+    """Sahifa tepasidagi 3 ta statistika kartasi: jami dasturchilar, o'rtacha reyting, baholangan loyihalar."""
+    return Response(summary())
+
+
+@api_view(["GET"])
+def items_list(request):
+    """Mustaqil 'Loyihalar' grid: barcha dasturchilarning portfolio loyihalari, dasturchisi bilan."""
+    qs = (items_with_stats().filter(owner__in=portfolio_owners())
+          .select_related("owner", "owner__specialty", "project"))
+    q = request.query_params.get("q", "").strip()[:200]
+    if q:
+        qs = qs.filter(Q(title__icontains=q) | Q(project__name__icontains=q)
+                       | Q(owner__first_name__icontains=q) | Q(owner__last_name__icontains=q))
+    if request.query_params.get("sort") == "rating":
+        qs = qs.order_by(F("rating").desc(nulls_last=True), "-reviews_count", "-created_at", "-id")
+    else:
+        qs = qs.order_by("-created_at", "-id")
+    paginator = BoundedPagination()
+    page = paginator.paginate_queryset(qs, request)
+    rows = [item_row(i, with_owner=True) for i in page]
+    return paginator.get_paginated_response(rows)
+
+
+@api_view(["GET"])
 def developer_list(request):
-    """Barcha dasturchilar reyting bo'yicha (eng balandi tepada). `q` — ism, familiya yoki mutaxassislik."""
+    """Barcha dasturchilar reyting bo'yicha (eng balandi tepada). `q` — ism, mutaxassislik yoki texnologiya;
+    `sort=name` — ism bo'yicha (standart — reyting bo'yicha)."""
     qs = developers_with_stats(request.user)
     q = request.query_params.get("q", "").strip()[:200]
     if q:
-        qs = qs.filter(Q(first_name__icontains=q) | Q(last_name__icontains=q) | Q(specialty__name__icontains=q))
+        qs = qs.filter(Q(first_name__icontains=q) | Q(last_name__icontains=q)
+                       | Q(specialty__name__icontains=q) | Q(technologies__icontains=q))
+    sort = request.query_params.get("sort", "")
+    if sort == "name":
+        qs = qs.order_by("first_name", "last_name", "pk")
     paginator = BoundedPagination()
     page = paginator.paginate_queryset(qs, request)
     first = (paginator.page.start_index() if paginator.page else 1)
-    rows = [developer_row(u, None if q else first + i) for i, u in enumerate(page)]
+    rows = [developer_row(u, None if (q or sort) else first + i) for i, u in enumerate(page)]
     return paginator.get_paginated_response(rows)
 
 
@@ -55,6 +88,9 @@ def developer_detail(request, pk):
         **row,
         "experience": experience(owner, items),
         "years": years(owner, items),
+        "months": months(owner),
+        "weeks": weeks(owner),
+        "tasks_late": tasks_late(owner),
         "items": [item_row(i, done.get(i.project_id, 0)) for i in items],
         "recent_tasks": recent_tasks(owner),
         "actions": {"follow": can_follow(request.user, owner), "add": owner.pk == request.user.pk},
@@ -145,3 +181,35 @@ def video_file(request, pk):
         return video_response(request, video)
     except (FileNotFoundError, ValueError):
         raise Http404
+
+
+@api_view(["POST", "DELETE"])
+@parser_classes([MultiPartParser, FormParser, JSONParser])
+@throttle_classes([UploadThrottle])
+def image(request, pk):
+    """Loyiha preview rasmi: POST (multipart `image`) — yuklash/almashtirish, DELETE — o'chirish."""
+    obj = _item(pk)
+    if request.method == "DELETE":
+        services.delete_preview_image(obj, request.user)
+    else:
+        upload = request.FILES.get("image")
+        if upload is None:
+            return Response({"detail": "Rasm tanlang.", "fields": {"image": ["Rasm tanlang."]}}, status=400)
+        services.set_preview_image(obj, request.user, upload)
+    return Response(_item_payload(_item(pk), request.user))
+
+
+@api_view(["GET"])
+def image_file(request, pk):
+    """Loyiha preview rasmi — faqat tizimga kirganlarga (media papkasi ochiq berilmaydi)."""
+    item = get_object_or_404(PortfolioItem.objects.filter(owner__in=portfolio_owners()), pk=pk)
+    if not item.preview_image:
+        raise Http404
+    try:
+        handle = item.preview_image.open("rb")
+    except (FileNotFoundError, ValueError):
+        raise Http404
+    response = FileResponse(handle, content_type="image/jpeg")
+    response["X-Content-Type-Options"] = "nosniff"
+    response["Cache-Control"] = "private, max-age=86400"
+    return response

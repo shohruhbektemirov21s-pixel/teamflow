@@ -12,15 +12,19 @@ import PortfolioModal from "./PortfolioModal";
 import PortfolioPage from "./PortfolioPage";
 
 const dev = (over: Partial<PortfolioDeveloper>): PortfolioDeveloper => ({
-  ...JASUR, specialty: "Backend", rating: null, reviews_count: 0, followers_count: 0, projects_count: 0,
-  tasks_done: 0, is_following: false, rank: null, ...over,
+  ...JASUR, specialty: "Backend", technologies: "", rating: null, reviews_count: 0, followers_count: 0,
+  projects_count: 0, tasks_done: 0, is_following: false, rank: null, ...over,
 });
+
+const SUMMARY = { developers_count: 2, avg_rating: 4.5, rated_items_count: 1 };
 
 const DETAIL: PortfolioDetail = {
   ...dev({ rating: 4.5, reviews_count: 2, followers_count: 3, projects_count: 1, tasks_done: 7 }),
   experience: { since: "2024-01-15", months: 26 },
   years: [{ year: 2026, projects: 1, tasks: 7 }],
+  months: [], weeks: [], tasks_late: 0,
   items: [{ id: 10, is_auto: true, title: "Portal", link: "", start_date: "2025-01-01", end_date: null,
+    project_type: "", project_type_label: "", preview_image: null,
     project: { code: "PRJ-1", stage: "started" }, tasks_done: 7, rating: 4.5, reviews_count: 2, videos_count: 1 }],
   recent_tasks: [{ id: 1, code: "100000001", title: "Kirish sahifasi", project: "Portal", completed_at: "2026-10-01T10:00:00Z" }],
   actions: { follow: true, add: false },
@@ -37,6 +41,8 @@ afterEach(() => { testUser.current = PM; });
 describe("Portfolio sahifasi", () => {
   it("dasturchilar reyting tartibida va o'rni bilan ko'rinadi, bosilsa portfolio ochiladi", async () => {
     mockGet({
+      "/portfolio/summary/": SUMMARY,
+      "/portfolio/projects/": { count: 0, next: null, previous: null, results: [] },
       "/portfolio/": { count: 2, next: null, previous: null, results: [
         dev({ id: MALIKA.id, full_name: MALIKA.full_name, rating: 4.8, reviews_count: 5, followers_count: 2, rank: 1 }),
         dev({ rating: null, rank: 2, is_following: true }),
@@ -59,9 +65,51 @@ describe("Portfolio sahifasi", () => {
     expect(within(dialog).getByText(T.portfolio.experience(26))).toBeTruthy();
   }, 20_000); // ModalHost modalni lazy yuklaydi — birinchi transform sekin
 
+  it("statistika kartalari, texnologiya chiplari va loyihalar grid ko'rinadi", async () => {
+    mockGet({
+      "/portfolio/summary/": SUMMARY,
+      "/portfolio/projects/": { count: 1, next: null, previous: null, results: [
+        { id: 10, is_auto: true, title: "Portal", link: "", start_date: null, end_date: null,
+          project_type: "website", project_type_label: "Veb-sayt", preview_image: null,
+          project: { code: "PRJ-1", stage: "started" }, tasks_done: null, rating: 4.5, reviews_count: 2,
+          videos_count: 0, owner: JASUR },
+      ] },
+      "/portfolio/": { count: 1, next: null, previous: null, results: [
+        dev({ rank: 1, technologies: "React, Django, PostgreSQL, Docker" }),
+      ] },
+    });
+    renderApp(<PortfolioPage />);
+    expect(await screen.findByText(String(SUMMARY.developers_count))).toBeTruthy();
+    expect(screen.getAllByText(String(SUMMARY.avg_rating)).length).toBeGreaterThan(0);
+    expect(screen.getByText("React")).toBeTruthy();
+    expect(screen.getByText("+1")).toBeTruthy(); // 4 ta texnologiyadan 3 tasi ko'rinadi, 1 tasi "+1"
+    expect(await screen.findByRole("button", { name: /Portal/ })).toBeTruthy();
+  });
+
+  it("saralash 'Ism bo'yicha'ga o'zgartirilsa so'rovga sort=name qo'shiladi", async () => {
+    mockGet({
+      "/portfolio/summary/": SUMMARY,
+      "/portfolio/projects/": { count: 0, next: null, previous: null, results: [] },
+      "/portfolio/": { count: 1, next: null, previous: null, results: [dev({ rank: 1 })] },
+    });
+    renderApp(<PortfolioPage />);
+    await screen.findByText(JASUR.full_name);
+    vi.mocked(api.get).mockClear();
+    vi.mocked(api.get).mockImplementation(async (path: string) => {
+      if (path === "/portfolio/?sort=name") return { count: 1, next: null, previous: null, results: [dev({ rank: null })] };
+      throw new Error(`Kutilmagan GET: ${path}`);
+    });
+    fireEvent.change(screen.getByLabelText(T.portfolio.sort), { target: { value: "name" } });
+    await waitFor(() => expect(api.get).toHaveBeenCalledWith("/portfolio/?sort=name"));
+  });
+
   it("dasturchiga o'z portfoliosi tugmasi chiqadi", async () => {
     testUser.current = { ...PM, id: JASUR.id, role: "developer" };
-    mockGet({ "/portfolio/": { count: 0, next: null, previous: null, results: [] } });
+    mockGet({
+      "/portfolio/summary/": SUMMARY,
+      "/portfolio/projects/": { count: 0, next: null, previous: null, results: [] },
+      "/portfolio/": { count: 0, next: null, previous: null, results: [] },
+    });
     renderApp(<PortfolioPage />);
     expect(await screen.findByRole("button", { name: T.portfolio.mine })).toBeTruthy();
     expect(await screen.findByText(T.portfolio.empty)).toBeTruthy();
@@ -132,7 +180,7 @@ describe("Portfolio oynasi", () => {
     fireEvent.change(screen.getByLabelText(T.portfolio.fields.link), { target: { value: "https://github.com/x/bot" } });
     fireEvent.click(save);
     await waitFor(() => expect(api.post).toHaveBeenCalledWith("/portfolio/items/", {
-      title: "Telegram bot", description: "", link: "https://github.com/x/bot", start_date: null, end_date: null,
+      title: "Telegram bot", description: "", link: "https://github.com/x/bot", start_date: null, end_date: null, project_type: "",
     }));
   });
 });

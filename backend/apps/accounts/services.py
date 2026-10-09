@@ -5,6 +5,7 @@ from django.core.files.base import ContentFile
 from django.db import transaction
 from django.utils import timezone
 from PIL import Image, ImageOps, UnidentifiedImageError
+from rest_framework.exceptions import PermissionDenied
 
 from apps.core.api_utils import ServiceError
 from apps.core.services import log
@@ -30,6 +31,17 @@ def set_responsibilities(actor, employee, text):
         employee.save(update_fields=["responsibilities"])
         log(actor, "responsibilities_updated", f"{actor.full_name} {employee.full_name}ning mas'uliyatlarini yangiladi", employee)
     return employee
+
+
+def set_technologies(user, text):
+    """Dasturchi o'z texnologiyalarini o'zi tahrirlaydi (portfolio kartasida va qidiruvda ko'rinadi)."""
+    if not user.is_developer:
+        raise PermissionDenied("Texnologiyalarni faqat dasturchi to'ldiradi.")
+    text = text.strip()
+    if text != user.technologies:
+        user.technologies = text
+        user.save(update_fields=["technologies"])
+    return user
 
 
 def set_avatar(user, upload):

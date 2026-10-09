@@ -8,7 +8,7 @@
 
 | # | Nomi | Bo'lim | Bosqichlar (qisqa) | Holati |
 |---|---|---|---|---|
-| 1 | Ro'yxatdan o'tish va tasdiqlash | auth | Forma → "Tasdiqlanmagan" → Django adminda faollashtirish → Kirish | Faol |
+| 1 | Ro'yxatdan o'tish va tasdiqlash | auth | Forma → "Tasdiqlanmagan" → Django adminda faollashtirish → Kirish. 5 ta rol (shu jumladan "Oddiy foydalanuvchi" — mutaxassislik tanlanmaydi) | Faol (rol kengaydi 2026-10-09) |
 | 2 | Buyurtma yuborish | orders | Boshqarma nom, izoh, TZ, muddat kiritadi → Yuborildi | Faol |
 | 3 | Buyurtmani ko'rib chiqish | orders | PM ochadi → Tasdiqlash (sana, izoh) yoki Rad etish (sabab) | Faol |
 | 4 | TZ qayta yuborish (v2, v3…) | orders | Rad etilgach kamchilikni tuzatib yangi TZ yuboriladi | Faol |
@@ -21,8 +21,8 @@
 | 10 | Takliflar berish va ovoz | suggestions | Taklif yaratish, ovoz berish, boshliq qarori | Faol |
 | 11 | Qilingan ishlar feed | history | Oxirgi bajarilgan vazifalar va tekshiruvlar reyestri (Boss, PM) | Faol |
 | 12 | Telegram'ni ulash | notifications | Ro'yxatdan o'tishda @username → botga /start → chat bog'lanadi → bildirishnomalar Telegram'ga ham keladi | Faol |
-| 13 | Portfoliolarni ko'rish va kuzatish | portfolio | Menyu "Portfolio" → dasturchilar reyting bo'yicha (eng balandi tepada, o'rni, yulduz, kuzatuvchi/sharh/loyiha soni) → qator bosiladi → "Portfolio" modali (tajriba, yillar bo'yicha, loyihalar, bajarilgan vazifalar) → "Kuzatish" / "Kuzatishni to'xtatish". Hamma rol ko'radi | Faol (2026-10-08) |
-| 14 | Portfolioni to'ldirish | portfolio | Dasturchi "Mening portfoliom" → TeamFlow loyihalari o'zi paydo bo'lgan → "Loyiha qo'shish" (nom, sanalar, tavsif, havola) → loyiha ichida video yuklash (MP4/WebM/MOV, 100 MB, 5 tagacha) / tahrirlash / o'chirish | Faol (2026-10-08) |
+| 13 | Portfoliolarni ko'rish va kuzatish | portfolio | Menyu "Portfolio" → 3 ta statistika kartasi + dasturchilar grid (Instagram uslubi: avatar, texnologiyalar, reyting, loyiha soni; qidiruv ism/mutaxassislik/texnologiya, saralash reyting/ism) + mustaqil "Loyihalar" grid (preview rasm, reyting, dasturchi) → karta bosiladi → "Portfolio" modali (tajriba, kechikkan vazifa, oylik/haftalik faoliyat, texnologiyalar, yillar bo'yicha, loyihalar, bajarilgan vazifalar) → "Kuzatish" / "Kuzatishni to'xtatish". Hamma rol ko'radi ("Oddiy foydalanuvchi"ga yagona bo'lim) | Faol (2026-10-08, Instagram dashboard 2026-10-09) |
+| 14 | Portfolioni to'ldirish | portfolio | Dasturchi "Mening portfoliom" → TeamFlow loyihalari o'zi paydo bo'lgan → "Loyiha qo'shish" (nom, sanalar, tavsif, havola, loyiha turi) → loyiha ichida preview rasm, video yuklash (MP4/WebM/MOV, 100 MB, 5 tagacha) / tahrirlash / o'chirish; profilida "Texnologiyalar" o'zi tahrirlaydi | Faol (2026-10-08, kengaydi 2026-10-09) |
 | 15 | Loyihani baholash va sharh | portfolio | Boshqa foydalanuvchi loyihani ochadi → 1–5 yulduz + sharh (ixtiyoriy) → "Bahoni saqlash" (keyin yangilash/o'chirish). Dasturchi reytingi — barcha loyihalaridagi baholar o'rtachasi | Faol (2026-10-08) |
 
 Bo'limlar bo'yicha son: auth 1 · orders 3 · projects 2 · tasks 3 · profile 1 · history 1 · suggestions 1 · notifications 1 · portfolio 3. Cheklovdan oshmagan.
@@ -70,6 +70,7 @@ Modal holati brauzer tarixida saqlanadi, manzil satri toza qoladi. Quyidagi "Par
 | 2026-10-05 | notifications | 0 (yangi flow emas) | "Bildirishnomalar" sahifasi (`/bildirishnomalar`, `NotificationsPage.tsx`) modalga aylantirildi (`NotificationsModal.tsx`) — modallar 12 ta. Sabab: chap menyudagi "Bildirishnomalar" bandi tepadagi qo'ng'iroq ikonkasi bilan ikki marta bir joyga havola edi (foydalanuvchi so'rovi bilan band olib tashlandi), shundan keyin qo'ng'iroq sahifaga emas, modalga ochilishi so'raldi. Mavjud modal kartasiga (sarlavha + filtr + ro'yxat + "hammasini o'qildi" tugmasi) sig'di, yangi infratuzilma kerak bo'lmadi. |
 | 2026-10-06 | tasks, orders | 0 (yangi flow emas) | Foydalanuvchi talabi bilan "modal ustida modal yo'q" qoidasidan istisno: vazifa va buyurtma oynasidagi amal panellari asosiy oyna ustida qora fonli alohida modalga aylandi — modallar 12 → 14 ta. Foydalanuvchiga aytildi. Umumiy `Modal` endi ustma-ust oynalarni qo'llaydi (Esc/Tab faqat ustdagisiga, orqadagisi `inert`). |
 | 2026-10-08 | portfolio | 3 (yangi bo'lim) | Dasturchi portfoliosi: 3 ta flow (ko'rish va kuzatish · to'ldirish · baholash). Foydalanuvchi "flow'lar 3–5 tadan oshmasin" dedi — kuzatish alohida flow emas, ko'rish ichida. Modallar 15 → 16: "Xodim profili" faqat menejerlar uchun va ichki ish ma'lumotlari bor, shuning uchun hammaga ochiq portfolio uchun kengaytirilmadi; loyiha va forma alohida modal emas, shu modal ichini almashtiradi. Foydalanuvchiga aytildi. |
+| 2026-10-09 | portfolio, auth | 0 (yangi flow emas) | Foydalanuvchi talabi bilan "Oddiy foydalanuvchi" 5-rol sifatida qo'shildi (auth flow'i kengaydi, yangi flow emas — ro'yxatdan o'tish jarayoni o'zi bir xil, faqat rol tanlovida yangi variant bor) va Portfolio sahifasi Instagram uslubida qayta ishlandi (3 statistika kartasi, dasturchilar/loyihalar grid, texnologiyalar, oylik/haftalik faoliyat, preview rasm/loyiha turi) — bularning barchasi mavjud 13/14-flow va 16-modal ichida, yangi flow/modal ochilmadi. Yangi rol uchun ruxsat markaziy middleware'da (`apps/core/middleware.py`) mahkamlandi, frontend menyusida faqat Portfolio ko'rinadi. Foydalanuvchiga aytildi. |
 
 ## UX/UI tartibi (2026-10-06)
 

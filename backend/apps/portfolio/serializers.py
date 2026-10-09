@@ -4,6 +4,7 @@ from rest_framework import serializers
 
 from apps.core.api_utils import avatar_url, user_brief
 
+from .models import ProjectType
 from .permissions import can_edit_item, can_review_item
 from .stats import round_rating
 
@@ -15,6 +16,7 @@ class ItemInput(serializers.Serializer):
                                 validators=[URLValidator(schemes=["http", "https"])])
     start_date = serializers.DateField(required=False, allow_null=True)
     end_date = serializers.DateField(required=False, allow_null=True)
+    project_type = serializers.ChoiceField(choices=ProjectType.choices, required=False, allow_blank=True)
 
     def validate_title(self, value):
         return value.strip()
@@ -29,22 +31,32 @@ def developer_row(user, rank=None):
     return {
         "id": user.pk, "full_name": user.full_name, "role": user.role, "department_name": user.department_name,
         "avatar": avatar_url(user), "specialty": user.specialty.name if user.specialty else "",
+        "technologies": user.technologies,
         "rating": round_rating(user.rating), "reviews_count": user.reviews_count,
         "followers_count": user.followers_count, "projects_count": user.projects_count,
         "tasks_done": user.tasks_done, "is_following": user.is_following, "rank": rank,
     }
 
 
-def item_row(item, tasks_done=None):
+def preview_image_url(item):
+    return f"/api/portfolio/images/{item.pk}/" if item.preview_image else None
+
+
+def item_row(item, tasks_done=None, with_owner=False):
     start, end = item.period
     project = item.project
-    return {
+    row = {
         "id": item.pk, "is_auto": item.is_auto, "title": item.display_title, "link": item.link,
         "start_date": start, "end_date": end,
+        "project_type": item.project_type, "project_type_label": item.get_project_type_display(),
+        "preview_image": preview_image_url(item),
         "project": {"code": project.code, "stage": project.stage} if project else None,
         "tasks_done": tasks_done if item.is_auto else None,
         "rating": round_rating(item.rating), "reviews_count": item.reviews_count, "videos_count": item.videos_count,
     }
+    if with_owner:
+        row["owner"] = user_brief(item.owner)
+    return row
 
 
 def video_row(video):

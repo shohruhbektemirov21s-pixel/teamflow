@@ -29,10 +29,11 @@ class Command(BaseCommand):
 
         spec = {name: Specialty.objects.get_or_create(name=name)[0] for name in SPECIALTIES}
 
-        def user(username, first, last, role, specialty, **kw):
+        def user(username, first, last, role, specialty=None, **kw):
             u, created = User.objects.get_or_create(
                 username=username,
-                defaults={"first_name": first, "last_name": last, "role": role, "specialty": spec[specialty], **kw},
+                defaults={"first_name": first, "last_name": last, "role": role,
+                         "specialty": spec[specialty] if specialty else None, **kw},
             )
             if created:
                 u.set_password(PASSWORD)
@@ -46,6 +47,7 @@ class Command(BaseCommand):
         user("bobur", "Bobur", "Rahimov", Role.DEVELOPER, "Mobil dasturchi")
         dept = user("it_boshqarma", "Shoxrux", "Hamidov", Role.DEPARTMENT, "Boshqaruv",
                     department_name="Axborot texnologiyalari boshqarmasi")
+        user("foydalanuvchi", "Nodira", "Tosheva", Role.USER)
 
         from apps.projects.models import Project
         if Project.objects.filter(name="TeamFlow ichki portal").exists():
@@ -77,6 +79,6 @@ class Command(BaseCommand):
                                     priority="urgent", requested_due_date=today + timedelta(days=45),
                                     file=ContentFile(b"demo", name="TZ-hujjat-aylanishi.docx"))
         self.stdout.write(self.style.SUCCESS(
-            f"Tayyor. Loginlar: boshliq, pm, jasur, malika, bobur, it_boshqarma. Parol: {PASSWORD}. "
+            f"Tayyor. Loginlar: boshliq, pm, jasur, malika, bobur, it_boshqarma, foydalanuvchi. Parol: {PASSWORD}. "
             f"Buyurtma #{order.pk} tasdiqlanishini kutmoqda."
         ))

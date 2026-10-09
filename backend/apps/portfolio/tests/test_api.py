@@ -9,8 +9,22 @@ from django.test import TestCase, override_settings
 from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
 
+from rest_framework.test import APIClient
+
 from apps.accounts.models import Role
 from apps.panel.tests.factories import client_for, make_user, today
+
+PASSWORD = "Parol-12345"
+
+
+def login_as(role):
+    """Middleware `request.user`ni sessiya orqali oladi (AuthenticationMiddleware) — `force_authenticate`
+    buni to'ldirmaydi, shuning uchun middleware testlari haqiqiy login qiladi."""
+    user = make_user(role)
+    client = APIClient()
+    res = client.post("/api/auth/login/", {"username": user.username, "password": PASSWORD}, format="json")
+    assert res.status_code == 200, res.data
+    return client, user
 from apps.projects.models import Project, ProjectMember
 from apps.projects.services import set_members
 from apps.tasks.models import Task, TaskAssignment
@@ -348,3 +362,110 @@ class FollowTests(PortfolioTestCase):
         self.assertEqual(client_for(self.dev).post(f"/api/portfolio/{self.pm.pk}/follow/").status_code, 404)
         self.assertFalse(client_for(self.dev).get(f"/api/portfolio/{self.dev.pk}/").data["actions"]["follow"])
         self.assertFalse(Follow.objects.exists())
+
+
+class PlainUserTests(PortfolioTestCase):
+    """Oddiy foydalanuvchi (Role.USER) — portfolio'ni hammaga o'xshab ko'radi, baholaydi, kuzatadi."""
+
+    def test_plain_user_can_view_follow_and_review(self):
+        user = make_user(Role.USER)
+        client = client_for(user)
+        self.assertEqual(client.get("/api/portfolio/").status_code, 200)
+        self.assertEqual(client.get(f"/api/portfolio/{self.dev.pk}/").status_code, 200)
+        item = self.manual_item()
+        res = client.post(f"/api/portfolio/items/{item.pk}/reviews/", {"stars": 5, "text": "A'lo"}, format="json")
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(PortfolioReview.objects.get(item=item, author=user).stars, 5)
+        self.assertEqual(client.post(f"/api/portfolio/{self.dev.pk}/follow/").status_code, 200)
+
+    def test_plain_user_cannot_create_portfolio_item(self):
+        res = client_for(make_user(Role.USER)).post("/api/portfolio/items/", {"title": "Mening loyiham"}, format="json")
+        self.assertEqual(res.status_code, 403)
+
+    def test_plain_user_blocked_from_other_modules(self):
+        client, _ = login_as(Role.USER)
+        for url in ("/api/tasks/", "/api/projects/", "/api/orders/", "/api/people/", "/api/dashboard/",
+                    "/api/suggestions/", "/api/chat/", "/api/calendar/", "/api/workdone/", "/api/history/"):
+            self.assertEqual(client.get(url).status_code, 403, url)
+
+    def test_plain_user_allowed_on_portfolio_profile_and_auth(self):
+        client, _ = login_as(Role.USER)
+        for url in ("/api/portfolio/", "/api/auth/me/", "/api/auth/profile/", "/api/specialties/", "/api/meta/"):
+            self.assertNotEqual(client.get(url).status_code, 403, url)
+
+    def test_other_roles_not_blocked_by_middleware(self):
+        client, _ = login_as(Role.DEVELOPER)
+        self.assertNotEqual(client.get("/api/tasks/").status_code, 403)
+
+
+class SummaryAndProjectsGridTests(PortfolioTestCase):
+    def test_summary_counts(self):
+        a = self.manual_item()
+        b = self.manual_item(owner=self.other, title="Boshqa loyiha")
+        PortfolioReview.objects.create(item=a, author=self.pm, stars=5)
+        PortfolioReview.objects.create(item=b, author=self.pm, stars=3)
+        res = client_for(self.dept).get("/api/portfolio/summary/")
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(res.data["developers_count"], 2)  # self.dev, self.other
+        self.assertEqual(res.data["avg_rating"], 4.0)
+        self.assertEqual(res.data["rated_items_count"], 2)
+
+    def test_projects_grid_search_and_owner(self):
+        self.manual_item(title="Onlayn do'kon")
+        self.manual_item(owner=self.other, title="Chat ilovasi")
+        res = client_for(self.dept).get("/api/portfolio/projects/")
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(res.data["count"], 2)
+        owners = {row["owner"]["id"] for row in res.data["results"]}
+        self.assertEqual(owners, {self.dev.pk, self.other.pk})
+        res = client_for(self.dept).get("/api/portfolio/projects/", {"q": "Onlayn"})
+        self.assertEqual(res.data["count"], 1)
+        self.assertEqual(res.data["results"][0]["title"], "Onlayn do'kon")
+
+
+class PreviewImageTests(PortfolioTestCase):
+    def _png(self):
+        import io
+
+        from PIL import Image
+        buf = io.BytesIO()
+        Image.new("RGB", (10, 10), "red").save(buf, "PNG")
+        buf.seek(0)
+        return SimpleUploadedFile("preview.png", buf.read(), content_type="image/png")
+
+    def test_owner_can_upload_and_replace_preview_image(self):
+        item = self.manual_item()
+        client = client_for(self.dev)
+        res = client.post(f"/api/portfolio/items/{item.pk}/image/", {"image": self._png()}, format="multipart")
+        self.assertEqual(res.status_code, 200)
+        self.assertIsNotNone(res.data["preview_image"])
+        item.refresh_from_db()
+        self.assertTrue(item.preview_image)
+        img_res = client.get(res.data["preview_image"])
+        self.assertEqual(img_res.status_code, 200)
+
+    def test_non_owner_cannot_upload_image(self):
+        item = self.manual_item()
+        res = client_for(self.other).post(f"/api/portfolio/items/{item.pk}/image/", {"image": self._png()}, format="multipart")
+        self.assertEqual(res.status_code, 403)
+
+    def test_owner_can_delete_preview_image(self):
+        item = self.manual_item()
+        client = client_for(self.dev)
+        client.post(f"/api/portfolio/items/{item.pk}/image/", {"image": self._png()}, format="multipart")
+        res = client.delete(f"/api/portfolio/items/{item.pk}/image/")
+        self.assertEqual(res.status_code, 200)
+        self.assertIsNone(res.data["preview_image"])
+
+
+class DeveloperDetailActivityTests(PortfolioTestCase):
+    def test_months_weeks_and_late_tasks_present(self):
+        task = Task.objects.create(project=self.project, title="Kechikkan", created_by=self.pm,
+                                   status=Task.Status.DONE, completed_at=timezone.now(),
+                                   due_at=timezone.now() - timedelta(days=2))
+        TaskAssignment.objects.create(task=task, developer=self.dev)
+        res = client_for(self.dept).get(f"/api/portfolio/{self.dev.pk}/")
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(len(res.data["months"]), 12)
+        self.assertEqual(len(res.data["weeks"]), 8)
+        self.assertEqual(res.data["tasks_late"], 1)

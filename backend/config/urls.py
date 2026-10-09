@@ -36,6 +36,7 @@ api = [
     path("auth/logout/", accounts.logout_view),
     path("auth/me/", accounts.me),
     path("auth/profile/", accounts.profile),
+    path("auth/technologies/", accounts.technologies),
     path("auth/password/", accounts.change_password),
     path("auth/avatar/", accounts.avatar),
     path("avatars/<int:pk>/", accounts.avatar_image),
@@ -54,6 +55,8 @@ api = [
     path("history/", panel.history),
     path("files/<str:kind>/<int:pk>/", panel.file_download),
     path("projects/setup/", project_setup),  # router'dagi projects/<pk>/ dan oldin turishi shart
+    path("portfolio/summary/", portfolio.portfolio_summary),
+    path("portfolio/projects/", portfolio.items_list),  # routerdagi portfolio/<int:pk>/ dan oldin turishi shart emas, lekin aniqlik uchun tepada
     path("portfolio/", portfolio.developer_list),
     path("portfolio/<int:pk>/", portfolio.developer_detail),
     path("portfolio/<int:pk>/follow/", portfolio.follow),
@@ -62,7 +65,9 @@ api = [
     path("portfolio/items/<int:pk>/reviews/", portfolio.reviews),
     path("portfolio/items/<int:pk>/videos/", portfolio.video_upload),
     path("portfolio/items/<int:pk>/videos/<int:video_pk>/", portfolio.video_delete),
+    path("portfolio/items/<int:pk>/image/", portfolio.image),
     path("portfolio/videos/<int:pk>/", portfolio.video_file),
+    path("portfolio/images/<int:pk>/", portfolio.image_file),
     path("ai/web-agent/", WebAgentView.as_view()),
     path("ai/web-agent/<int:pk>/", WebAgentView.as_view()),
     path("", include(router.urls)),

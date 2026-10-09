@@ -51,24 +51,26 @@ Barcha ma'lumotlar bazadan olinadi. Butun interfeys bitta Design System (ranglar
 | **Loyiha menejeri (PM)** | Ro'yxatdan o'tadi, admin tasdiqlaydi | Buyurtmani tasdiqlaydi yoki rad etadi, loyiha yaratadi, dasturchi biriktiradi, vazifa beradi, ishni tekshiradi |
 | **Dasturchi** | Ro'yxatdan o'tadi, admin tasdiqlaydi | O'ziga berilgan vazifani bajaradi va tekshiruvga yuboradi |
 | **Boshqarma** | Ro'yxatdan o'tadi (boshqarma nomi bilan), admin tasdiqlaydi | Buyurtma (TZ) yuboradi |
+| **Oddiy foydalanuvchi** | Ro'yxatdan o'tadi (mutaxassisliksiz), admin tasdiqlaydi | Faqat Portfolio'ni ko'radi, dasturchilarni kuzatadi, loyihalarga baho va sharh qoldiradi — boshqa hech qanday bo'limga kirmaydi (2026-10-09) |
 
 ### Ruxsatlar jadvali
 
-| | Boshliq | PM | Dasturchi | Boshqarma |
-|---|---|---|---|---|
-| Ko'radi | Hamma narsa | Loyihalar, buyurtmalar, vazifalar, xodimlar | Faqat o'z vazifalari va o'z loyihalari | Faqat o'z buyurtmalari |
-| Buyurtma yuboradi | — | — | — | ✅ |
-| Buyurtmani tasdiqlaydi / rad etadi | ✅ | ✅ | — | — |
-| Loyiha yaratadi | ✅ | ✅ | ❌ | ❌ |
-| Vazifa beradi | ✅ | ✅ | O'zi yaratgan vazifaga boshqa dasturchini qo'shadi | ❌ |
-| Xizmat safarini belgilaydi/tugatadi | ✅ | ❌ | ❌ | ❌ |
-| Vazifa holatini o'zgartiradi | Boshlaydi va tekshiradi | Boshlaydi va tekshiradi | Faqat o'ziga biriktirilgan vazifani tekshiruvga yuboradi | — |
-| Ishni tekshiradi (qabul / qaytarish) | ✅ | ✅ | — | — |
-| Izoh yozadi (ko'ra oladigan joyiga) | ✅ | ✅ | ✅ | ✅ |
-| Taklif bo'yicha qaror | ✅ | — | — | — |
-| Foydalanuvchi yaratadi / tasdiqlaydi | Django admin orqali | — | — | — |
+| | Boshliq | PM | Dasturchi | Boshqarma | Oddiy foydalanuvchi |
+|---|---|---|---|---|---|
+| Ko'radi | Hamma narsa | Loyihalar, buyurtmalar, vazifalar, xodimlar | Faqat o'z vazifalari va o'z loyihalari | Faqat o'z buyurtmalari | Faqat Portfolio va o'z profili |
+| Buyurtma yuboradi | — | — | — | ✅ | — |
+| Buyurtmani tasdiqlaydi / rad etadi | ✅ | ✅ | — | — | — |
+| Loyiha yaratadi | ✅ | ✅ | ❌ | ❌ | ❌ |
+| Vazifa beradi | ✅ | ✅ | O'zi yaratgan vazifaga boshqa dasturchini qo'shadi | ❌ | ❌ |
+| Xizmat safarini belgilaydi/tugatadi | ✅ | ❌ | ❌ | ❌ | ❌ |
+| Vazifa holatini o'zgartiradi | Boshlaydi va tekshiradi | Boshlaydi va tekshiradi | Faqat o'ziga biriktirilgan vazifani tekshiruvga yuboradi | — | — |
+| Ishni tekshiradi (qabul / qaytarish) | ✅ | ✅ | — | — | — |
+| Izoh yozadi (ko'ra oladigan joyiga) | ✅ | ✅ | ✅ | ✅ | — |
+| Taklif bo'yicha qaror | ✅ | — | — | — | — |
+| Portfolioni baholaydi / kuzatadi | ✅ | ✅ | ✅ (o'zinikidan boshqa) | ✅ | ✅ |
+| Foydalanuvchi yaratadi / tasdiqlaydi | Django admin orqali | — | — | — | — |
 
-Barcha ruxsatlar **serverda** tekshiriladi, frontendda tugmani yashirish yetarli hisoblanmaydi.
+Barcha ruxsatlar **serverda** tekshiriladi, frontendda tugmani yashirish yetarli hisoblanmaydi. Oddiy foydalanuvchi uchun bu markaziy middleware'da ham mahkamlangan: `apps/core/middleware.py` (`PortfolioOnlyUserMiddleware`) — `/api/portfolio`, `/api/auth`, `/api/specialties/`, `/api/meta/`, `/api/avatars/` dan tashqari barcha `/api/` yo'llarini shu rol uchun 403 bilan yopadi (frontend marshrutlari ham mos ravishda yashiradi/yo'naltiradi).
 
 ## 3. Ro'yxatdan o'tish va kirish
 
@@ -181,6 +183,7 @@ Menyu guruhlarga bo'lingan: *Asosiy ish* | *Muloqot* | *Kuzatuv* (Kuzatuv faqat 
 | **Dasturchi** | Bosh panel · Vazifalar · Mening ishim · Taqvim | Xabarlar · Portfolio · Takliflar | — |
 | **PM va Boshliq** | Bosh panel · Loyihalar · Buyurtmalar (TZ) · Vazifalar · Taqvim | Xodimlar · Xabarlar · Tekshiruv navbati · Portfolio · Takliflar | Qilingan ishlar |
 | **Boshqarma** | Bosh panel · Buyurtmalarim | Xabarlar · Portfolio · Takliflar | — |
+| **Oddiy foydalanuvchi** | — | Portfolio (yagona bo'lim; kirishda to'g'ridan-to'g'ri shu yerga tushadi) | — |
 
 - Menyu pastida foydalanuvchi kartasi (ism, rol; bosilsa Profil ochiladi) va "Chiqish".
 - Yuqorida: qidiruv (`Ctrl K`, kodlar bilan ham), tungi/kunduzgi rejim, bildirishnomalar (qo'ng'iroq ikonkasi — o'z soni bilan; bosilsa modal ochiladi, chap menyuda alohida band yo'q, barcha rolda shu yerdan ochiladi).
@@ -278,17 +281,20 @@ Menyu guruhlarga bo'lingan: *Asosiy ish* | *Muloqot* | *Kuzatuv* (Kuzatuv faqat 
 
 **Xodim profili tartibi (2026-10-08):** oyna sarlavhasida xodimning ismi ("Xodim profili" ostida) — pastga aylantirganda ham kim ko'rilayotgani yo'qolmaydi. Tepada avatar va 4 ko'rsatkich, ostida tablar: **Umumiy** (bandlik holati, mas'uliyatlar) · **Vazifalar** · **Loyihalar** (biriktirilgan loyihalar) · **Hisobot**. Dasturchi bo'lmagan xodimda faqat Umumiy va Loyihalar. Pastki doim ko'rinadigan panelda: chapda **Portfolio** (dasturchi portfoliosini shu oyna o'rnida ochadi, "Orqaga" profilga qaytaradi), o'ngda **Vazifa berish** (xizmat safarida o'chiq). Vazifalar ro'yxati faqat "Vazifalar"/"Hisobot" tabi ochilganda yuklanadi.
 
-### Portfolio (`/portfolio`, hamma rol) — 2026-10-08
-Dasturchilar portfoliosi va reytingi. Menyuda barcha rollarda ("Muloqot" guruhida) bor — hamma ko'radi.
-- **Ro'yxat:** barcha faol dasturchilar **reyting bo'yicha** — eng balandi tepada, o'rni (1, 2, 3…), yulduz va o'rtacha baho, **kuzatuvchilar**, **sharhlar** va **loyihalar** soni, kuzatayotgan bo'lsangiz "Kuzatyapsiz" belgisi. Ism yoki mutaxassislik bo'yicha qidiruv. Dasturchida o'ng tomonda "Mening portfoliom".
-- **Portfolio oynasi** (qator bosilsa): avatar, ism, mutaxassislik; ko'rsatkichlar — Reyting, Kuzatuvchilar, Loyihalar, Bajarilgan vazifalar, **Tajriba** ("3 yil 7 oy", qachondan beri); **Loyihalar** kartalari; **Yillar bo'yicha** (har yili nechta loyiha va bajarilgan vazifa); **So'nggi bajarilgan vazifalar**. Pastda bitta asosiy amal: boshqalarga "Kuzatish" / "Kuzatishni to'xtatish", egasiga "Loyiha qo'shish".
+### Portfolio (`/portfolio`, hamma rol) — 2026-10-08, Instagram uslubidagi dashboard 2026-10-09
+Dasturchilar portfoliosi va reytingi. Menyuda barcha rollarda ("Muloqot" guruhida) bor — hamma ko'radi; **Oddiy foydalanuvchi**ga bu yagona bo'lim.
+- **Sahifa tepasida 3 ta statistika kartasi:** Jami dasturchilar, O'rtacha reyting, Baholangan loyihalar (`GET /api/portfolio/summary/`, barcha dasturchilar bo'yicha hisoblanadi).
+- **Dasturchilar grid** (Instagram uslubida, karta-karta): katta avatar, ism, mutaxassislik, **texnologiyalar** (dasturchi o'zi kiritgan teglar, chip sifatida, ko'pi bilan 3 tasi + "+N"), yulduz reytingi, loyihalar soni, "Profilni ko'rish". Reyting bo'yicha tartibda o'rni (1, 2, 3…) ko'rinadi. Qidiruv — ism, mutaxassislik **yoki texnologiya** bo'yicha; saralash — Reyting / Ism. Dasturchida o'ng tomonda "Mening portfoliom".
+- **Mustaqil "Loyihalar" grid** (sahifa pastida, o'z qidiruvi bilan): barcha dasturchilarning loyihalari kvadrat "post" kartalarda — preview rasm (bo'lmasa ikonka), reyting belgisi, loyiha nomi va dasturchi ismi; bosilsa loyiha tafsilot oynasi ochiladi (`GET /api/portfolio/projects/`).
+- **Portfolio oynasi** (dasturchi kartasi bosilsa): avatar, ism, mutaxassislik; ko'rsatkichlar — Reyting, Kuzatuvchilar, Loyihalar, Bajarilgan vazifalar, **Tajriba** ("3 yil 7 oy", qachondan beri), **Kechikib bajarilgan** (vazifalar); **Texnologiyalar** (egasi tahrirlaydi — `PATCH /api/auth/technologies/`, faqat dasturchi); **Oylar bo'yicha** va **Haftalar bo'yicha** faoliyat (yengil sparkline, bajarilgan vazifalar soni); **Loyihalar** kartalari (preview rasm va loyiha turi bilan); **Yillar bo'yicha** (har yili nechta loyiha va bajarilgan vazifa); **So'nggi bajarilgan vazifalar**. Pastda bitta asosiy amal: boshqalarga "Kuzatish" / "Kuzatishni to'xtatish" (gradient tugma), egasiga "Loyiha qo'shish".
+- **Loyiha maydonlari kengaydi:** har bir loyihada (TeamFlow'dagi va qo'lda qo'shilgan) endi **preview rasm** (ixtiyoriy, avatar kabi Pillow bilan siqiladi, JPG/PNG/WEBP, 8 MB gacha — `POST/DELETE /api/portfolio/items/<id>/image/`) va **loyiha turi** (Veb-sayt / Mobil ilova / Backend-API / Boshqa — `GET /api/meta/` dagi `portfolio_project_types`) bor; ikkalasini ham egasi istalgan vaqt tahrirlaydi (TeamFlow loyihasida ham, chunki bular taqdimot ma'lumoti, loyihaning o'zidan olinmaydi).
 - **Avtomatik:** dasturchi a'zo bo'lgan TeamFlow loyihalari portfolioda o'zi paydo bo'ladi ("TeamFlow loyihasi" belgisi, loyiha raqami, sanalari, shu loyihada bajargan vazifalari soni). Nomi va sanalari loyihadan olinadi, o'chirilmaydi; dasturchi tavsif, havola va video qo'sha oladi. Jamoadan chiqarilganda: shu loyihada bajargan vazifasi bo'lsa yozuv qoladi, bo'lmasa (masalan, xato bilan qo'shilgan) — yozuv videolari va baholari bilan o'chadi; portfolio ochilgan-ochilmaganiga bog'liq emas. Tajriba — TeamFlow'ga qo'shilgan kun yoki eng erta loyiha boshlanishidan bugungacha.
 - **O'zi qo'shadi:** "Loyiha qo'shish" — nomi (majburiy), boshlanish/tugash sanasi, "Nima qildingiz?" (2000 belgigacha), loyiha havolasi (faqat `http/https`). Tahrirlash va o'chirish mumkin.
 - **Video:** har bir loyihaga video yuklash va brauzerning o'zida ko'rish (oldinga o'tkazish ishlaydi). MP4, WebM yoki MOV, 100 MB gacha, bitta loyihaga 5 tagacha, bitta dasturchining barcha videolari jami 1 GB gacha; yuklash soatiga 30 martagacha. Server turini, hajmini va fayl boshidagi belgini tekshiradi. Video faqat tizimga kirganlarga `/api/portfolio/videos/<id>/` orqali beriladi.
 - **Baho va sharh:** boshqa foydalanuvchilar har bir loyihaga alohida **1–5 yulduz** va sharh (1000 belgigacha, ixtiyoriy) qo'yadi; bitta odam bitta loyihaga bitta baho — keyin yangilaydi yoki o'chiradi. O'z loyihasini baholab bo'lmaydi. Sharhlar sahifalanadi, eng yangisi tepada.
 - **Reyting:** dasturchining barcha loyihalaridagi baholar o'rtachasi (11-bo'lim).
 - **Kuzatish:** istalgan foydalanuvchi dasturchini kuzatadi; o'zini kuzata olmaydi. Kuzatuvchilar soni ro'yxatda va portfolioda ko'rinadi.
-- Ruxsatlar serverda: ko'rish — hamma tizimga kirganlar; o'zgartirish va video — faqat egasi; portfolio faqat faol dasturchilarda.
+- Ruxsatlar serverda: ko'rish — hamma tizimga kirganlar; o'zgartirish va video — faqat egasi; portfolio faqat faol dasturchilarda. "Oddiy foydalanuvchi" ham baholaydi va kuzatadi (boshqa har qanday rol kabi) — faqat boshqa bo'limlarga kira olmaydi.
 
 ## 8. Telegram bildirishnomalari
 
@@ -363,6 +369,8 @@ Batafsil bosqichlar: `docs/FLOWS_MODALS.md`.
 
 - **Portfolio reytingi:** dasturchi reytingi — uning barcha portfolio loyihalariga qo'yilgan baholarning oddiy o'rtachasi; teng bo'lsa sharhlar soni, keyin kuzatuvchilar soni ko'p bo'lgan tepada. Baholanmaganlar oxirida. (Qaror: 2026-10-08.)
 
+- **"Oddiy foydalanuvchi" — 5-rol, Instagram uslubidagi portfolio dashboard:** foydalanuvchi aniq tanladi — bu alohida akkaunt turi (mavjud 4 roldan tashqari), ro'yxatdan o'tadi va admin tasdiqlaydi, lekin kirgach faqat `/portfolio`ni ko'radi (boshqa barcha bo'lim serverda — `PortfolioOnlyUserMiddleware` — va frontendda yopiq). Dizayn yo'nalishi — Instagram: doira avatarli karta-grid, kvadrat "post" kartalar, gradient asosiy tugma. "Texnologiyalar" uchun User modeliga yangi erkin matn maydon qo'shildi (dasturchi o'zi to'ldiradi); "Loyiha turi" uchun belgilangan 4 ta tanlov (Veb-sayt/Mobil ilova/Backend-API/Boshqa). Yangi flow yoki modal qo'shilmadi — mavjud "ko'rish" flow'i va "Portfolio" modali kengaydi. (Qaror: 2026-10-09.)
+
 **Ochiq savollar (portfolio, 2026-10-08 — taxmin bilan qilingan, foydalanuvchi tasdig'i kerak):**
 - Portfolioda dasturchining **bajarilgan vazifa nomlari va loyiha nomlari barcha rollarga** (boshqarma va boshqa dasturchilarga ham) ko'rinadi — "boshqa userlar ham ko'ra olsin" talabi bo'yicha. Vazifa/loyihaning ichi (fayllar, izohlar) ochilmaydi. Shunday qolsinmi?
 - Baholash va kuzatish **barcha rollarga** (Boshliq, PM, dasturchi, boshqarma) ochiq; faqat o'zini baholay/kuzata olmaydi.
@@ -428,6 +436,7 @@ TinyFish TeamFlow ichidan tashqi saytni avtomatlashtirish yoki manbali web tadqi
 | `malika` | Malika Karimova | Dasturchi | Frontend dasturchi |
 | `bobur` | Bobur Rahimov | Dasturchi | Mobil dasturchi |
 | `it_boshqarma` | Shoxrux Hamidov | Boshqarma | Axborot texnologiyalari boshqarmasi |
+| `foydalanuvchi` | Nodira Tosheva | Oddiy foydalanuvchi | — |
 
 Django admin (`/admin/`): lokal bazada `admin` superuser (parol: `Admin-parol-2026`). Yangi bazada `createsuperuser` bilan yaratiladi — `seed_demo` uni yaratmaydi.
 

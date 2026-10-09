@@ -6,11 +6,17 @@ from apps.core.api_utils import avatar_url
 
 from .models import Role, Specialty, User
 
-SELF_REGISTER_ROLES = [Role.PM, Role.DEVELOPER, Role.DEPARTMENT]  # Boshliq faqat Django adminda
+SELF_REGISTER_ROLES = [Role.PM, Role.DEVELOPER, Role.DEPARTMENT, Role.USER]  # Boshliq faqat Django adminda
+# Mutaxassislik faqat TeamFlow ishini qiladigan rollar uchun ma'noli; oddiy foydalanuvchi tanlamaydi.
+SPECIALTY_REQUIRED_ROLES = [Role.PM, Role.DEVELOPER, Role.DEPARTMENT]
 
 
 class ResponsibilitiesSerializer(serializers.Serializer):
     responsibilities = serializers.CharField(max_length=2000, allow_blank=True)
+
+
+class TechnologiesSerializer(serializers.Serializer):
+    technologies = serializers.CharField(max_length=300, allow_blank=True)
 
 
 def normalize_telegram(value):
@@ -36,7 +42,8 @@ class SpecialtySerializer(serializers.ModelSerializer):
 class RegisterSerializer(serializers.Serializer):
     first_name = serializers.CharField(max_length=150)
     last_name = serializers.CharField(max_length=150)
-    specialty = serializers.PrimaryKeyRelatedField(queryset=Specialty.objects.filter(is_active=True))
+    specialty = serializers.PrimaryKeyRelatedField(queryset=Specialty.objects.filter(is_active=True),
+                                                   required=False, allow_null=True, default=None)
     role = serializers.ChoiceField(choices=[(r.value, r.label) for r in SELF_REGISTER_ROLES])
     department_name = serializers.CharField(max_length=200, required=False, allow_blank=True, default="")
     telegram_username = serializers.CharField(max_length=100, required=False, allow_blank=True, default="")
@@ -57,7 +64,11 @@ class RegisterSerializer(serializers.Serializer):
         if attrs["role"] == Role.DEPARTMENT and not dept:
             raise serializers.ValidationError({"department_name": ["Boshqarma nomini yozing."]})
         attrs["department_name"] = dept if attrs["role"] == Role.DEPARTMENT else ""
-        
+        if attrs["role"] in SPECIALTY_REQUIRED_ROLES and attrs.get("specialty") is None:
+            raise serializers.ValidationError({"specialty": ["Mutaxassislikni tanlang."]})
+        if attrs["role"] not in SPECIALTY_REQUIRED_ROLES:
+            attrs["specialty"] = None
+
         attrs["telegram_username"] = normalize_telegram(telegram)
         if telegram_taken(attrs["telegram_username"]):
             raise serializers.ValidationError({"telegram_username": [TELEGRAM_TAKEN]})
@@ -113,7 +124,7 @@ class ProfileSerializer(serializers.ModelSerializer):
         fields = [
             "id", "username", "first_name", "last_name", "full_name",
             "role", "role_label", "specialty", "department_name",
-            "telegram_username", "date_joined", "stats", "avatar",
+            "telegram_username", "date_joined", "stats", "avatar", "technologies",
         ]
 
     def get_avatar(self, obj):

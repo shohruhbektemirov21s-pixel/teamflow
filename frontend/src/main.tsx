@@ -55,6 +55,7 @@ function AppRoutes() {
   const manager = user ? isManager(user) : false;
   const dept = user?.role === "department";
   const dev = user?.role === "developer";
+  const plainUser = user?.role === "user";
   const page = (el: ReactNode) => <Suspense fallback={<Loading />}>{el}</Suspense>;
 
   return (
@@ -69,20 +70,20 @@ function AppRoutes() {
       ) : (
         <Routes>
           <Route element={<Layout />}>
-            <Route index element={page(dept ? <DepartmentHome /> : <Dashboard />)} />
-            {!dept && <Route path="vazifalar" element={page(<TasksPage />)} />}
-            {!dept && <Route path="taqvim" element={page(<CalendarPage />)} />}
+            <Route index element={plainUser ? <Navigate to="/portfolio" replace /> : page(dept ? <DepartmentHome /> : <Dashboard />)} />
+            {!dept && !plainUser && <Route path="vazifalar" element={page(<TasksPage />)} />}
+            {!dept && !plainUser && <Route path="taqvim" element={page(<CalendarPage />)} />}
             {dev && <Route path="mening-ishim" element={page(<BoardPage />)} />}
             {manager && <Route path="tekshiruv" element={page(<ReviewPage />)} />}
             {manager && <Route path="loyihalar" element={page(<ProjectsPage />)} />}
             {manager && <Route path="xodimlar" element={page(<PeoplePage />)} />}
             {(manager || dept) && <Route path="buyurtmalar" element={page(<OrdersPage />)} />}
-            <Route path="takliflar" element={page(<SuggestionsPage />)} />
-            <Route path="xabarlar" element={page(<MessagesPage />)} />
+            {!plainUser && <Route path="takliflar" element={page(<SuggestionsPage />)} />}
+            {!plainUser && <Route path="xabarlar" element={page(<MessagesPage />)} />}
             <Route path="portfolio" element={page(<PortfolioPage />)} />
             <Route path="profil" element={page(<ProfilePage />)} />
             {manager && <Route path="qilingan-ishlar" element={page(<WorkDonePage />)} />}
-            <Route path="*" element={<Navigate to="/" replace />} />
+            <Route path="*" element={<Navigate to={plainUser ? "/portfolio" : "/"} replace />} />
           </Route>
         </Routes>
       )}

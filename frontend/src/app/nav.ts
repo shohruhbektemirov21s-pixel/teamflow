@@ -46,6 +46,8 @@ const portfolio: NavItem = { to: "/portfolio", label: T.nav.portfolio, icon: Tro
  */
 export function navFor(role: Role): NavGroup[] {
   switch (role) {
+    case "user":
+      return [{ title: T.nav.groupTeam, items: [portfolio] }];
     case "developer":
       return [
         {

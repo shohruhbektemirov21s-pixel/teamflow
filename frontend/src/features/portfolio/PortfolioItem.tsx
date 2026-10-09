@@ -1,13 +1,14 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { ArrowLeft, ExternalLink, MessageSquare, Pencil, Save, Trash2, Upload, Video } from "lucide-react";
+import { ArrowLeft, ExternalLink, ImagePlus, MessageSquare, Pencil, Save, Trash2, Upload, Video } from "lucide-react";
 import { type ReactNode, useState } from "react";
 
 import { useModal } from "@/app/modals";
 import { usePagedList, useRefresh } from "@/app/queries";
 import { api, ApiError } from "@/shared/api";
 import { fileSize, fmtDate, timeAgo } from "@/shared/format";
+import { useMeta } from "@/shared/meta";
 import { T } from "@/shared/text";
-import type { PortfolioItemDetail, PortfolioReview } from "@/shared/types";
+import type { PortfolioItemDetail, PortfolioReview, ProjectType } from "@/shared/types";
 import { Avatar, Badge, Button, Callout, CodeTag, ConfirmButton, Empty, ErrorBox, Field, FilePicker, Modal, Skeleton, SkeletonRows, useToast } from "@/shared/ui";
 import { Pagination } from "@/shared/ui/Pagination";
 
@@ -23,22 +24,34 @@ interface Draft {
   link: string;
   start_date: string;
   end_date: string;
+  project_type: ProjectType;
 }
 
-const EMPTY: Draft = { title: "", description: "", link: "", start_date: "", end_date: "" };
+const EMPTY: Draft = { title: "", description: "", link: "", start_date: "", end_date: "", project_type: "" };
 
 function payload(draft: Draft, auto: boolean) {
-  const base = { description: draft.description.trim(), link: draft.link.trim() };
+  const base = { description: draft.description.trim(), link: draft.link.trim(), project_type: draft.project_type };
   if (auto) return base;
   return { ...base, title: draft.title.trim(), start_date: draft.start_date || null, end_date: draft.end_date || null };
 }
 
 /** Loyiha maydonlari: qo'shish va tahrirlashda bir xil. TeamFlow loyihasida nomi va sanalari o'zgarmaydi. */
 function ItemFields({ draft, onChange, error, auto }: { draft: Draft; onChange: (d: Draft) => void; error: unknown; auto: boolean }) {
+  const meta = useMeta();
   const err = (name: string) => (error instanceof ApiError ? error.field(name) : undefined);
   const set = (k: keyof Draft) => (e: { target: { value: string } }) => onChange({ ...draft, [k]: e.target.value });
   return (
     <div className="stack">
+      <Field label={T.portfolio.projectType} error={err("project_type")}>
+        {(id, bad) => (
+          <select id={id} className="select" aria-invalid={bad} value={draft.project_type} onChange={set("project_type")}>
+            <option value="">{T.portfolio.projectTypePick}</option>
+            {meta.options<ProjectType>("portfolio_project_types").map((t) => (
+              <option key={t.value} value={t.value}>{t.label}</option>
+            ))}
+          </select>
+        )}
+      </Field>
       {auto ? (
         <Callout>{T.portfolio.fields.autoNote}</Callout>
       ) : (
@@ -138,7 +151,7 @@ export function PortfolioItemView({ id }: { id: number }) {
       dirty={reviewDirty}
       onDirty={setReviewDirty}
       onEdit={() => setEditing({ title: item.manual.title, description: item.description, link: item.link,
-        start_date: item.manual.start_date ?? "", end_date: item.manual.end_date ?? "" })}
+        start_date: item.manual.start_date ?? "", end_date: item.manual.end_date ?? "", project_type: item.project_type })}
     />
   );
 }
@@ -278,6 +291,8 @@ function ItemDetails({ item, subtitle, dirty, onDirty, onEdit }: {
           </section>
         )}
 
+        <PreviewImageSection item={item} />
+
         <section>
           <h3 className="section-title">{T.portfolio.videos}</h3>
           <VideoSection item={item} />
@@ -331,6 +346,63 @@ function ItemDetails({ item, subtitle, dirty, onDirty, onEdit }: {
         </section>
       </div>
     </Modal>
+  );
+}
+
+function PreviewImageSection({ item }: { item: PortfolioItemDetail }) {
+  const toast = useToast();
+  const refresh = useRefresh(["portfolio"]);
+  const [files, setFiles] = useState<File[]>([]);
+  const upload = useMutation({
+    mutationFn: (file: File) => {
+      const fd = new FormData();
+      fd.append("image", file);
+      return api.post(`/portfolio/items/${item.id}/image/`, fd);
+    },
+    onSuccess: () => {
+      toast(T.portfolio.previewImageUploaded);
+      setFiles([]);
+      void refresh();
+    },
+  });
+  const remove = useMutation({
+    mutationFn: () => api.del(`/portfolio/items/${item.id}/image/`),
+    onSuccess: () => {
+      toast(T.portfolio.previewImageDeleted);
+      void refresh();
+    },
+    onError: (e) => toast(e.message, "error"),
+  });
+
+  if (!item.actions.edit && !item.preview_image) return null;
+  return (
+    <section className="stack-sm">
+      <h3 className="section-title">{T.portfolio.previewImage}</h3>
+      {item.preview_image && (
+        <div className="portfolio-preview-pick">
+          <img src={item.preview_image} alt="" />
+        </div>
+      )}
+      {item.actions.edit && (
+        <div className="stack-sm">
+          <FilePicker files={files} onChange={(f) => (setFiles(f), upload.reset())} multiple={false} accept=".jpg,.jpeg,.png,.webp"
+            label={T.portfolio.previewImagePick} hint={T.portfolio.previewImageHint} maxMb={8} />
+          {upload.error && <ErrorBox error={upload.error} />}
+          <div className="row" style={{ gap: 8 }}>
+            {files[0] && (
+              <Button variant="primary" size="sm" icon={<ImagePlus size={14} />} loading={upload.isPending} onClick={() => upload.mutate(files[0]!)}>
+                {T.portfolio.previewImagePick}
+              </Button>
+            )}
+            {item.preview_image && (
+              <ConfirmButton onConfirm={() => remove.mutate()} loading={remove.isPending}>
+                <Trash2 size={14} /> {T.common.delete}
+              </ConfirmButton>
+            )}
+          </div>
+        </div>
+      )}
+    </section>
   );
 }
 

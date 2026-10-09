@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { Building2, CheckCircle2, ClipboardCheck, Code2, FolderKanban, KanbanSquare, Sparkles } from "lucide-react";
+import { Building2, CheckCircle2, ClipboardCheck, Code2, FolderKanban, KanbanSquare, Sparkles, User } from "lucide-react";
 import { type FormEvent, type ReactNode, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
@@ -84,7 +84,7 @@ export function LoginPage() {
 }
 
 // Rollar ro'yxati serverdan; bu yerda faqat ikonka tanlanadi
-const ROLE_ICON: Record<string, typeof Code2> = { developer: Code2, pm: ClipboardCheck, department: Building2 };
+const ROLE_ICON: Record<string, typeof Code2> = { developer: Code2, pm: ClipboardCheck, department: Building2, user: User };
 
 export function RegisterPage() {
   const meta = useMeta();
@@ -142,16 +142,18 @@ export function RegisterPage() {
             {(id, bad) => <input id={id} className="input" aria-invalid={bad} value={form.last_name} onChange={set("last_name")} autoComplete="family-name" />}
           </Field>
         </div>
-        <Field label={T.auth.specialty} required error={fe("specialty")}>
-          {(id, bad) => (
-            <select id={id} className="select" aria-invalid={bad} value={form.specialty} onChange={set("specialty")}>
-              <option value="">{T.auth.specialtyPick}</option>
-              {specialties.data?.map((s) => (
-                <option key={s.id} value={s.id}>{s.name}</option>
-              ))}
-            </select>
-          )}
-        </Field>
+        {form.role !== "user" && (
+          <Field label={T.auth.specialty} required error={fe("specialty")}>
+            {(id, bad) => (
+              <select id={id} className="select" aria-invalid={bad} value={form.specialty} onChange={set("specialty")}>
+                <option value="">{T.auth.specialtyPick}</option>
+                {specialties.data?.map((s) => (
+                  <option key={s.id} value={s.id}>{s.name}</option>
+                ))}
+              </select>
+            )}
+          </Field>
+        )}
         <div className="field">
           <span className="field-label">{T.auth.role} <span className="req">*</span></span>
           <div className="role-cards" role="group" aria-label={T.auth.role}>

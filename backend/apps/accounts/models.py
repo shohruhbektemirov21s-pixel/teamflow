@@ -11,6 +11,7 @@ class Role(models.TextChoices):
     PM = "pm", "Loyiha menejeri"
     DEVELOPER = "developer", "Dasturchi"
     DEPARTMENT = "department", "Boshqarma"
+    USER = "user", "Oddiy foydalanuvchi"
 
 
 class Specialty(models.Model):
@@ -46,6 +47,10 @@ class User(AbstractUser):
     )
     department_name = models.CharField("Boshqarma nomi", max_length=200, blank=True)
     responsibilities = models.TextField("Mas'uliyatlar", max_length=2000, blank=True)
+    technologies = models.CharField(
+        "Texnologiyalar", max_length=300, blank=True,
+        help_text="Vergul bilan ajratilgan, masalan: React, Django, PostgreSQL",
+    )
     telegram_chat_id = models.CharField(max_length=100, blank=True)
     telegram_username = models.CharField("Telegram", max_length=100, blank=True, help_text="Bildirishnomalar uchun, ms: @username")
     avatar = models.ImageField("Rasm", upload_to=UploadTo("avatars"), blank=True)
@@ -82,6 +87,10 @@ class User(AbstractUser):
     @property
     def is_department(self):
         return self.role == Role.DEPARTMENT
+
+    @property
+    def is_plain_user(self):
+        return self.role == Role.USER
 
     @property
     def is_manager(self):

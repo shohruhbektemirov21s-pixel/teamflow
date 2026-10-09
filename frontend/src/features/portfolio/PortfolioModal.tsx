@@ -1,7 +1,11 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { Briefcase, CheckCircle2, FolderKanban, Link2, Plus, Trophy, UserCheck, UserPlus, Users, Video } from "lucide-react";
-import type { ReactNode } from "react";
+import {
+  AlertTriangle, Briefcase, CheckCircle2, FolderKanban, Link2, Pencil, Plus, Save, Trophy, UserCheck, UserPlus,
+  Users, Video,
+} from "lucide-react";
+import { type ReactNode, useState } from "react";
 
+import { useMe } from "@/app/auth";
 import { useModal } from "@/app/modals";
 import { useRefresh } from "@/app/queries";
 import { ProfileHeader } from "@/features/people/ProfileHeader";
@@ -10,7 +14,7 @@ import { fmtDate } from "@/shared/format";
 import type { Tone } from "@/shared/status";
 import { T } from "@/shared/text";
 import type { PortfolioDetail, PortfolioItem } from "@/shared/types";
-import { Badge, Button, CodeTag, Empty, ErrorBox, Modal, Skeleton, useToast } from "@/shared/ui";
+import { Badge, Button, CodeTag, Empty, ErrorBox, Field, Modal, Skeleton, useToast } from "@/shared/ui";
 
 import { periodText } from "./period";
 import { PortfolioItemForm, PortfolioItemView } from "./PortfolioItem";
@@ -27,6 +31,7 @@ export default function PortfolioModal({ id, item, add }: { id: number; item?: n
 }
 
 function PortfolioOverview({ id }: { id: number }) {
+  const me = useMe();
   const { open, close } = useModal();
   const toast = useToast();
   const refresh = useRefresh(["portfolio"]);
@@ -40,6 +45,7 @@ function PortfolioOverview({ id }: { id: number }) {
     },
     onError: (e) => toast(e.message, "error"),
   });
+  const own = me.role === "developer" && me.id === id;
 
   // Har ekranda bitta asosiy amal: egasiga — "Loyiha qo'shish", boshqalarga — "Kuzatish"
   const footer = data && (data.actions.add || data.actions.follow) ? (
@@ -56,7 +62,7 @@ function PortfolioOverview({ id }: { id: number }) {
             {T.portfolio.unfollow}
           </Button>
         ) : (
-          <Button variant="primary" icon={<UserPlus size={16} />} loading={follow.isPending} onClick={() => follow.mutate(true)}>
+          <Button variant="primary" className="btn-gradient" icon={<UserPlus size={16} />} loading={follow.isPending} onClick={() => follow.mutate(true)}>
             {T.portfolio.follow}
           </Button>
         )
@@ -87,6 +93,16 @@ function PortfolioOverview({ id }: { id: number }) {
               <b>{T.portfolio.experience(data.experience.months)}</b>
               <span className="small muted">{T.portfolio.since(fmtDate(data.experience.since))}</span>
             </Stat>
+            <Stat icon={<AlertTriangle />} tone="warning" label={T.portfolio.tasksLate}>
+              <b>{data.tasks_late}</b>
+            </Stat>
+          </div>
+
+          <TechnologiesSection data={data} own={own} />
+
+          <div className="grid-2">
+            <Sparkline data={data.months} label={T.portfolio.monthsTitle} />
+            <Sparkline data={data.weeks} label={T.portfolio.weeksTitle} />
           </div>
 
           <section>
@@ -140,6 +156,70 @@ function PortfolioOverview({ id }: { id: number }) {
   );
 }
 
+function Sparkline({ data, label }: { data: { tasks: number }[]; label: string }) {
+  if (!data.length) return null;
+  const bars = [...data].reverse(); // backend joriy davr tepada beradi — grafikda eskisi chapda
+  const max = Math.max(1, ...bars.map((d) => d.tasks));
+  return (
+    <section>
+      <h3 className="section-title">{label}</h3>
+      <div className="portfolio-sparkline" role="img" aria-label={label}>
+        {bars.map((d, i) => (
+          <span key={i} className="portfolio-sparkline-bar" style={{ height: `${Math.max(6, (d.tasks / max) * 100)}%` }} title={String(d.tasks)} />
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function TechnologiesSection({ data, own }: { data: PortfolioDetail; own: boolean }) {
+  const toast = useToast();
+  const refresh = useRefresh(["portfolio"]);
+  const [editing, setEditing] = useState(false);
+  const [value, setValue] = useState(data.technologies);
+  const save = useMutation({
+    mutationFn: () => api.patch<{ technologies: string }>("/auth/technologies/", { technologies: value }),
+    onSuccess: () => {
+      toast(T.portfolio.technologiesSaved);
+      setEditing(false);
+      void refresh();
+    },
+  });
+  if (!own && !data.technologies) return null;
+  return (
+    <section className="stack-sm">
+      <div className="row-wrap" style={{ justifyContent: "space-between" }}>
+        <h3 className="section-title" style={{ margin: 0 }}>{T.portfolio.technologies}</h3>
+        {own && !editing && (
+          <Button variant="ghost" size="sm" icon={<Pencil size={14} />} onClick={() => (setValue(data.technologies), setEditing(true))}>
+            {T.common.edit}
+          </Button>
+        )}
+      </div>
+      {editing ? (
+        <div className="stack-sm">
+          <Field label={T.portfolio.technologies} hint={T.portfolio.technologiesPh}>
+            {(id) => <input id={id} className="input" maxLength={300} value={value} onChange={(e) => setValue(e.target.value)} />}
+          </Field>
+          {save.error && <ErrorBox error={save.error} />}
+          <div className="row" style={{ gap: 8 }}>
+            <Button variant="primary" size="sm" icon={<Save size={14} />} loading={save.isPending} onClick={() => save.mutate()}>
+              {T.common.save}
+            </Button>
+            <Button size="sm" onClick={() => setEditing(false)}>{T.common.cancel}</Button>
+          </div>
+        </div>
+      ) : (
+        <span className="portfolio-dev-tech" style={{ justifyContent: "flex-start" }}>
+          {data.technologies
+            ? data.technologies.split(",").map((t) => t.trim()).filter(Boolean).map((t) => <span key={t} className="tech-chip">{t}</span>)
+            : <span className="small muted">{T.portfolio.technologiesPh}</span>}
+        </span>
+      )}
+    </section>
+  );
+}
+
 function Stat({ icon, tone, label, children }: { icon: ReactNode; tone: Tone; label: string; children: ReactNode }) {
   return (
     <div className="portfolio-stat">
@@ -156,9 +236,13 @@ function ItemCard({ item, onOpen }: { item: PortfolioItem; onOpen: () => void })
   const period = periodText(item.start_date, item.end_date);
   return (
     <button type="button" className="card card-pad clickable portfolio-item-card" onClick={onOpen}>
+      {item.preview_image && (
+        <img src={item.preview_image} alt="" style={{ width: "100%", aspectRatio: "16/9", objectFit: "cover", borderRadius: "var(--radius-sm)" }} />
+      )}
       <span className="row-wrap" style={{ gap: 8 }}>
         <Badge tone={item.is_auto ? "violet" : "info"} dot={false}>{item.is_auto ? T.portfolio.auto : T.portfolio.manual}</Badge>
         {item.project && <CodeTag code={item.project.code} />}
+        {item.project_type && <Badge tone="slate" dot={false}>{item.project_type_label}</Badge>}
       </span>
       <b className="portfolio-item-title">{item.title}</b>
       {period && <span className="small muted">{period}</span>}

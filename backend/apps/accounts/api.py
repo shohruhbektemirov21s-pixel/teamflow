@@ -17,7 +17,8 @@ from . import services
 from .models import Role, Specialty, User
 from .serializers import (
     LoginSerializer, MeSerializer, RegisterSerializer, SpecialtySerializer,
-    ProfileSerializer, ProfileUpdateSerializer, ChangePasswordSerializer, BusinessTripSerializer, ResponsibilitiesSerializer
+    ProfileSerializer, ProfileUpdateSerializer, ChangePasswordSerializer, BusinessTripSerializer,
+    ResponsibilitiesSerializer, TechnologiesSerializer,
 )
 
 
@@ -135,6 +136,16 @@ def responsibilities(request, pk):
     serializer.is_valid(raise_exception=True)
     employee = services.set_responsibilities(request.user, employee, serializer.validated_data["responsibilities"])
     return Response({"id": employee.pk, "responsibilities": employee.responsibilities})
+
+
+@api_view(["PATCH"])
+@permission_classes([IsAuthenticated])
+def technologies(request):
+    """Dasturchi o'z texnologiyalarini o'zi tahrirlaydi (portfolio kartasi va qidiruvida ko'rinadi)."""
+    serializer = TechnologiesSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+    user = services.set_technologies(request.user, serializer.validated_data["technologies"])
+    return Response({"technologies": user.technologies})
 
 
 @api_view(["PUT", "DELETE"])
