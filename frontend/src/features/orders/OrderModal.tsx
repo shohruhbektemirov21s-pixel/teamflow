@@ -7,7 +7,7 @@ import { useRefresh } from "@/app/queries";
 import { Comments } from "@/features/comments/Comments";
 import { DocTitle, DocViewer } from "@/features/docs/DocViewer";
 import { api, ApiError, formData } from "@/shared/api";
-import { fmtDate, fmtDateTime, relativeDue } from "@/shared/format";
+import { fmtDate, fmtDateTime, minDate, relativeDue } from "@/shared/format";
 import { useMeta } from "@/shared/meta";
 import { T } from "@/shared/text";
 import type { FileInfo, OrderDetail, Priority } from "@/shared/types";
@@ -156,10 +156,10 @@ export default function OrderModal({ id }: { id: number }) {
         <>
           <div className="grid-2">
             <Field label={T.orders.startDate} required error={fe("start_date")}>
-              {(fid, bad) => <input id={fid} type="date" className="input" aria-invalid={bad} value={form.start_date} onChange={set("start_date")} autoFocus />}
+              {(fid, bad) => <input id={fid} type="date" className="input" aria-invalid={bad} min={minDate(panel === "dates" ? order.start_date : null)} value={form.start_date} onChange={set("start_date")} autoFocus />}
             </Field>
             <Field label={T.orders.endDate} required error={fe("end_date")} hint={`${T.orders.requestedDue}: ${fmtDate(order.requested_due_date)}`}>
-              {(fid, bad) => <input id={fid} type="date" className="input" aria-invalid={bad} value={form.end_date} min={form.start_date} onChange={set("end_date")} />}
+              {(fid, bad) => <input id={fid} type="date" className="input" aria-invalid={bad} value={form.end_date} min={minDate(panel === "dates" ? order.end_date : null, form.start_date)} onChange={set("end_date")} />}
             </Field>
           </div>
           {panel === "approve" && (

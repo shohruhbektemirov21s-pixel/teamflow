@@ -5,7 +5,7 @@ import { useState } from "react";
 import { useModal } from "@/app/modals";
 import { useRefresh } from "@/app/queries";
 import { api, ApiError, formData } from "@/shared/api";
-import { isoDate } from "@/shared/format";
+import { minDate } from "@/shared/format";
 import { useMeta } from "@/shared/meta";
 import { T } from "@/shared/text";
 import type { OrderDetail, Priority } from "@/shared/types";
@@ -66,7 +66,7 @@ export default function OrderCreateModal() {
         </Field>
         <div className="grid-2">
           <Field label={T.orders.dueDate} required error={fe("requested_due_date")}>
-            {(id, bad) => <input id={id} type="date" className="input" aria-invalid={bad} min={isoDate(new Date())} value={due} onChange={(e) => setDue(e.target.value)} />}
+            {(id, bad) => <input id={id} type="date" className="input" aria-invalid={bad} min={minDate()} value={due} onChange={(e) => setDue(e.target.value)} />}
           </Field>
           <div className="field">
             <span className="field-label">{T.orders.priority}</span>

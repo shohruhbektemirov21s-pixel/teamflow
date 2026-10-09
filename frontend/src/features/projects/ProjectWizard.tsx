@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { useModal } from "@/app/modals";
 import { useDevelopers, useRefresh } from "@/app/queries";
 import { api, ApiError, formData } from "@/shared/api";
-import { fmtDate, fromLocalInput } from "@/shared/format";
+import { fmtDate, fromLocalInput, minDate, minDateTime } from "@/shared/format";
 import { useMeta } from "@/shared/meta";
 import { useDebounced } from "@/shared/hooks";
 import { T } from "@/shared/text";
@@ -154,7 +154,7 @@ export default function ProjectWizard({ orderId }: { orderId?: number }) {
             </Field>
             <div className="grid-2">
               <Field label={T.projects.startDate} required error={fe("start_date")}>
-                {(id, bad) => <input id={id} type="date" className="input" aria-invalid={bad} value={start} onChange={(e) => setStart(e.target.value)} />}
+                {(id, bad) => <input id={id} type="date" className="input" aria-invalid={bad} min={minDate(order.data?.start_date)} value={start} onChange={(e) => setStart(e.target.value)} />}
               </Field>
               <Field
                 label={T.projects.endDate}
@@ -162,7 +162,7 @@ export default function ProjectWizard({ orderId }: { orderId?: number }) {
                 error={fe("end_date") ?? (start && end && end < start ? T.projects.endBeforeStart : undefined)}
                 hint={order.data ? `${T.orders.requestedDue}: ${fmtDate(order.data.requested_due_date)}` : undefined}
               >
-                {(id, bad) => <input id={id} type="date" className="input" aria-invalid={bad} min={start} value={end} onChange={(e) => setEnd(e.target.value)} />}
+                {(id, bad) => <input id={id} type="date" className="input" aria-invalid={bad} min={minDate(order.data?.end_date, start)} value={end} onChange={(e) => setEnd(e.target.value)} />}
               </Field>
             </div>
             <div className="field">
@@ -257,7 +257,7 @@ export default function ProjectWizard({ orderId }: { orderId?: number }) {
                             </div>
                             <div className="grid-2">
                               <Field label={T.tasks.startsAt}>
-                                {(id) => <input id={id} type="datetime-local" className="input" value={t.starts} onChange={(e) => updateTask(t.key, { starts: e.target.value })} />}
+                                {(id) => <input id={id} type="datetime-local" className="input" min={minDateTime()} value={t.starts} onChange={(e) => updateTask(t.key, { starts: e.target.value })} />}
                               </Field>
                               <Field label={T.tasks.dueAt} error={badDates(t) ? T.projects.taskEndBeforeStart : undefined}>
                                 {(id, bad) => (
@@ -266,7 +266,7 @@ export default function ProjectWizard({ orderId }: { orderId?: number }) {
                                     type="datetime-local"
                                     className="input"
                                     aria-invalid={bad}
-                                    min={t.starts || undefined}
+                                    min={minDateTime(null, t.starts)}
                                     value={t.due}
                                     onChange={(e) => updateTask(t.key, { due: e.target.value })}
                                   />

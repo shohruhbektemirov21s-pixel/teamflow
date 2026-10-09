@@ -7,7 +7,7 @@ import { useModal } from "@/app/modals";
 import { useProjects, useRefresh } from "@/app/queries";
 import { DeveloperPicker } from "@/features/people/DeveloperPicker";
 import { api, ApiError, formData } from "@/shared/api";
-import { fromLocalInput, toLocalInput } from "@/shared/format";
+import { fromLocalInput, minDateTime, toLocalInput } from "@/shared/format";
 import { useMeta } from "@/shared/meta";
 import { T } from "@/shared/text";
 import type { Priority, ProjectDetail, TaskDetail } from "@/shared/types";
@@ -187,10 +187,10 @@ export default function TaskFormModal({ projectId, editId, assigneeId }: { proje
         </div>
         <div className="grid-2">
           <Field label={T.tasks.startsAt} error={fe("starts_at")}>
-            {(id) => <input id={id} type="datetime-local" className="input" value={startsAt} onChange={(e) => setStartsAt(e.target.value)} />}
+            {(id) => <input id={id} type="datetime-local" className="input" min={minDateTime(toLocalInput(existing.data?.starts_at))} value={startsAt} onChange={(e) => setStartsAt(e.target.value)} />}
           </Field>
           <Field label={T.tasks.dueAt} error={fe("due_at")}>
-            {(id, bad) => <input id={id} type="datetime-local" className="input" aria-invalid={bad} value={dueAt} onChange={(e) => setDueAt(e.target.value)} />}
+            {(id, bad) => <input id={id} type="datetime-local" className="input" aria-invalid={bad} min={minDateTime(toLocalInput(existing.data?.due_at), startsAt)} value={dueAt} onChange={(e) => setDueAt(e.target.value)} />}
           </Field>
         </div>
 

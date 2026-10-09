@@ -56,9 +56,11 @@ class Command(BaseCommand):
         now = timezone.now()
         project = projects.create_project(
             pm, code="DEMO-1", name="TeamFlow ichki portal", description="Xodimlar uchun ichki portal",
-            start_date=today - timedelta(days=20), end_date=today + timedelta(days=40),
+            start_date=today, end_date=today + timedelta(days=40),
             member_ids=[dev1.pk, dev2.pk], stage="started",
         )
+        # O'tgan sana formadan kiritilmaydi (core/dates.py) — demo uchun "20 kun oldin boshlangan" keyin qo'yiladi
+        type(project).objects.filter(pk=project.pk).update(start_date=today - timedelta(days=20))
         t1 = tasks.create_task(pm, project, title="Kirish sahifasini yaratish",
                                description="Login va parolni tiklash formasi", priority="high",
                                due_at=now + timedelta(days=2), assignee_ids=[dev1.pk, dev2.pk],
@@ -66,7 +68,9 @@ class Command(BaseCommand):
                                          {"title": "API ulash", "assignee_ids": [dev1.pk]}])
         tasks.start_task(t1, dev1)
         t2 = tasks.create_task(pm, project, title="Telegram bot orqali eslatma", priority="medium",
-                               due_at=now - timedelta(days=1), assignee_ids=[dev1.pk])
+                               due_at=now + timedelta(hours=1), assignee_ids=[dev1.pk])
+        # Demo: muddati o'tgan vazifa ko'rinsin (formadan o'tgan sana kiritilmaydi)
+        type(t2).objects.filter(pk=t2.pk).update(due_at=now - timedelta(days=1))
         tasks.start_task(t2, dev1)
         tasks.submit_task(t2, dev1, note="Bot eslatmalarni yuboradi, sinovdan o'tkazildi.")
         tasks.create_task(pm, project, title="Hisobotlar sahifasi", priority="low",

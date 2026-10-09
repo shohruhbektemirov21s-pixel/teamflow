@@ -232,11 +232,18 @@ Menyu guruhlarga bo'lingan: *Asosiy ish* | *Muloqot* | *Kuzatuv* (Kuzatuv faqat 
 - Filtrlar: **Hammasi** (birinchi, standart tanlangan) · Yangi · Tasdiqlangan · Rad etilgan.
 - Jadvalda buyurtma nomi ostida izoh ko'rsatilmaydi (izoh buyurtma oynasida). Boshqarma bosh sahifasidagi jadval ham shunday.
 
+### Muddat sanalari (2026-10-09)
+- Muddat kiritiladigan barcha joylarda (vazifa boshlanishi va muddati, loyiha sanalari, buyurtma muddati va tasdiqlash sanalari) **bugungi kundan oldingi sanani tanlab bo'lmaydi** — bugun va keyingi kunlar mumkin. Sana tanlagichda o'tgan kunlar o'chirilgan, server ham rad etadi ("Bugungi kundan oldingi sanani tanlab bo'lmaydi.", maydon yonida). Qoida bitta joyda: `backend/apps/core/dates.py`.
+- Tahrirlashda eski, o'tib ketgan sana o'zgartirilmasa, boshqa maydonlarni saqlash mumkin.
+- Qoidaga kirmaydi: filtrlar (o'tgan davrni ko'rish uchun), portfolio loyiha sanalari (o'tgan ishlar tarixi), ish jurnali sanasi.
+
 ### Xodimlar (`/xodimlar`, PM, Boshliq)
 - Barcha jamoa a'zolari (dasturchilar, menejerlar): bandligi, faol va kechikkan vazifalari, hozir nima qilayotgani. Vazifasi yo'qlar birinchi turadi.
 - Bo'sh (vazifasi yo'q yoki yuklamasi kam) xodimga to'g'ridan-to'g'ri vazifa berish tugmasi.
 - Vazifa topshiriqlarga ajratilib, ularga boshqa xodimlar biriktiriladi.
 - Xodim bosilsa, xodim oynasi ochiladi: profil sarlavhasi, statistika, joriy ishlari, vazifa berish.
+- **Filtrlar bitta qatorda (2026-10-09):** qidiruv (ism, loyiha, mas'uliyat), **Vazifa muddati** ("Sanadan" — "Sanagacha"), rol (faqat Boshliqda) va "Faqat bo'sh xodimlar". Muddat tanlansa, shu oraliqda muddati bo'lgan **har qanday holatdagi** (bajarilgan ham, arxivlanganidan tashqari) vazifasi bor xodimlar chiqadi, qatorda shu muddatdagi ishlar ko'rinadi. "Sanagacha" "Sanadan"dan oldin bo'lsa, maydon yonida xato chiqadi va so'rov yuborilmaydi; server ham rad etadi. Muddat qoidasi Vazifalar filtri bilan bitta joyda: `tasks/filters.py` → `due_range_condition`.
+- **Soddalashtirilgan qator (2026-10-09):** bitta asosiy belgi ("Bo'sh" / "N faol" / "Xizmat safarida" / rol) va kerak bo'lsa qizil "N kechikkan"; 1 ta eng yaqin ish (vazifasi bo'lmasa — 1 ta faol loyiha) va "Yana N ta — profilda"; mas'uliyat ism ostida 2 qatorgacha; amallar: "Profilni ko'rish" va "Vazifa berish". Jadval/kartochka almashtirgich olib tashlandi: kompyuterda jadval, telefonda kartochkalar avtomatik.
 - Boshliq o'z profilidagi **Xizmat safarlari** bo'limida faol PM yoki dasturchining qaytish sanasini belgilaydi yoki safarni muddatidan oldin tugatadi. Safar darhol boshlanadi; qaytish kuni yangi vazifa berish avtomatik qayta ochiladi. Safardagi dasturchiga yangi vazifa/topshiriq biriktirilmaydi; avvaldan biriktirilgan ishlar saqlanadi. Bu qoida serverda ham tekshiriladi.
 
 ### Tekshiruv navbati (`/tekshiruv`, PM, Boshliq)
@@ -274,7 +281,7 @@ Menyu guruhlarga bo'lingan: *Asosiy ish* | *Muloqot* | *Kuzatuv* (Kuzatuv faqat 
 
 **Mas'uliyatlarni kiritish:** Boshliq va PM xodim profilidagi 'Mas?uliyatlar' bo'limida xodim qaysi ishlar/yo'nalishlarga mas'ul ekanini yozadi, tahrirlaydi va saqlaydi (2000 belgigacha; matnni tozalash ham mumkin). Saqlangan ma'lumot Xodimlar ro'yxatida ko'rinadi va qidiruvda ishlaydi. PM faqat faol dasturchilarni, Boshliq barcha faol xodimlarni tahrirlaydi.
 
-**Xodimlar (Boshliq va PM):** har bir xodimning faol ishlari, loyiha nomi/raqami, holati va muddati ro'yxatda ko'rinadi. 'Profilni ko'rish' yoki ism orqali xodim profili ochiladi: barcha vazifalar, dasturchi hisoboti va biriktirilgan loyihalar. Ro'yxatda 3 ta ish va 2 ta faol loyiha qisqa ko'rsatiladi, qolganlari profilda. Ish yoki loyihani bosish mavjud tafsilot oynasini ochadi. Telefonda kartalar, kompyuterda jadval/kartalar; kunduzgi va tungi rejim.
+**Xodimlar (Boshliq va PM):** har bir xodimning faol ishlari, loyiha nomi/raqami, holati va muddati ro'yxatda ko'rinadi. 'Profilni ko'rish' yoki ism orqali xodim profili ochiladi: barcha vazifalar, dasturchi hisoboti va biriktirilgan loyihalar. Ro'yxatda 1 ta eng yaqin ish (vazifasi bo'lmasa 1 ta faol loyiha) qisqa ko'rsatiladi, qolganlari profilda (2026-10-09 da soddalashtirildi; avval 3 ta ish va 2 ta loyiha edi). Ish yoki loyihani bosish mavjud tafsilot oynasini ochadi. Telefonda kartalar, kompyuterda jadval; kunduzgi va tungi rejim.
 
 ### Portfolio (`/portfolio`, hamma rol) — 2026-10-08
 Dasturchilar portfoliosi va reytingi. Menyuda barcha rollarda ("Muloqot" guruhida) bor — hamma ko'radi.

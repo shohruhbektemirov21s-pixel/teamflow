@@ -9,7 +9,7 @@ from django.http import FileResponse, Http404
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework import serializers, status
-from rest_framework.exceptions import PermissionDenied
+from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
@@ -29,8 +29,8 @@ from apps.orders.models import Order, OrderVersion
 from apps.orders.permissions import can_view_order, visible_orders
 from apps.projects.models import Project, ProjectFile
 from apps.projects.permissions import can_view_project, visible_projects
-from apps.tasks.filters import ACTIVE, dashboard_counts
-from apps.tasks.models import SubmissionFile, Task, TaskFile
+from apps.tasks.filters import ACTIVE, dashboard_counts, due_range, due_range_condition
+from apps.tasks.models import SubmissionFile, Task, TaskAssignment, TaskFile
 from apps.tasks import workflow as task_workflow
 from apps.tasks.permissions import listed_tasks, visible_tasks
 
@@ -94,27 +94,32 @@ def _people_counts(qs):
     )
 
 
-def _people_rows(qs):
+def _people_rows(qs, due_condition=None):
     """Xodim qatorlari (ro'yxat va bitta xodim oynasi uchun bir xil shakl): bandlik sonlari va hozirgi ishi.
 
     Sonlar, faol ishlar va loyihalar guruhlab olinadi (xodim soniga bog'liq N+1 yo'q).
+    `due_condition` (muddat oralig'i filtri) bo'lsa, qatordagi ishlar — shu oraliqda muddati bo'lgan
+    har qanday holatdagi vazifalar, `range_tasks` — ularning soni.
     """
     now = timezone.now()
     users = list(_people_counts(qs)) if hasattr(qs, "annotate") else list(qs)
-    doing, work, projects = {}, {}, {}
-    from apps.tasks.models import TaskAssignment
+    doing, work, projects, in_range = {}, {}, {}, {}
     assignments = TaskAssignment.objects.filter(developer__in=users, task__status__in=ACTIVE,
                                                 task__archived_at__isnull=True)
+    shown = assignments
+    if due_condition is not None:
+        shown = TaskAssignment.objects.filter(due_condition, developer__in=users, task__archived_at__isnull=True)
+        in_range = dict(shown.order_by().values("developer_id").annotate(n=Count("pk")).values_list("developer_id", "n"))
     def previews(queryset):
         return queryset.select_related("task__project").annotate(_rank=Window(
             expression=RowNumber(), partition_by=[F("developer_id")],
             order_by=[F("task__due_at").asc(nulls_last=True), F("task_id").asc()],
         )).filter(_rank__lte=3).order_by("developer_id", "_rank")
-    for assignment in previews(assignments):
+    for assignment in previews(shown):
         task = assignment.task
         work.setdefault(assignment.developer_id, []).append({
                 "id": task.pk, "title": task.title, "status": task.status,
-                "due_at": task.due_at, "is_overdue": bool(task.due_at and task.due_at < now),
+                "due_at": task.due_at, "is_overdue": bool(task.status in ACTIVE and task.due_at and task.due_at < now),
                 "project": {"id": task.project_id, "name": task.project.name, "code": task.project.code},
             })
     for assignment in previews(assignments.filter(task__status=Task.Status.IN_PROGRESS)):
@@ -139,6 +144,7 @@ def _people_rows(qs):
             "avatar": avatar_url(u), "active_tasks": u.active_tasks, "overdue_tasks": u.overdue_tasks,
             "business_trip_return_date": u.business_trip_return_date, "is_on_business_trip": u.is_on_business_trip,
             "review_tasks": u.review_tasks, "done_tasks": u.done_tasks,
+            "range_tasks": in_range.get(u.pk, 0) if due_condition is not None else None,
             "doing": doing.get(u.pk, [])[:3],
             "work": work.get(u.pk, [])[:3], "projects": projects.get(u.pk, []),
         }
@@ -165,6 +171,14 @@ def people(request):
                        | Q(assigned_tasks__title__icontains=q) | Q(assigned_tasks__project__name__icontains=q)
                        | Q(assigned_tasks__project__code__icontains=q)).distinct()
         qs = qs.filter(pk__in=matches.values("pk"))
+    due_from, due_to = due_range(request.query_params)
+    if due_from and due_to and due_to < due_from:
+        raise ValidationError({"due_to": ["\"Sanagacha\" sanasi \"Sanadan\" sanasidan oldin bo'lmasin."]})
+    due_condition = due_range_condition(due_from, due_to, prefix="task__") if due_from or due_to else None
+    if due_condition is not None:
+        # Shu oraliqda muddati bo'lgan har qanday holatdagi (bajarilgan ham) vazifasi bor xodimlar
+        qs = qs.filter(pk__in=TaskAssignment.objects.filter(due_condition, task__archived_at__isnull=True)
+                       .values("developer_id"))
     qs = _people_counts(qs)
     if request.query_params.get("free") == "1":
         qs = qs.filter(role=Role.DEVELOPER, active_tasks=0).filter(
@@ -173,8 +187,8 @@ def people(request):
     if request.query_params.get("paginated") == "1":
         paginator = BoundedPagination()
         page = paginator.paginate_queryset(qs, request)
-        return paginator.get_paginated_response(_people_rows(page))
-    return Response(_people_rows(bounded_unpaged(qs)))
+        return paginator.get_paginated_response(_people_rows(page, due_condition))
+    return Response(_people_rows(bounded_unpaged(qs), due_condition))
 
 
 # ─── Qidiruv (Ctrl K) ────────────────────────────────────────────────────────

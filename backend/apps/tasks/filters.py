@@ -57,6 +57,21 @@ def _day_range(d):
     return start, start + timedelta(days=1)
 
 
+def due_range(params):
+    """`due_from` / `due_to` (yyyy-mm-dd) — noto'g'ri sana e'tiborga olinmaydi."""
+    return parse_date(params.get("due_from") or ""), parse_date(params.get("due_to") or "")
+
+
+def due_range_condition(due_from, due_to, prefix=""):
+    """Muddat oralig'i (ikkala kun ham kiradi) — Vazifalar va Xodimlar filtri uchun BITTA qoida."""
+    condition = Q()
+    if due_from:
+        condition &= Q(**{f"{prefix}due_at__gte": _day_range(due_from)[0]})
+    if due_to:
+        condition &= Q(**{f"{prefix}due_at__lt": _day_range(due_to)[1]})
+    return condition
+
+
 def filter_tasks(qs, params, user):
     """GET parametrlari bo'yicha filtr (ro'yxat, jadval, taqvim, doska)."""
     if params.get("mine") == "1":
@@ -115,10 +130,7 @@ def filter_tasks(qs, params, user):
     if params.get("date") and (d := parse_date(params["date"])):
         start, end = _day_range(d)
         qs = qs.filter(due_at__gte=start, due_at__lt=end)
-    if params.get("due_from") and (d := parse_date(params["due_from"])):
-        qs = qs.filter(due_at__gte=_day_range(d)[0])
-    if params.get("due_to") and (d := parse_date(params["due_to"])):
-        qs = qs.filter(due_at__lt=_day_range(d)[1])
+    qs = qs.filter(due_range_condition(*due_range(params)))
     # Only the name lookup can match multiple assignments for one task.
     # Avoid a DISTINCT over every wide task row for the ordinary list/count.
     return qs.distinct() if params.get("assignee_name") else qs

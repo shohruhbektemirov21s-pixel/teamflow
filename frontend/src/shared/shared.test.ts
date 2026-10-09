@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { daysUntil, fmtDate, initials, parseDate, relativeDue } from "./format";
+import { daysUntil, fmtDate, initials, isoDate, minDate, minDateTime, parseDate, relativeDue } from "./format";
 import { boardMove } from "./status";
 import type { TaskStatus } from "./types";
 
@@ -50,5 +50,27 @@ describe("doska qoidasi (server bergan task_moves bo'yicha)", () => {
 
   it("server ruxsat bermagan o'tish doskada ham yo'q", () => {
     expect(boardMove([], "control", "in_progress")).toBeNull();
+  });
+});
+
+describe("muddat maydonlari: bugundan oldingi sana tanlanmaydi", () => {
+  const today = isoDate(new Date());
+  const shift = (days: number) => { const d = new Date(); d.setDate(d.getDate() + days); return isoDate(d); };
+
+  it("yangi yozuvda eng erta sana — bugun", () => {
+    expect(minDate()).toBe(today);
+    expect(minDateTime()).toBe(`${today}T00:00`);
+  });
+
+  it("boshlanish sanasidan oldin tugash sanasi tanlanmaydi", () => {
+    expect(minDate(null, shift(3))).toBe(shift(3));
+    expect(minDate(null, shift(-3))).toBe(today);
+    expect(minDateTime(null, `${shift(2)}T10:30`)).toBe(`${shift(2)}T10:30`);
+  });
+
+  it("tahrirlashda eski o'tgan sana o'zgartirmasdan qolishi mumkin", () => {
+    expect(minDate(shift(-5))).toBe(shift(-5));
+    expect(minDate(shift(5))).toBe(today);
+    expect(minDateTime(`${shift(-2)}T09:00`)).toBe(`${shift(-2)}T00:00`);
   });
 });

@@ -7,6 +7,7 @@ from rest_framework.exceptions import PermissionDenied
 
 from apps.accounts.models import Role
 from apps.core.api_utils import ServiceError
+from apps.core.dates import ensure_not_past
 from apps.core.services import log
 from apps.notifications.models import Notification
 from apps.notifications.services import managers, notify
@@ -54,9 +55,13 @@ def _any_developers(project, ids, field, existing_ids=()):
     return users
 
 
-def _check_times(starts_at, due_at):
+def _check_times(starts_at, due_at, previous=None):
+    """`previous` — tahrirlashda vazifaning eski (starts_at, due_at) qiymatlari."""
     if starts_at and due_at and due_at < starts_at:
         raise ServiceError("Tugash vaqti boshlanish vaqtidan oldin bo'lishi mumkin emas.", "due_at")
+    old_starts, old_due = previous or (None, None)
+    ensure_not_past(starts_at, "starts_at", old_starts)
+    ensure_not_past(due_at, "due_at", old_due)
 
 
 def _reviewers(task):
@@ -157,12 +162,13 @@ def update_task(task, user, *, assignee_ids=None, subtasks=None, **data):
         raise ServiceError("Vazifani faqat loyiha menejeri yoki boshliq tahrirlaydi.")
     if task.status == S.DONE:
         raise ServiceError("Bajarilgan vazifa o'zgartirilmaydi.")
+    previous = (task.starts_at, task.due_at)
     for field in ("title", "description", "priority", "starts_at", "due_at"):
         if field in data:
             setattr(task, field, data[field])
     if not task.title.strip():
         raise ServiceError("Vazifa nomini yozing.", "title")
-    _check_times(task.starts_at, task.due_at)
+    _check_times(task.starts_at, task.due_at, previous)
     task.save()
     if assignee_ids is not None:
         _apply_assignees(task, user, _project_developers(task.project, assignee_ids))

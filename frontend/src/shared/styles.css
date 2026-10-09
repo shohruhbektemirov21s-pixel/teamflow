@@ -477,13 +477,22 @@ kbd { font-family: var(--mono); font-size: 11px; padding: 2px 6px; border-radius
 .total-icon svg { width: 20px; height: 20px; }
 .people { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(220px, 240px); gap: 12px; overflow-x: auto; padding-bottom: 4px; }
 .people-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
-.people-toolbar { display: grid; gap: 16px; }
-.people-toolbar .page-toolbar { margin-bottom: 0; }
-.people-search-row { justify-content: space-between; }
-.people-search { display: flex; align-items: center; gap: 10px; min-width: 0; width: min(100%, 480px); padding: 0 12px; border: 1px solid var(--border-strong); border-radius: var(--radius-sm); background: var(--surface); }
+.people-toolbar { display: grid; gap: 12px; }
+.people-filters { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 16px; }
+.people-filter-search { flex: 1 1 280px; }
+.people-filter-range { flex: 0 1 320px; }
+.people-filter-role { flex: 0 1 200px; }
+.people-filter-free { min-height: var(--control); }
+.people-filter-clear { margin-left: auto; }
+.people-search { display: flex; align-items: center; gap: 10px; min-width: 0; width: 100%; padding: 0 12px; border: 1px solid var(--border-strong); border-radius: var(--radius-sm); background: var(--surface); }
 .people-search:focus-within { border-color: var(--primary); box-shadow: 0 0 0 2px var(--primary-soft); }
-.people-search input { width: 100%; min-width: 0; height: 40px; border: 0; outline: 0; background: transparent; color: var(--text); font: inherit; }
-.people-free-selected { color: var(--success); background: var(--success-soft); border-color: var(--success); }
+.people-search input { width: 100%; min-width: 0; height: calc(var(--control) - 2px); border: 0; outline: 0; background: transparent; color: var(--text); font: inherit; }
+.people-range { display: flex; align-items: center; gap: 8px; padding: 0 8px; }
+.people-range:focus-within { border-color: var(--primary); box-shadow: var(--focus); }
+.people-range.invalid { border-color: var(--danger); }
+.people-range input { flex: 1; min-width: 0; height: 100%; padding: 0; border: 0; outline: 0; background: transparent; color: var(--text); font: inherit; }
+.people-found { margin: 0; }
+.person-responsibilities-line { margin: 0; max-width: 320px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
 .person-identity { display: flex; align-items: center; gap: 12px; border: 0; padding: 0; background: transparent; color: var(--text); text-align: left; cursor: pointer; font: inherit; }
 .person-identity > span { min-width: 0; gap: 4px; }
 .person-identity strong { overflow-wrap: anywhere; }
@@ -496,9 +505,7 @@ kbd { font-family: var(--mono); font-size: 11px; padding: 2px 6px; border-radius
 .people-table td:nth-child(3) { width: 37%; }
 .people-table .person-actions { flex-direction: column; align-items: stretch; }
 .person-work { min-width: 0; }
-.person-responsibilities-preview { padding: 10px 12px; border-left: 3px solid var(--primary); background: var(--primary-soft); border-radius: var(--radius-sm); }
-.person-responsibilities-preview p, .person-responsibilities-text { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.6; }
-.person-responsibilities-preview p { margin-top: 4px; font-size: 13px; }
+.person-responsibilities-text { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.6; }
 .person-work-item { display: flex; flex-direction: column; align-items: stretch; gap: 6px; width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface-2); color: var(--text); text-align: left; font: inherit; cursor: pointer; }
 .person-work-item:hover { border-color: var(--primary); background: var(--primary-soft); }
 .person-work-item span { overflow-wrap: anywhere; }
@@ -508,7 +515,6 @@ kbd { font-family: var(--mono); font-size: 11px; padding: 2px 6px; border-radius
 .person-work-empty { padding: 12px 0; }
 .people-person-card { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
 .person-card-work { flex: 1; border-top: 1px solid var(--border); padding-top: 12px; }
-.person-work-label { margin-bottom: 8px; }
 .people-person-card .person-actions { padding-top: 12px; border-top: 1px solid var(--border); }
 .people-person-card .person-actions .btn { flex: 1; }
 .people-mobile-grid { display: none; }
@@ -516,8 +522,9 @@ kbd { font-family: var(--mono); font-size: 11px; padding: 2px 6px; border-radius
   .people-table { display: none; }
   .people-mobile-grid { display: grid; }
   .people-grid { grid-template-columns: minmax(0, 1fr); }
-  .people-search { width: 100%; }
-  .people-toolbar .segmented { max-width: 100%; overflow-x: auto; }
+  .people-filters > * { flex: 1 1 100%; }
+  .people-filter-clear { margin-left: 0; }
+  .person-responsibilities-line { max-width: none; }
 }
 .person { padding: 16px; display: flex; flex-direction: column; gap: 12px; text-align: left; font: inherit; color: inherit; }
 .person-nums { display: flex; gap: 6px; flex-wrap: wrap; }

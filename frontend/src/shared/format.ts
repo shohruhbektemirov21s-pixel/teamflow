@@ -30,6 +30,23 @@ export function isoDate(d: Date): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
 
+/** Muddat maydonlari uchun `min` (server qoidasi `core/dates.py` bilan bir xil): bugundan oldingi kun tanlanmaydi.
+ * `saved` — tahrirlanayotgan yozuvning eski qiymati (o'tib ketgan bo'lsa ham o'zgartirmasdan saqlash mumkin),
+ * `after` — undan oldin bo'lmasligi kerak bo'lgan qiymat (masalan boshlanish sanasi). Filtrlarda ishlatilmaydi. */
+export function minDate(saved?: string | null, after?: string | null): string {
+  const today = isoDate(new Date());
+  const old = saved ? saved.slice(0, 10) : "";
+  const min = old && old < today ? old : today;
+  const from = after ? after.slice(0, 10) : "";
+  return from > min ? from : min;
+}
+
+/** `<input type="datetime-local">` uchun `minDate` (bugun 00:00 dan). */
+export function minDateTime(saved?: string | null, after?: string | null): string {
+  const base = `${minDate(saved)}T00:00`;
+  return after && after > base ? after : base;
+}
+
 /** ISO → <input type="datetime-local"> qiymati */
 export function toLocalInput(value: string | null | undefined): string {
   if (!value) return "";

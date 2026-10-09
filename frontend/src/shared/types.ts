@@ -196,6 +196,8 @@ export interface Person {
   overdue_tasks: number;
   review_tasks: number;
   done_tasks: number;
+  /** Muddat oralig'i filtri tanlanganda — shu oraliqdagi vazifalar soni (aks holda null). */
+  range_tasks?: number | null;
   doing: { id: number; title: string }[];
   work?: { id: number; title: string; status: TaskStatus; due_at: string | null; is_overdue: boolean; project: { id: number; name: string; code: string } }[];
   projects?: { id: number; name: string; code: string; stage: ProjectStage; end_date: string }[];

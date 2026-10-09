@@ -8,6 +8,7 @@ from rest_framework.exceptions import PermissionDenied
 
 from apps.accounts.models import Role
 from apps.core.api_utils import ServiceError
+from apps.core.dates import ensure_not_past
 from apps.core.services import log
 from apps.notifications.models import Notification
 from apps.notifications.services import notify
@@ -51,6 +52,9 @@ def create_project(user, *, code, name="", description="", start_date=None, end_
     _require_manager(user)
     if stage in (S.PENDING_APPROVAL, S.REJECTED):
         raise ServiceError("Bu daraja to'g'ridan-to'g'ri tanlanmaydi.", "stage")
+    # Buyurtmada PM tasdiqlagan sana o'zgarmasa — qayta tekshirilmaydi (u tasdiqlashda tekshirilgan).
+    ensure_not_past(start_date, "start_date", order.start_date if order is not None else None)
+    ensure_not_past(end_date, "end_date", order.end_date if order is not None else None)
     if order is not None:
         order = Order.objects.select_for_update().get(pk=order.pk)
         check_order_transition(order.status, Order.Status.PROJECT_CREATED, user.role)
@@ -112,6 +116,8 @@ def update_project(project, user, **data):
             raise ServiceError("Hali hamma dasturchi rozi bo'lmagan — javoblarini kuting.")
     new_completion_round = project.completion_requested_at is None
     info_changed = any(data.get(f) is not None for f in ("name", "description", "start_date", "end_date"))
+    ensure_not_past(data.get("start_date"), "start_date", project.start_date)
+    ensure_not_past(data.get("end_date"), "end_date", project.end_date)
     for field in ("name", "description", "start_date", "end_date"):
         if data.get(field) is not None:
             setattr(project, field, data[field])

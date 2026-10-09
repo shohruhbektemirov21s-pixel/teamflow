@@ -9,7 +9,7 @@ import { DocTitle, DocViewer } from "@/features/docs/DocViewer";
 import { TaskTable } from "@/features/tasks/TaskTable";
 import { Pagination } from "@/shared/ui/Pagination";
 import { api, ApiError, formData, qs } from "@/shared/api";
-import { fmtDate } from "@/shared/format";
+import { fmtDate, minDate } from "@/shared/format";
 import { useMeta } from "@/shared/meta";
 import { useDebounced } from "@/shared/hooks";
 import { T } from "@/shared/text";
@@ -304,10 +304,10 @@ export default function ProjectModal({ id }: { id: number }) {
                   </Field>
                   <div className="grid-2">
                     <Field label={T.projects.startDate} error={fe("start_date")}>
-                      {(fid, bad) => <input id={fid} type="date" className="input" aria-invalid={bad} value={form.start_date} onChange={(e) => setForm({ ...form, start_date: e.target.value })} />}
+                      {(fid, bad) => <input id={fid} type="date" className="input" aria-invalid={bad} min={minDate(p.start_date)} value={form.start_date} onChange={(e) => setForm({ ...form, start_date: e.target.value })} />}
                     </Field>
                     <Field label={T.projects.endDate} error={fe("end_date")}>
-                      {(fid, bad) => <input id={fid} type="date" className="input" aria-invalid={bad} min={form.start_date} value={form.end_date} onChange={(e) => setForm({ ...form, end_date: e.target.value })} />}
+                      {(fid, bad) => <input id={fid} type="date" className="input" aria-invalid={bad} min={minDate(p.end_date, form.start_date)} value={form.end_date} onChange={(e) => setForm({ ...form, end_date: e.target.value })} />}
                     </Field>
                   </div>
                 </>

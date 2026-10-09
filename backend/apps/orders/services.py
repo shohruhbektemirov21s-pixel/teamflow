@@ -3,6 +3,7 @@ from django.db import transaction
 from django.utils import timezone
 
 from apps.core.api_utils import ServiceError
+from apps.core.dates import ensure_not_past
 from apps.core.services import log
 from apps.notifications.models import Notification
 from apps.notifications.services import managers, notify
@@ -24,6 +25,7 @@ def _check_dates(start_date, end_date):
 def create_order(user, *, title, description, priority, requested_due_date, file):
     if not user.is_department:
         raise ServiceError("Buyurtmani faqat boshqarma yuboradi.")
+    ensure_not_past(requested_due_date, "requested_due_date")
     order = Order.objects.create(
         title=title,
         description=description,
@@ -64,6 +66,8 @@ def approve_order(order, user, *, start_date, end_date, note="", priority=None):
     order = Order.objects.select_for_update().get(pk=order.pk)
     check_order_transition(order.status, Order.Status.APPROVED, user.role)
     _check_dates(start_date, end_date)
+    ensure_not_past(start_date, "start_date")
+    ensure_not_past(end_date, "end_date")
     now = timezone.now()
     version = order.latest_version
     version.decision = OrderVersion.Decision.APPROVED
@@ -113,6 +117,8 @@ def update_order_dates(order, user, *, start_date, end_date):
     if order.status not in (Order.Status.APPROVED, Order.Status.PROJECT_CREATED):
         raise ServiceError("Sanani faqat tasdiqlangan buyurtmada o'zgartirish mumkin.")
     _check_dates(start_date, end_date)
+    ensure_not_past(start_date, "start_date", order.start_date)
+    ensure_not_past(end_date, "end_date", order.end_date)
     order.start_date = start_date
     order.end_date = end_date
     order.save(update_fields=["start_date", "end_date", "updated_at"])
