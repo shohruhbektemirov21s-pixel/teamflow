@@ -1,5 +1,5 @@
 import { fireEvent, screen, waitFor } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { api } from "@/shared/api";
 import { JASUR, MALIKA, taskDetail } from "@/test/fixtures";
@@ -32,6 +32,25 @@ describe("TaskModal", () => {
     expect(screen.getByText(T.tasks.worklog(2.5))).toBeTruthy();
     expect(screen.getByText("29.09.2026")).toBeTruthy();
     expect(screen.getByRole("button", { name: T.common.delete })).toBeTruthy(); // can_delete
+  });
+
+  it("ish jurnali mahalliy sana bilan yoziladi (tun yarmidan keyin UTC kechagi kun emas)", async () => {
+    mockGet({ "/tasks/1/": taskDetail({ actions: { ...taskDetail().actions, log_work: true } }) });
+    vi.mocked(api.post).mockResolvedValue(taskDetail());
+    renderApp(<TaskModal id={1} />);
+    const input = await screen.findByPlaceholderText(T.tasks.worklogPh);
+    fireEvent.change(input, { target: { value: "Forma" } });
+
+    // Faqat yuborish paytida soat: mahalliy 09.10.2026 01:30 (Toshkentda UTC bo'yicha hali 08.10)
+    vi.useFakeTimers({ now: new Date(2026, 9, 9, 1, 30), toFake: ["Date"] });
+    try {
+      fireEvent.submit(input.closest("form")!);
+      await waitFor(() =>
+        expect(api.post).toHaveBeenCalledWith("/tasks/1/worklogs/", expect.objectContaining({ work_date: "2026-10-09" })),
+      );
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("bajarilgan vazifada 'Bugun tugaydi' yozilmaydi", async () => {
@@ -197,6 +216,23 @@ describe("TaskModal", () => {
       expect(await screen.findByText(/Qabul qilinmadi: virus\.exe, katta\.pdf/)).toBeTruthy();
       expect(screen.getByText("hisobot.pdf")).toBeTruthy();
       expect(screen.getByText(T.common.attachedCount(1))).toBeTruthy();
+    });
+
+    it("'Fayllar' bo'limida tanlangan fayl yuborish oynasiga o'tib ketmaydi", async () => {
+      mockGet({
+        "/tasks/1/": taskDetail({ status: "in_progress", actions: { ...taskDetail().actions, submit: true, add_files: true } }),
+      });
+      renderApp(<TaskModal id={1} />);
+      await screen.findByText(T.tasks.info);
+
+      const input = document.querySelector<HTMLInputElement>('input[type="file"]')!;
+      fireEvent.change(input, { target: { files: [new File(["x"], "yuklanmagan.pdf")] } });
+      expect(await screen.findByText("yuklanmagan.pdf")).toBeTruthy();
+
+      fireEvent.click(screen.getByRole("button", { name: T.tasks.submit }));
+
+      expect(await screen.findByText(T.tasks.submitSubtitle)).toBeTruthy();
+      expect(screen.getByText(T.common.attachedCount(0))).toBeTruthy();
     });
   });
 });

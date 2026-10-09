@@ -26,7 +26,7 @@ import { DocTitle, DocViewer } from "@/features/docs/DocViewer";
 import { Comments } from "@/features/comments/Comments";
 import { DeveloperPicker } from "@/features/people/DeveloperPicker";
 import { api, ApiError, formData } from "@/shared/api";
-import { fmtDate, fmtDateTime } from "@/shared/format";
+import { fmtDate, fmtDateTime, isoDate } from "@/shared/format";
 import { useMeta } from "@/shared/meta";
 import { T } from "@/shared/text";
 import type { FileInfo, Submission, TaskDetail, WorkLog } from "@/shared/types";
@@ -70,7 +70,9 @@ export default function TaskModal({ id, submitMode }: { id: number; submitMode?:
   
   const [panel, setPanel] = useState<Panel>(submitMode ? "submit" : null);
   const [note, setNote] = useState("");
+  // Tekshiruvga yuborish oynasidagi fayllar va "Fayllar" bo'limida yuklanadiganlar — alohida (aralashmasin).
   const [files, setFiles] = useState<File[]>([]);
+  const [uploadFiles, setUploadFiles] = useState<File[]>([]);
   const [viewing, setViewing] = useState<FileInfo | null>(null);
   const [noteError, setNoteError] = useState<string>();
 
@@ -94,7 +96,7 @@ export default function TaskModal({ id, submitMode }: { id: number; submitMode?:
       if (kind === "submit") return api.post(`/tasks/${id}/submit/`, formData({ note }, files));
       if (kind === "accept") return api.post(`/tasks/${id}/review/`, { decision: "accept", note });
       if (kind === "return") return api.post(`/tasks/${id}/review/`, { decision: "return", note });
-      if (kind === "files") return api.post(`/tasks/${id}/files/`, formData({}, files));
+      if (kind === "files") return api.post(`/tasks/${id}/files/`, formData({}, uploadFiles));
       return api.del(`/tasks/${id}/`);
     },
     onSuccess: (_d, kind) => {
@@ -107,10 +109,14 @@ export default function TaskModal({ id, submitMode }: { id: number; submitMode?:
         files: T.common.saved,
       }[kind];
       toast(msg);
-      setPanel(null);
-      setNote("");
-      setFiles([]);
-      setNoteError(undefined);
+      if (kind === "files") {
+        setUploadFiles([]);
+      } else {
+        setPanel(null);
+        setNote("");
+        setFiles([]);
+        setNoteError(undefined);
+      }
       refresh();
       // Doskadan "Tekshiruvga yuborish" bilan ochilgan bo'lsa — yuborilgach doskaga qaytadi.
       if (kind === "delete" || (kind === "submit" && submitMode)) close();
@@ -121,6 +127,9 @@ export default function TaskModal({ id, submitMode }: { id: number; submitMode?:
       else toast(e.message, "error");
     },
   });
+
+  // Faqat bosilgan tugma aylanadi (bitta `act` hamma amal uchun umumiy).
+  const busy = (kind: NonNullable<typeof act.variables>) => act.isPending && act.variables === kind;
 
   const toggle = useMutation({
     mutationFn: ({ sid, done }: { sid: number; done: boolean }) => api.post(`/tasks/${id}/subtasks/${sid}/toggle/`, { is_done: done }),
@@ -163,7 +172,7 @@ export default function TaskModal({ id, submitMode }: { id: number; submitMode?:
   });
 
   const worklog = useMutation({
-    mutationFn: () => api.post<TaskDetail>(`/tasks/${id}/worklogs/`, { work_date: new Date().toISOString().slice(0, 10), hours: workHours, note: workNote }),
+    mutationFn: () => api.post<TaskDetail>(`/tasks/${id}/worklogs/`, { work_date: isoDate(new Date()), hours: workHours, note: workNote }),
     onSuccess: () => {
       setWorkNote("");
       setWorkHours("1");
@@ -204,7 +213,7 @@ export default function TaskModal({ id, submitMode }: { id: number; submitMode?:
       noteError={noteError}
       files={files}
       onFilesChange={setFiles}
-      loading={act.isPending}
+      loading={busy("submit") || busy("return")}
       onCancel={() => {
         setPanel(null);
         setNote("");
@@ -230,7 +239,7 @@ export default function TaskModal({ id, submitMode }: { id: number; submitMode?:
     const left = (
       <>
         {a.delete && (
-          <ConfirmButton onConfirm={() => act.mutate("delete")} loading={act.isPending} confirmText={T.tasks.archiveConfirm}>
+          <ConfirmButton onConfirm={() => act.mutate("delete")} loading={busy("delete")} confirmText={T.tasks.archiveConfirm}>
             <Trash2 /> {T.common.delete}
           </ConfirmButton>
         )}
@@ -250,13 +259,13 @@ export default function TaskModal({ id, submitMode }: { id: number; submitMode?:
         <span className="spacer" />
         {a.review && (
           <>
-            <Button variant="success" icon={<CheckCircle2 />} loading={act.isPending} onClick={() => act.mutate("accept")}>
+            <Button variant="success" icon={<CheckCircle2 />} loading={busy("accept")} onClick={() => act.mutate("accept")}>
               {T.tasks.accept}
             </Button>
           </>
         )}
         {a.start && (
-          <Button variant="primary" icon={<Play />} loading={act.isPending} onClick={() => act.mutate("start")}>
+          <Button variant="primary" icon={<Play />} loading={busy("start")} onClick={() => act.mutate("start")}>
             {T.tasks.start}
           </Button>
         )}
@@ -523,11 +532,11 @@ export default function TaskModal({ id, submitMode }: { id: number; submitMode?:
                   <span className="small muted">{T.tasks.noFiles}</span>
                 )}
                 {task.actions.add_files && (
-                  <form onSubmit={(e) => { e.preventDefault(); if (files.length) act.mutate("files"); }}>
+                  <form onSubmit={(e) => { e.preventDefault(); if (uploadFiles.length) act.mutate("files"); }}>
                     <div className="stack" style={{ marginTop: 10 }}>
-                      <FilePicker files={files} onChange={setFiles} />
-                      {files.length > 0 && (
-                        <Button type="submit" variant="primary" size="sm" loading={act.isPending} icon={<Upload size={14} />}>
+                      <FilePicker files={uploadFiles} onChange={setUploadFiles} />
+                      {uploadFiles.length > 0 && (
+                        <Button type="submit" variant="primary" size="sm" loading={busy("files")} icon={<Upload size={14} />}>
                           {T.tasks.upload}
                         </Button>
                       )}

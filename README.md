@@ -376,7 +376,8 @@ Batafsil bosqichlar: `docs/FLOWS_MODALS.md`.
 
 ## 12. Xavfsizlik
 
-- Parollar Django parol hesh mexanizmi bilan saqlanadi. Kirish so'rovlari cheklangan (throttle).
+- Parollar Django parol hesh mexanizmi bilan saqlanadi. Kirish so'rovlari cheklangan: IP bo'yicha daqiqasiga 20 ta, bitta login uchun soatiga 30 ta; `/admin/login/` ham shu cheklov ostida. IP soxta `X-Forwarded-For` bilan almashtirilmaydi (faqat ishonchli nginx ortida, `DJANGO_TRUST_PROXY=1`, sarlavhaga ishoniladi).
+- Word (.docx) ko'rishda hujjat ichidagi HTML bo'laklar (altChunk) ishga tushirilmaydi, `javascript:` kabi havolalar olib tashlanadi. Ilova sahifasi `Content-Security-Policy` sarlavhasi bilan beriladi (skript faqat o'z serverimizdan).
 - Har bir API so'rovda rol va egalik **serverda** tekshiriladi: boshqarma faqat o'z buyurtmasini, dasturchi faqat o'z vazifasi va loyihasini ko'radi.
 - Buyurtma yuborilgach boshqarma uni tahrirlay ham, o'chira ham olmaydi.
 - Fayl yuklashda tur va hajm tekshiriladi. Yuklangan fayllar ochiq berilmaydi — faqat `/api/files/...` orqali ruxsat tekshiruvi bilan. Profil rasmlari — `/api/avatars/<id>/`, faqat tizimga kirganlarga.

@@ -5,6 +5,7 @@ from django.urls import include, path, re_path
 from rest_framework.routers import DefaultRouter
 
 from apps.accounts import api as accounts
+from apps.accounts.throttles import throttled_admin_login
 from apps.notifications.api import NotificationViewSet
 from apps.orders.api import OrderViewSet
 from apps.panel import api as panel
@@ -75,12 +76,15 @@ def spa(request):
     index = settings.FRONTEND_DIST / "index.html"
     if not index.exists():
         raise Http404("Frontend build qilinmagan: frontend papkasida `npm run build` ni ishga tushiring.")
-    return FileResponse(open(index, "rb"), content_type="text/html")
+    response = FileResponse(open(index, "rb"), content_type="text/html")
+    response["Content-Security-Policy"] = settings.CONTENT_SECURITY_POLICY
+    return response
 
 
 urlpatterns = [
     path("healthz/live/", live),
     path("healthz/ready/", ready),
+    path("admin/login/", throttled_admin_login),  # admin.site.urls dan oldin turishi shart
     path("admin/", admin.site.urls),
     path("api/", include(api)),
     re_path(r"^(?!api/|admin/|static/).*$", spa),
