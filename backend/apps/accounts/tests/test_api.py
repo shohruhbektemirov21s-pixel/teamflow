@@ -13,7 +13,7 @@ class RegisterLoginTests(TestCase):
         self.spec = specialty()
 
     def payload(self, **kw):
-        data = {"first_name": "Ali", "last_name": "Valiyev", "specialty": self.spec.pk, "role": "developer",
+        data = {"first_name": "Ali", "last_name": "Valiyev", "role": "developer",
                 "username": "ali", "password": "Kuchli-parol-2026"}
         data.update(kw)
         return data
@@ -24,6 +24,13 @@ class RegisterLoginTests(TestCase):
         user = User.objects.get(username="ali")
         self.assertFalse(user.is_active)
         self.assertEqual(user.role, Role.DEVELOPER)
+
+    def test_register_without_specialty_and_ignores_sent_one(self):
+        # Mutaxassislik ro'yxatdan o'tishda so'ralmaydi; yuborilsa ham saqlanmaydi (adminda belgilanadi)
+        r = self.c.post("/api/auth/register/", self.payload(specialty=self.spec.pk), format="json")
+        self.assertEqual(r.status_code, 201)
+        self.assertIsNone(User.objects.get(username="ali").specialty)
+        self.assertEqual(self.c.get("/api/specialties/").status_code, 404)
 
     def test_cannot_register_as_boss(self):
         r = self.c.post("/api/auth/register/", self.payload(role="boss"), format="json")

@@ -195,7 +195,7 @@ export default function ProjectWizard({ orderId }: { orderId?: number }) {
                   <Avatar user={d} size="sm" />
                   <span className="grow">
                     <b style={{ fontWeight: 600 }}>{d.full_name}</b>
-                    <span className="small muted"> · {d.specialty}</span>
+                    {d.specialty && <span className="small muted"> · {d.specialty}</span>}
                   </span>
                 </label>
               ))}

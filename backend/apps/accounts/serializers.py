@@ -4,7 +4,7 @@ from rest_framework import serializers
 
 from apps.core.api_utils import avatar_url
 
-from .models import Role, Specialty, User
+from .models import Role, User
 
 SELF_REGISTER_ROLES = [Role.PM, Role.DEVELOPER, Role.DEPARTMENT]  # Boshliq faqat Django adminda
 
@@ -27,16 +27,10 @@ def telegram_taken(value, exclude_pk=None):
     return bool(value) and User.objects.filter(telegram_username__iexact=value).exclude(pk=exclude_pk).exists()
 
 
-class SpecialtySerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Specialty
-        fields = ["id", "name"]
-
-
 class RegisterSerializer(serializers.Serializer):
     first_name = serializers.CharField(max_length=150)
     last_name = serializers.CharField(max_length=150)
-    specialty = serializers.PrimaryKeyRelatedField(queryset=Specialty.objects.filter(is_active=True))
+    # Mutaxassislik ro'yxatdan o'tishda so'ralmaydi (2026-10-09); kerak bo'lsa Django adminda belgilanadi.
     role = serializers.ChoiceField(choices=[(r.value, r.label) for r in SELF_REGISTER_ROLES])
     department_name = serializers.CharField(max_length=200, required=False, allow_blank=True, default="")
     telegram_username = serializers.CharField(max_length=100, required=False, allow_blank=True, default="")
