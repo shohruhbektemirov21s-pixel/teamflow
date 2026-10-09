@@ -61,6 +61,8 @@ api = [
     path("portfolio/items/", portfolio.item_create),
     path("portfolio/items/<int:pk>/", portfolio.item),
     path("portfolio/items/<int:pk>/reviews/", portfolio.reviews),
+    path("portfolio/items/<int:pk>/cover/", portfolio.cover),
+    path("portfolio/covers/<int:pk>/", portfolio.cover_file),
     path("portfolio/items/<int:pk>/videos/", portfolio.video_upload),
     path("portfolio/items/<int:pk>/videos/<int:video_pk>/", portfolio.video_delete),
     path("portfolio/videos/<int:pk>/", portfolio.video_file),

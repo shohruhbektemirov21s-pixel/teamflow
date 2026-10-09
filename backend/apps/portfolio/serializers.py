@@ -44,7 +44,15 @@ def item_row(item, tasks_done=None):
         "project": {"code": project.code, "stage": project.stage} if project else None,
         "tasks_done": tasks_done if item.is_auto else None,
         "rating": round_rating(item.rating), "reviews_count": item.reviews_count, "videos_count": item.videos_count,
+        "cover": cover_url(item),
     }
+
+
+def cover_url(item):
+    """`?v=` — rasm almashganda brauzer keshidagi eskisi ko'rinmasin."""
+    if not item.cover:
+        return None
+    return f"/api/portfolio/covers/{item.pk}/?v={int(item.updated_at.timestamp())}"
 
 
 def video_row(video):

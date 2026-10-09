@@ -1,5 +1,5 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { ArrowLeft, ExternalLink, MessageSquare, Pencil, Save, Trash2, Upload, Video } from "lucide-react";
+import { ArrowLeft, ChevronLeft, ChevronRight, ExternalLink, ImageIcon, MessageSquare, Pencil, Save, Trash2, Upload, Video } from "lucide-react";
 import { type ReactNode, useState } from "react";
 
 import { useModal } from "@/app/modals";
@@ -7,7 +7,7 @@ import { usePagedList, useRefresh } from "@/app/queries";
 import { api, ApiError } from "@/shared/api";
 import { fileSize, fmtDate, timeAgo } from "@/shared/format";
 import { T } from "@/shared/text";
-import type { PortfolioItemDetail, PortfolioReview } from "@/shared/types";
+import type { FileInfo, PortfolioItemDetail, PortfolioReview } from "@/shared/types";
 import { Avatar, Badge, Button, Callout, CodeTag, ConfirmButton, Empty, ErrorBox, Field, FilePicker, Modal, Skeleton, SkeletonRows, useToast } from "@/shared/ui";
 import { Pagination } from "@/shared/ui/Pagination";
 
@@ -74,15 +74,21 @@ export function PortfolioItemForm({ ownerId }: { ownerId: number }) {
   const toast = useToast();
   const refresh = useRefresh(["portfolio"]);
   const [draft, setDraft] = useState<Draft>(EMPTY);
+  const [cover, setCover] = useState<File[]>([]);
   const save = useMutation({
-    mutationFn: () => api.post<PortfolioItemDetail>("/portfolio/items/", payload(draft, false)),
-    onSuccess: (item) => {
-      toast(T.portfolio.savedToast);
+    mutationFn: async () => {
+      const item = await api.post<PortfolioItemDetail>("/portfolio/items/", payload(draft, false));
+      // Loyiha saqlandi; rasm yuklanmasa ham loyiha ochiladi, xabar beriladi
+      const coverOk = cover[0] ? await uploadCover(item.id, cover[0]).then(() => true, () => false) : true;
+      return { item, coverOk };
+    },
+    onSuccess: ({ item, coverOk }) => {
+      toast(coverOk ? T.portfolio.savedToast : T.portfolio.coverFailedToast, coverOk ? undefined : "error");
       void refresh();
       open({ portfolio: ownerId, item: item.id }, true);
     },
   });
-  const dirty = JSON.stringify(draft) !== JSON.stringify(EMPTY);
+  const dirty = JSON.stringify(draft) !== JSON.stringify(EMPTY) || cover.length > 0;
   return (
     <Modal
       title={T.portfolio.addTitle}
@@ -98,9 +104,22 @@ export function PortfolioItemForm({ ownerId }: { ownerId: number }) {
         </>
       }
     >
-      <ItemFields draft={draft} onChange={(d) => (setDraft(d), save.reset())} error={save.error} auto={false} />
+      <div className="stack">
+        <ItemFields draft={draft} onChange={(d) => (setDraft(d), save.reset())} error={save.error} auto={false} />
+        <FilePicker files={cover} onChange={setCover} multiple={false} accept={COVER_ACCEPT}
+          label={T.portfolio.coverPick} hint={T.portfolio.coverHint} maxMb={COVER_MAX_MB} />
+      </div>
     </Modal>
   );
+}
+
+const COVER_ACCEPT = ".jpg,.jpeg,.png,.webp";
+const COVER_MAX_MB = 5;
+
+function uploadCover(itemId: number, file: File) {
+  const fd = new FormData();
+  fd.append("cover", file);
+  return api.post<PortfolioItemDetail>(`/portfolio/items/${itemId}/cover/`, fd);
 }
 
 /** Loyiha: tavsif, havola, videolar, baholar va sharhlar. Egasi tahrirlaydi va video yuklaydi, boshqalar baholaydi. */
@@ -170,7 +189,17 @@ function ItemEdit({ item, draft, onDraft, onDone, subtitle }: { item: PortfolioI
         </>
       }
     >
-      <ItemFields draft={draft} onChange={(d) => (onDraft(d), save.reset())} error={save.error} auto={item.is_auto} />
+      <div className="stack" style={{ gap: 24 }}>
+        <ItemFields draft={draft} onChange={(d) => (onDraft(d), save.reset())} error={save.error} auto={item.is_auto} />
+        <section>
+          <h3 className="section-title">{T.portfolio.cover}</h3>
+          <CoverSection item={item} />
+        </section>
+        <section>
+          <h3 className="section-title">{T.portfolio.videos}</h3>
+          <VideoSection item={item} />
+        </section>
+      </div>
     </Modal>
   );
 }
@@ -251,86 +280,174 @@ function ItemDetails({ item, subtitle, dirty, onDirty, onEdit }: {
 
   return (
     <Modal title={item.title} subtitle={subtitle} size="lg" onClose={close} dirty={dirty} footer={footer}>
-      <div className="stack" style={{ gap: 24 }}>
-        <div className="row-wrap" style={{ justifyContent: "space-between" }}>
+      <div className="stack">
+        <div>
           <Button variant="ghost" size="sm" icon={<ArrowLeft size={16} />} onClick={close} aria-label={T.portfolio.backToPortfolio}>
             {T.common.back}
           </Button>
-          <span className="row" style={{ gap: 8 }}>
-            <Avatar user={item.owner} size="sm" />
-            <span className="small" style={{ fontWeight: 600 }}>{item.owner.full_name}</span>
-          </span>
         </div>
+        <div className="ig-post">
+          <MediaCarousel item={item} />
 
-        <div className="row-wrap" style={{ justifyContent: "space-between", gap: 12 }}>
-          <Stars value={item.rating} count={item.reviews_count} size={20} />
-          {item.link && (
-            <a className="btn" href={item.link} target="_blank" rel="noopener noreferrer nofollow">
-              <ExternalLink size={16} /> {T.portfolio.openLink}
-            </a>
-          )}
-        </div>
-
-        {item.description && (
-          <section>
-            <h3 className="section-title">{T.portfolio.description}</h3>
-            <p className="portfolio-description">{item.description}</p>
-          </section>
-        )}
-
-        <section>
-          <h3 className="section-title">{T.portfolio.videos}</h3>
-          <VideoSection item={item} />
-        </section>
-
-        <section className="stack">
-          <h3 className="section-title" style={{ marginBottom: 0 }}>{T.portfolio.reviews}</h3>
-          {item.actions.review ? (
-            <div className="card card-pad stack-sm">
-              <b>{item.my_review ? T.portfolio.myReview : T.portfolio.yourStars}</b>
-              <StarInput value={stars} onChange={(s) => updateReview(s, text)} invalid={starsError} />
-              {starsError && <span className="field-error" role="alert">{T.portfolio.starsRequired}</span>}
-              <Field label={T.portfolio.reviewText} hint={T.portfolio.chars(text.length, REVIEW_MAX)}>
-                {(id) => <textarea id={id} className="textarea" rows={3} maxLength={REVIEW_MAX} placeholder={T.portfolio.reviewPh} value={text} onChange={(e) => updateReview(stars, e.target.value)} />}
-              </Field>
-              {saveReview.error && <ErrorBox error={saveReview.error} />}
-              {item.my_review && (
-                <div>
-                  <Button variant="ghost" size="sm" icon={<Trash2 size={15} />} loading={deleteReview.isPending} onClick={() => deleteReview.mutate()}>
-                    {T.portfolio.reviewDelete}
-                  </Button>
-                </div>
+          <div className="ig-post-side stack" style={{ gap: 20 }}>
+            <div className="row" style={{ gap: 12 }}>
+              <Avatar user={item.owner} />
+              <b className="grow ellipsis">{item.owner.full_name}</b>
+              {item.link && (
+                <a className="btn btn-sm" href={item.link} target="_blank" rel="noopener noreferrer nofollow">
+                  <ExternalLink size={16} /> {T.portfolio.openLink}
+                </a>
               )}
             </div>
-          ) : (
-            item.actions.edit && <Callout>{T.portfolio.ownHint}</Callout>
-          )}
-          {reviews.error && <ErrorBox error={reviews.error} onRetry={() => reviews.refetch()} />}
-          {reviews.isLoading && <div className="card"><SkeletonRows rows={2} /></div>}
-          {reviews.data && !reviews.data.length && (
-            <div className="card"><Empty icon={<MessageSquare />} title={T.portfolio.reviewsEmpty} hint={item.actions.review ? T.portfolio.reviewsEmptyHint : undefined} /></div>
-          )}
-          {reviews.data && reviews.data.length > 0 && (
-            <div className="card">
-              {reviews.data.map((r) => (
-                <div key={r.id} className="list-row portfolio-review">
-                  <Avatar user={r.author} />
-                  <div className="grow stack-sm" style={{ gap: 4, minWidth: 0 }}>
-                    <div className="row-wrap" style={{ gap: 8 }}>
-                      <b>{r.author.full_name}</b>
-                      <Stars value={r.stars} size={14} />
-                      <span className="small muted" title={fmtDate(r.updated_at)}>{timeAgo(r.updated_at)}</span>
+
+            {item.description && <p className="portfolio-description">{item.description}</p>}
+
+            <Stars value={item.rating} count={item.reviews_count} size={20} />
+
+            <section className="stack">
+              <h3 className="section-title" style={{ marginBottom: 0 }}>{T.portfolio.reviews}</h3>
+              {item.actions.review ? (
+                <div className="card card-pad stack-sm">
+                  <b>{item.my_review ? T.portfolio.myReview : T.portfolio.yourStars}</b>
+                  <StarInput value={stars} onChange={(s) => updateReview(s, text)} invalid={starsError} />
+                  {starsError && <span className="field-error" role="alert">{T.portfolio.starsRequired}</span>}
+                  <Field label={T.portfolio.reviewText} hint={T.portfolio.chars(text.length, REVIEW_MAX)}>
+                    {(id) => <textarea id={id} className="textarea" rows={3} maxLength={REVIEW_MAX} placeholder={T.portfolio.reviewPh} value={text} onChange={(e) => updateReview(stars, e.target.value)} />}
+                  </Field>
+                  {saveReview.error && <ErrorBox error={saveReview.error} />}
+                  {item.my_review && (
+                    <div>
+                      <Button variant="ghost" size="sm" icon={<Trash2 size={15} />} loading={deleteReview.isPending} onClick={() => deleteReview.mutate()}>
+                        {T.portfolio.reviewDelete}
+                      </Button>
                     </div>
-                    {r.text && <p className="portfolio-description">{r.text}</p>}
-                  </div>
+                  )}
                 </div>
-              ))}
-            </div>
-          )}
-          <Pagination data={reviews.pagination} page={reviews.page} onPageChange={reviews.onPageChange} />
-        </section>
+              ) : (
+                item.actions.edit && <Callout>{T.portfolio.ownHint}</Callout>
+              )}
+              {reviews.error && <ErrorBox error={reviews.error} onRetry={() => reviews.refetch()} />}
+              {reviews.isLoading && <div className="card"><SkeletonRows rows={2} /></div>}
+              {reviews.data && !reviews.data.length && (
+                <div className="card"><Empty icon={<MessageSquare />} title={T.portfolio.reviewsEmpty} hint={item.actions.review ? T.portfolio.reviewsEmptyHint : undefined} /></div>
+              )}
+              {reviews.data && reviews.data.length > 0 && (
+                <div className="card">
+                  {reviews.data.map((r) => (
+                    <div key={r.id} className="list-row portfolio-review">
+                      <Avatar user={r.author} />
+                      <div className="grow stack-sm" style={{ gap: 4, minWidth: 0 }}>
+                        <div className="row-wrap" style={{ gap: 8 }}>
+                          <b>{r.author.full_name}</b>
+                          <Stars value={r.stars} size={14} />
+                          <span className="small muted" title={fmtDate(r.updated_at)}>{timeAgo(r.updated_at)}</span>
+                        </div>
+                        {r.text && <p className="portfolio-description">{r.text}</p>}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <Pagination data={reviews.pagination} page={reviews.page} onPageChange={reviews.onPageChange} />
+            </section>
+          </div>
+        </div>
       </div>
     </Modal>
+  );
+}
+
+type Media = { kind: "image"; url: string } | { kind: "video"; video: FileInfo };
+
+/** Instagram karuseli kabi: muqova rasmi va videolar bitta ramkada, ← → va nuqtalar bilan almashtiriladi. */
+function MediaCarousel({ item }: { item: PortfolioItemDetail }) {
+  const media: Media[] = [
+    ...(item.cover ? [{ kind: "image" as const, url: item.cover }] : []),
+    ...item.videos.map((video) => ({ kind: "video" as const, video })),
+  ];
+  const [index, setIndex] = useState(0);
+  const current = media[Math.min(index, media.length - 1)];
+  const go = (step: number) => setIndex((i) => (i + step + media.length) % media.length);
+
+  return (
+    <div className="ig-post-media" onKeyDown={(e) => {
+      if (media.length < 2 || (e.target as HTMLElement).tagName === "VIDEO") return;
+      if (e.key === "ArrowLeft") go(-1);
+      if (e.key === "ArrowRight") go(1);
+    }}>
+      {!current && (
+        <div className={`ig-media-empty tone-${TONES[item.id % TONES.length]}`}>
+          <ImageIcon size={32} aria-hidden />
+          <b>{item.title}</b>
+          <span className="small">{T.portfolio.media.empty}</span>
+        </div>
+      )}
+      {current?.kind === "image" && <img src={current.url} alt={item.title} />}
+      {current?.kind === "video" && (
+        <video key={current.video.id} controls preload="metadata" src={current.video.url}>
+          {T.portfolio.videoUnsupported}
+        </video>
+      )}
+      {media.length > 1 && (
+        <>
+          <button type="button" className="ig-nav prev" onClick={() => go(-1)} aria-label={T.portfolio.media.prev}><ChevronLeft size={20} /></button>
+          <button type="button" className="ig-nav next" onClick={() => go(1)} aria-label={T.portfolio.media.next}><ChevronRight size={20} /></button>
+          <span className="ig-counter" aria-live="polite">{T.portfolio.media.counter(index + 1, media.length)}</span>
+          <span className="ig-dots" aria-hidden>
+            {media.map((_, i) => <span key={i} className={i === index ? "on" : ""} />)}
+          </span>
+        </>
+      )}
+    </div>
+  );
+}
+
+const TONES = ["violet", "info", "success", "warning"] as const;
+
+function CoverSection({ item }: { item: PortfolioItemDetail }) {
+  const toast = useToast();
+  const refresh = useRefresh(["portfolio"]);
+  const [files, setFiles] = useState<File[]>([]);
+  const upload = useMutation({
+    mutationFn: (file: File) => uploadCover(item.id, file),
+    onSuccess: () => {
+      toast(T.portfolio.coverUploadedToast);
+      setFiles([]);
+      void refresh();
+    },
+  });
+  const remove = useMutation({
+    mutationFn: () => api.del<PortfolioItemDetail>(`/portfolio/items/${item.id}/cover/`),
+    onSuccess: () => {
+      toast(T.portfolio.coverDeletedToast);
+      void refresh();
+    },
+    onError: (e) => toast(e.message, "error"),
+  });
+
+  return (
+    <div className="stack">
+      {item.cover ? (
+        <div className="row-wrap" style={{ gap: 16, alignItems: "flex-end" }}>
+          <img className="ig-cover-preview" src={item.cover} alt={T.portfolio.cover} />
+          <ConfirmButton onConfirm={() => remove.mutate()} loading={remove.isPending}>
+            <Trash2 size={15} /> {T.portfolio.coverDelete}
+          </ConfirmButton>
+        </div>
+      ) : (
+        <p className="small muted" style={{ margin: 0 }}>{T.portfolio.coverEmpty}</p>
+      )}
+      <FilePicker files={files} onChange={(f) => (setFiles(f), upload.reset())} multiple={false} accept={COVER_ACCEPT}
+        label={T.portfolio.coverPick} hint={T.portfolio.coverHint} maxMb={COVER_MAX_MB} />
+      {upload.error && <ErrorBox error={upload.error} />}
+      {files[0] && (
+        <div>
+          <Button variant="primary" icon={<Upload size={16} />} loading={upload.isPending} onClick={() => upload.mutate(files[0]!)}>
+            {T.portfolio.coverUpload}
+          </Button>
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -363,21 +480,16 @@ function VideoSection({ item }: { item: PortfolioItemDetail }) {
     <div className="stack">
       {item.videos.length === 0 && !item.actions.upload && <p className="small muted">{T.portfolio.videosEmpty}</p>}
       {item.videos.map((v) => (
-        <figure key={v.id} className="portfolio-video-wrap">
-          <video className="portfolio-video" controls preload="metadata" src={v.url}>
-            {T.portfolio.videoUnsupported}
-          </video>
-          <figcaption className="row-wrap" style={{ justifyContent: "space-between" }}>
-            <span className="row small muted" style={{ gap: 6, minWidth: 0 }}>
-              <Video size={14} /> <span className="ellipsis">{v.name}</span> {v.size !== null && `· ${fileSize(v.size)}`}
-            </span>
-            {item.actions.upload && (
-              <ConfirmButton onConfirm={() => remove.mutate(v.id)} loading={remove.isPending}>
-                <Trash2 size={15} /> {T.portfolio.videoDelete}
-              </ConfirmButton>
-            )}
-          </figcaption>
-        </figure>
+        <div key={v.id} className="row-wrap" style={{ justifyContent: "space-between" }}>
+          <span className="row small muted" style={{ gap: 6, minWidth: 0 }}>
+            <Video size={14} /> <span className="ellipsis">{v.name}</span> {v.size !== null && `· ${fileSize(v.size)}`}
+          </span>
+          {item.actions.upload && (
+            <ConfirmButton onConfirm={() => remove.mutate(v.id)} loading={remove.isPending}>
+              <Trash2 size={15} /> {T.portfolio.videoDelete}
+            </ConfirmButton>
+          )}
+        </div>
       ))}
       {item.actions.upload && (
         <div className="stack-sm">

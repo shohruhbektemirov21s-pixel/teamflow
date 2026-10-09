@@ -21,7 +21,7 @@ const DETAIL: PortfolioDetail = {
   experience: { since: "2024-01-15", months: 26 },
   years: [{ year: 2026, projects: 1, tasks: 7 }],
   items: [{ id: 10, is_auto: true, title: "Portal", link: "", start_date: "2025-01-01", end_date: null,
-    project: { code: "PRJ-1", stage: "started" }, tasks_done: 7, rating: 4.5, reviews_count: 2, videos_count: 1 }],
+    project: { code: "PRJ-1", stage: "started" }, tasks_done: 7, rating: 4.5, reviews_count: 2, videos_count: 1, cover: null }],
   recent_tasks: [{ id: 1, code: "100000001", title: "Kirish sahifasi", project: "Portal", completed_at: "2026-10-01T10:00:00Z" }],
   actions: { follow: true, add: false },
 };
@@ -56,7 +56,7 @@ describe("Portfolio sahifasi", () => {
     fireEvent.click(rows[0]!);
     const dialog = await screen.findByRole("dialog", { name: T.portfolio.title });
     expect(await within(dialog).findByRole("button", { name: /Portal/ })).toBeTruthy();
-    expect(within(dialog).getByText(T.portfolio.experience(26))).toBeTruthy();
+    expect(within(dialog).getByText(T.portfolio.bio(T.portfolio.experience(26), "15.01.2024"))).toBeTruthy();
   }, 20_000); // ModalHost modalni lazy yuklaydi — birinchi transform sekin
 
   it("dasturchiga o'z portfoliosi tugmasi chiqadi", async () => {
@@ -134,5 +134,70 @@ describe("Portfolio oynasi", () => {
     await waitFor(() => expect(api.post).toHaveBeenCalledWith("/portfolio/items/", {
       title: "Telegram bot", description: "", link: "https://github.com/x/bot", start_date: null, end_date: null,
     }));
+  });
+
+  it("Instagram profili: sonlar, kvadrat setkada muqova va video belgisi, Tarix tabi", async () => {
+    const cover = "/api/portfolio/covers/10/?v=1";
+    mockGet({ [`/portfolio/${JASUR.id}/`]: { ...DETAIL, items: [{ ...DETAIL.items[0]!, cover }] } });
+    renderApp(<PortfolioModal id={JASUR.id} />);
+
+    const tile = await screen.findByRole("button", { name: T.portfolio.tileLabel("Portal") });
+    expect(tile.querySelector(`img[src="${cover}"]`)).toBeTruthy();
+    expect(within(tile).getByTitle(T.portfolio.hasVideo)).toBeTruthy();
+    const counts = screen.getByRole("list");
+    expect(counts.textContent).toContain(`1 ${T.portfolio.counts.projects}`);
+    expect(counts.textContent).toContain(`3 ${T.portfolio.counts.followers}`);
+    expect(counts.textContent).toContain(`7 ${T.portfolio.counts.tasks}`);
+
+    fireEvent.click(screen.getByRole("tab", { name: new RegExp(T.portfolio.tabs.history) }));
+    expect(await screen.findByText("Kirish sahifasi")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: T.portfolio.tileLabel("Portal") })).toBeNull();
+  });
+
+  it("loyiha oynasida muqova va videolar karuselda almashadi", async () => {
+    mockGet({
+      [`/portfolio/items/${ITEM.id}/`]: { ...ITEM, cover: "/api/portfolio/covers/10/?v=1" },
+      [`/portfolio/items/${ITEM.id}/reviews/`]: { count: 0, next: null, previous: null, results: [] },
+    });
+    renderApp(<PortfolioModal id={JASUR.id} item={ITEM.id} />);
+    const dialog = await screen.findByRole("dialog", { name: "Portal" });
+    expect(dialog.querySelector('img[src="/api/portfolio/covers/10/?v=1"]')).toBeTruthy();
+    expect(within(dialog).getByText(T.portfolio.media.counter(1, 2))).toBeTruthy();
+
+    fireEvent.click(within(dialog).getByRole("button", { name: T.portfolio.media.next }));
+    expect(dialog.querySelector('video[src="/api/portfolio/videos/5/"]')).toBeTruthy();
+    expect(within(dialog).getByText(T.portfolio.media.counter(2, 2))).toBeTruthy();
+  });
+
+  it("tahrirlashda muqova rasmi yuklanadi", async () => {
+    mockGet({
+      [`/portfolio/items/${ITEM.id}/`]: { ...ITEM, actions: { edit: true, delete: false, upload: true, review: false } },
+      [`/portfolio/items/${ITEM.id}/reviews/`]: { count: 0, next: null, previous: null, results: [] },
+    });
+    vi.mocked(api.post).mockResolvedValue(ITEM);
+    renderApp(<PortfolioModal id={JASUR.id} item={ITEM.id} />);
+    fireEvent.click(await screen.findByRole("button", { name: T.common.edit }));
+    expect(await screen.findByText(T.portfolio.coverEmpty)).toBeTruthy();
+
+    const input = document.querySelector<HTMLInputElement>('input[type="file"][accept=".jpg,.jpeg,.png,.webp"]')!;
+    fireEvent.change(input, { target: { files: [new File(["x"], "muqova.png", { type: "image/png" })] } });
+    fireEvent.click(await screen.findByRole("button", { name: T.portfolio.coverUpload }));
+
+    await waitFor(() => expect(api.post).toHaveBeenCalledWith(`/portfolio/items/${ITEM.id}/cover/`, expect.any(FormData)));
+    const form = vi.mocked(api.post).mock.calls[0]![1] as FormData;
+    expect((form.get("cover") as File).name).toBe("muqova.png");
+  });
+
+  it("yangi loyiha rasm bilan: avval loyiha, keyin muqova yuklanadi", async () => {
+    mockGet({});
+    vi.mocked(api.post).mockResolvedValue({ ...ITEM, id: 11 });
+    renderApp(<PortfolioModal id={JASUR.id} add />);
+    fireEvent.change(await screen.findByLabelText(new RegExp(T.portfolio.fields.title)), { target: { value: "Telegram bot" } });
+    const input = document.querySelector<HTMLInputElement>('input[type="file"]')!;
+    fireEvent.change(input, { target: { files: [new File(["x"], "bot.jpg", { type: "image/jpeg" })] } });
+    fireEvent.click(screen.getByRole("button", { name: T.common.save }));
+
+    await waitFor(() => expect(api.post).toHaveBeenCalledWith("/portfolio/items/11/cover/", expect.any(FormData)));
+    expect(vi.mocked(api.post).mock.calls[0]![0]).toBe("/portfolio/items/");
   });
 });

@@ -301,6 +301,8 @@ export interface PortfolioItem {
   rating: number | null;
   reviews_count: number;
   videos_count: number;
+  /** Muqova rasmi (setkadagi kvadrat); yo'q bo'lsa — null. */
+  cover: string | null;
 }
 
 export interface PortfolioDetail extends PortfolioDeveloper {
