@@ -664,8 +664,11 @@ export const T = {
     projectsFound: (n: number) => `${n} ta loyiha`,
     projectsGridEmpty: "Loyiha topilmadi",
     monthsTitle: "Oylar bo'yicha",
-    weeksTitle: "Haftalar bo'yicha",
+    weekTitle: "Haftalik faoliyat (bajarilgan vazifalar)",
+    thisMonth: (n: number) => `Bu oy: ${n} vazifa`,
+    lateN: (n: number) => `Kechikkan: ${n} vazifa`,
     tasksLate: "Kechikib bajarilgan",
+    filterAll: "Hammasi",
     stat: {
       rating: "Reyting",
       followers: "Kuzatuvchilar",

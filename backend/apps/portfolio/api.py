@@ -16,8 +16,8 @@ from .models import PortfolioItem, PortfolioReview, PortfolioVideo
 from .permissions import can_follow, portfolio_owners
 from .serializers import ItemInput, ReviewInput, developer_row, item_detail, item_row, review_row, video_row
 from .stats import (
-    developers_with_stats, experience, items_with_stats, months, recent_tasks, summary, tasks_done_by_project,
-    tasks_late, weeks, years,
+    days, developers_with_stats, experience, items_with_stats, months, recent_tasks, summary, tasks_done_by_project,
+    tasks_late, years,
 )
 
 
@@ -89,7 +89,7 @@ def developer_detail(request, pk):
         "experience": experience(owner, items),
         "years": years(owner, items),
         "months": months(owner),
-        "weeks": weeks(owner),
+        "days": days(owner),
         "tasks_late": tasks_late(owner),
         "items": [item_row(i, done.get(i.project_id, 0)) for i in items],
         "recent_tasks": recent_tasks(owner),

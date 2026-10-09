@@ -835,13 +835,8 @@ button.list-row:focus-visible { outline-offset: -2px; }
 .portfolio-video-wrap { margin: 0; display: flex; flex-direction: column; gap: 8px; }
 .portfolio-video { width: 100%; max-height: 420px; border-radius: var(--radius); background: #000; }
 
-/* Instagram uslubidagi dasturchilar grid */
-.portfolio-dev-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; }
-.portfolio-dev-card { position: relative; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 8px; padding: 24px 16px 20px; }
-.portfolio-dev-card .rank-pill { position: absolute; top: 12px; left: 12px; }
-.portfolio-dev-tech { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px; }
-.tech-chip { font-size: 11px; line-height: 1.6; padding: 1px 9px; border-radius: var(--radius-full); background: var(--violet-soft); color: var(--violet); }
-.portfolio-dev-card-cta { margin-top: 4px; }
+.portfolio-dev-tech { display: flex; flex-wrap: wrap; gap: 4px; }
+.tech-chip { font-size: 11px; line-height: 1.6; padding: 1px 9px; border-radius: var(--radius-full); background: var(--violet-soft); color: var(--violet); white-space: nowrap; }
 
 /* Instagram uslubidagi loyihalar ("post") grid */
 .portfolio-post-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 12px; }
@@ -866,10 +861,34 @@ button.list-row:focus-visible { outline-offset: -2px; }
 .portfolio-sparkline { display: flex; align-items: flex-end; gap: 3px; height: 48px; padding: 8px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface-2); }
 .portfolio-sparkline-bar { flex: 1; min-height: 4px; background: var(--violet); border-radius: 2px 2px 0 0; }
 
+.portfolio-week-card { display: flex; align-items: center; gap: 24px; flex-wrap: wrap; }
+.portfolio-week-chart { flex: 1 1 220px; min-width: 0; }
+.portfolio-week-bars { display: flex; align-items: flex-end; gap: 10px; height: 64px; }
+.portfolio-week-bar-col { display: flex; flex-direction: column; align-items: center; gap: 6px; flex: 1; }
+.portfolio-week-bar { width: 18px; min-height: 4px; background: var(--violet); border-radius: 4px 4px 0 0; }
+.portfolio-week-pills { display: flex; gap: 10px; flex-wrap: wrap; margin-left: auto; }
+.portfolio-pill { border-radius: var(--radius-sm); padding: 8px 14px; font-size: var(--fs-sm); font-weight: 600; white-space: nowrap; }
+.portfolio-pill.tone-success { background: var(--success-soft); color: var(--success); }
+.portfolio-pill.tone-danger { background: var(--danger-soft); color: var(--danger); }
+
+.portfolio-filter-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.portfolio-filter-chip {
+  border-radius: var(--radius-full); padding: 7px 16px; font-size: var(--fs-sm); font-weight: 600;
+  border: 1px solid var(--border-strong); background: var(--surface); color: var(--violet); cursor: pointer;
+}
+.portfolio-filter-chip:hover { background: var(--surface-hover); }
+.portfolio-filter-chip.active { background: var(--violet); border-color: var(--violet); color: #fff; }
+
+.portfolio-dev-rows { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; }
+.portfolio-dev-row { display: flex; gap: 16px; align-items: flex-start; text-align: left; }
+.portfolio-dev-row-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+.portfolio-dev-row-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+
 @media (max-width: 640px) {
   .portfolio-row { flex-wrap: wrap; gap: 12px; }
   .portfolio-row-stats { flex-basis: 100%; align-items: flex-start; padding-left: 44px; }
   .portfolio-stats { grid-template-columns: 1fr 1fr; }
-  .portfolio-dev-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
+  .portfolio-dev-rows { grid-template-columns: 1fr; }
   .portfolio-post-grid { grid-template-columns: repeat(3, 1fr); gap: 6px; }
+  .portfolio-week-pills { margin-left: 0; }
 }

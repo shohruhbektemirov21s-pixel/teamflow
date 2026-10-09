@@ -314,7 +314,7 @@ export interface PortfolioDetail extends PortfolioDeveloper {
   experience: { since: string; months: number };
   years: { year: number; projects: number; tasks: number }[];
   months: { year: number; month: number; tasks: number }[];
-  weeks: { week_start: string; tasks: number }[];
+  days: { label: string; tasks: number }[];
   tasks_late: number;
   items: PortfolioItem[];
   recent_tasks: { id: number; code: string; title: string; project: string; completed_at: string | null }[];

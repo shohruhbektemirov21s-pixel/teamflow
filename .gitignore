@@ -17,3 +17,4 @@ backend/server-error.log
 .playwright-mcp/
 *.tsbuildinfo
 
+deploy-main.bat

@@ -56,24 +56,32 @@ function SummaryCards({ data }: { data?: PortfolioSummary }) {
   );
 }
 
-function DeveloperCard({ d, onOpen }: { d: PortfolioDeveloper; onOpen: () => void }) {
+function DeveloperRow({ d, onOpen }: { d: PortfolioDeveloper; onOpen: () => void }) {
   return (
-    <button type="button" className="card portfolio-dev-card clickable" onClick={onOpen}>
-      {d.rank !== null && (
-        <span className={`rank-pill ${d.rank <= 3 ? `top top-${d.rank}` : ""}`} aria-label={T.portfolio.rank(d.rank)}>
-          {d.rank}
+    <button type="button" className="card card-pad portfolio-dev-row clickable" onClick={onOpen}>
+      <Avatar user={d} size="lg" />
+      <span className="portfolio-dev-row-body">
+        <span className="row-wrap" style={{ gap: 8 }}>
+          {d.rank !== null && (
+            <span className={`rank-pill ${d.rank <= 3 ? `top top-${d.rank}` : ""}`} aria-label={T.portfolio.rank(d.rank)}>
+              {d.rank}
+            </span>
+          )}
+          <b className="ellipsis">{d.full_name}</b>
+          {d.is_following && <Badge tone="info" dot={false}><UserCheck size={12} /> {T.portfolio.following}</Badge>}
         </span>
-      )}
-      <Avatar user={d} size="xl" />
-      <b className="ellipsis" style={{ maxWidth: "100%" }}>{d.full_name}</b>
-      <span className="small muted ellipsis" style={{ maxWidth: "100%" }}>{d.specialty || T.portfolio.developer}</span>
-      {d.technologies && techChips(d.technologies)}
-      <Stars value={d.rating} count={d.reviews_count} size={14} />
-      <span className="row small muted" style={{ gap: 4 }}>
-        <FolderKanban size={13} /> {T.portfolio.projectsN(d.projects_count)}
+        <span className="small muted ellipsis">{d.specialty || T.portfolio.developer}</span>
+        {d.technologies && techChips(d.technologies)}
+        <span className="portfolio-dev-row-foot">
+          <span className="row-wrap" style={{ gap: 12 }}>
+            <Stars value={d.rating} count={d.reviews_count} size={14} />
+            <span className="row small muted" style={{ gap: 4 }}>
+              <FolderKanban size={13} /> {T.portfolio.projectsN(d.projects_count)}
+            </span>
+          </span>
+          <span className="btn btn-sm">{T.portfolio.viewProfile}</span>
+        </span>
       </span>
-      {d.is_following && <Badge tone="info" dot={false}><UserCheck size={12} /> {T.portfolio.following}</Badge>}
-      <span className="btn btn-sm portfolio-dev-card-cta">{T.portfolio.viewProfile}</span>
     </button>
   );
 }
@@ -117,6 +125,9 @@ export default function PortfolioPage() {
     ["portfolio", "projects", projectsSearch], "/portfolio/projects/", { q: projectsSearch });
 
   const rows = list.data ?? [];
+  const techFilters = Array.from(new Set(
+    rows.flatMap((d) => d.technologies.split(",").map((t) => t.trim()).filter(Boolean)),
+  )).slice(0, 8);
 
   return (
     <div className="stack">
@@ -144,12 +155,25 @@ export default function PortfolioPage() {
         )}
       </div>
 
+      {techFilters.length > 0 && (
+        <div className="portfolio-filter-chips">
+          <button type="button" className={`portfolio-filter-chip ${!q ? "active" : ""}`} onClick={() => setQ("")}>
+            {T.portfolio.filterAll}
+          </button>
+          {techFilters.map((t) => (
+            <button key={t} type="button" className={`portfolio-filter-chip ${q === t ? "active" : ""}`} onClick={() => setQ(t)}>
+              {t}
+            </button>
+          ))}
+        </div>
+      )}
+
       {list.error && <ErrorBox error={list.error} onRetry={() => list.refetch()} />}
       {list.isLoading && <div className="card"><SkeletonRows rows={4} /></div>}
       {list.data && !rows.length && <div className="card"><Empty icon={<Users />} title={T.portfolio.empty} hint={T.portfolio.emptyHint} /></div>}
       {rows.length > 0 && (
-        <div className="portfolio-dev-grid">
-          {rows.map((d) => <DeveloperCard key={d.id} d={d} onOpen={() => open({ portfolio: d.id })} />)}
+        <div className="portfolio-dev-rows">
+          {rows.map((d) => <DeveloperRow key={d.id} d={d} onOpen={() => open({ portfolio: d.id })} />)}
         </div>
       )}
       <Pagination data={list.pagination} page={list.page} onPageChange={list.onPageChange} />

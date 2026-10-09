@@ -22,7 +22,7 @@ const DETAIL: PortfolioDetail = {
   ...dev({ rating: 4.5, reviews_count: 2, followers_count: 3, projects_count: 1, tasks_done: 7 }),
   experience: { since: "2024-01-15", months: 26 },
   years: [{ year: 2026, projects: 1, tasks: 7 }],
-  months: [], weeks: [], tasks_late: 0,
+  months: [], days: [], tasks_late: 0,
   items: [{ id: 10, is_auto: true, title: "Portal", link: "", start_date: "2025-01-01", end_date: null,
     project_type: "", project_type_label: "", preview_image: null,
     project: { code: "PRJ-1", stage: "started" }, tasks_done: 7, rating: 4.5, reviews_count: 2, videos_count: 1 }],
@@ -81,7 +81,9 @@ describe("Portfolio sahifasi", () => {
     renderApp(<PortfolioPage />);
     expect(await screen.findByText(String(SUMMARY.developers_count))).toBeTruthy();
     expect(screen.getAllByText(String(SUMMARY.avg_rating)).length).toBeGreaterThan(0);
-    expect(screen.getByText("React")).toBeTruthy();
+    // "React" filtr chipida ham, dasturchi qatorida ham chiqadi
+    expect(screen.getAllByText("React").length).toBeGreaterThanOrEqual(2);
+    expect(screen.getByRole("button", { name: T.portfolio.filterAll })).toBeTruthy();
     expect(screen.getByText("+1")).toBeTruthy(); // 4 ta texnologiyadan 3 tasi ko'rinadi, 1 tasi "+1"
     expect(await screen.findByRole("button", { name: /Portal/ })).toBeTruthy();
   });

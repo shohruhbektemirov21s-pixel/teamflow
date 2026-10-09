@@ -117,23 +117,21 @@ def months(owner, limit=12):
     return result
 
 
-def weeks(owner, limit=8):
-    """So'nggi haftalar bo'yicha bajarilgan vazifalar soni (dushanbadan boshlab, joriy hafta tepada)."""
+WEEKDAY_LABELS = ["Du", "Se", "Cho", "Pay", "Ju", "Sha", "Yak"]
+
+
+def days(owner):
+    """Joriy hafta kunlari bo'yicha bajarilgan vazifalar soni (dushanba — yakshanba, kelmagan kunlar 0)."""
     today = timezone.localdate()
-    since = today - timedelta(weeks=limit - 1, days=today.weekday())
-    rows = done_assignments().filter(developer=owner, task__completed_at__date__gte=since).values_list(
-        "task__completed_at", flat=True)
+    monday = today - timedelta(days=today.weekday())
+    rows = done_assignments().filter(
+        developer=owner, task__completed_at__date__gte=monday, task__completed_at__date__lte=monday + timedelta(days=6)
+    ).values_list("task__completed_at", flat=True)
     counts = {}
     for completed_at in rows:
         d = timezone.localtime(completed_at).date()
-        week_start = d - timedelta(days=d.weekday())
-        counts[week_start] = counts.get(week_start, 0) + 1
-    result = []
-    cur = today - timedelta(days=today.weekday())
-    for _ in range(limit):
-        result.append({"week_start": cur, "tasks": counts.get(cur, 0)})
-        cur -= timedelta(weeks=1)
-    return result
+        counts[d] = counts.get(d, 0) + 1
+    return [{"label": WEEKDAY_LABELS[i], "tasks": counts.get(monday + timedelta(days=i), 0)} for i in range(7)]
 
 
 def summary():

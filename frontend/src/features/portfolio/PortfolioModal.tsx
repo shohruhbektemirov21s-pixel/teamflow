@@ -100,10 +100,8 @@ function PortfolioOverview({ id }: { id: number }) {
 
           <TechnologiesSection data={data} own={own} />
 
-          <div className="grid-2">
-            <Sparkline data={data.months} label={T.portfolio.monthsTitle} />
-            <Sparkline data={data.weeks} label={T.portfolio.weeksTitle} />
-          </div>
+          <WeeklyActivityCard data={data} />
+          <Sparkline data={data.months} label={T.portfolio.monthsTitle} />
 
           <section>
             <h3 className="section-title">{T.portfolio.projects}</h3>
@@ -153,6 +151,30 @@ function PortfolioOverview({ id }: { id: number }) {
         </div>
       )}
     </Modal>
+  );
+}
+
+function WeeklyActivityCard({ data }: { data: PortfolioDetail }) {
+  const max = Math.max(1, ...data.days.map((d) => d.tasks));
+  const thisMonth = data.months[0]?.tasks ?? 0;
+  return (
+    <div className="card card-pad portfolio-week-card">
+      <div className="portfolio-week-chart">
+        <div className="small muted" style={{ fontWeight: 600, marginBottom: 10 }}>{T.portfolio.weekTitle}</div>
+        <div className="portfolio-week-bars">
+          {data.days.map((d) => (
+            <div key={d.label} className="portfolio-week-bar-col">
+              <div className="portfolio-week-bar" style={{ height: `${Math.max(6, (d.tasks / max) * 100)}%` }} title={String(d.tasks)} />
+              <span className="small muted">{d.label}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+      <div className="portfolio-week-pills">
+        <span className="portfolio-pill tone-success">{T.portfolio.thisMonth(thisMonth)}</span>
+        <span className="portfolio-pill tone-danger">{T.portfolio.lateN(data.tasks_late)}</span>
+      </div>
+    </div>
   );
 }
 

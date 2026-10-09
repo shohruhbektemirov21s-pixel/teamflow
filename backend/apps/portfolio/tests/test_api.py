@@ -459,7 +459,7 @@ class PreviewImageTests(PortfolioTestCase):
 
 
 class DeveloperDetailActivityTests(PortfolioTestCase):
-    def test_months_weeks_and_late_tasks_present(self):
+    def test_months_days_and_late_tasks_present(self):
         task = Task.objects.create(project=self.project, title="Kechikkan", created_by=self.pm,
                                    status=Task.Status.DONE, completed_at=timezone.now(),
                                    due_at=timezone.now() - timedelta(days=2))
@@ -467,5 +467,8 @@ class DeveloperDetailActivityTests(PortfolioTestCase):
         res = client_for(self.dept).get(f"/api/portfolio/{self.dev.pk}/")
         self.assertEqual(res.status_code, 200)
         self.assertEqual(len(res.data["months"]), 12)
-        self.assertEqual(len(res.data["weeks"]), 8)
+        self.assertEqual(res.data["months"][0]["tasks"], 1)
+        self.assertEqual(len(res.data["days"]), 7)
+        self.assertEqual([d["label"] for d in res.data["days"]], ["Du", "Se", "Cho", "Pay", "Ju", "Sha", "Yak"])
+        self.assertEqual(sum(d["tasks"] for d in res.data["days"]), 1)
         self.assertEqual(res.data["tasks_late"], 1)
