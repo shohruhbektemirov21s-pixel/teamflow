@@ -13,10 +13,10 @@ from rest_framework.response import Response
 from apps.core.api_utils import ServiceError, avatar_url
 
 from . import services
-from .models import Role, Specialty, User
+from .models import Role, User
 from .throttles import LOGIN_THROTTLES, AuthThrottle
 from .serializers import (
-    LoginSerializer, MeSerializer, RegisterSerializer, SpecialtySerializer,
+    LoginSerializer, MeSerializer, RegisterSerializer,
     ProfileSerializer, ProfileUpdateSerializer, ChangePasswordSerializer, BusinessTripSerializer, ResponsibilitiesSerializer
 )
 
@@ -27,12 +27,6 @@ from .serializers import (
 def csrf(request):
     """SPA ishga tushganda chaqiriladi: `csrftoken` cookie o'rnatiladi."""
     return Response({"ok": True})
-
-
-@api_view(["GET"])
-@permission_classes([AllowAny])
-def specialties(request):
-    return Response(SpecialtySerializer(Specialty.objects.filter(is_active=True), many=True).data)
 
 
 @api_view(["POST"])

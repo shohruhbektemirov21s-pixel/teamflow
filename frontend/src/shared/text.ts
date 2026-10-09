@@ -96,8 +96,6 @@ export const T = {
     registerSubtitle: "Ma'lumotlaringizni to'ldiring — administrator tasdiqlagach kirasiz",
     firstName: "Ism",
     lastName: "Familiya",
-    specialty: "Mutaxassislik",
-    specialtyPick: "Tanlang",
     role: "Rolingiz",
     departmentName: "Boshqarma nomi",
     departmentHint: "Masalan: Axborot texnologiyalari boshqarmasi",
