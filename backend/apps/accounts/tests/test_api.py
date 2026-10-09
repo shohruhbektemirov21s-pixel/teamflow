@@ -3,17 +3,16 @@ from django.test import TestCase
 from rest_framework.test import APIClient
 
 from apps.accounts.models import Role, User
-from apps.panel.tests.factories import client_for, make_user, specialty
+from apps.panel.tests.factories import client_for, make_user
 
 
 class RegisterLoginTests(TestCase):
     def setUp(self):
         cache.clear()  # throttle hisoblagichi
         self.c = APIClient()
-        self.spec = specialty()
 
     def payload(self, **kw):
-        data = {"first_name": "Ali", "last_name": "Valiyev", "specialty": self.spec.pk, "role": "developer",
+        data = {"first_name": "Ali", "last_name": "Valiyev", "role": "developer",
                 "username": "ali", "password": "Kuchli-parol-2026"}
         data.update(kw)
         return data
@@ -43,21 +42,22 @@ class RegisterLoginTests(TestCase):
         self.c.post("/api/auth/register/", self.payload(department_name="X"), format="json")
         self.assertEqual(User.objects.get(username="ali").department_name, "")
 
-    def test_plain_user_role_does_not_require_specialty(self):
-        payload = self.payload(role="user")
-        payload.pop("specialty")
-        r = self.c.post("/api/auth/register/", payload, format="json")
+    def test_plain_user_role_registers(self):
+        r = self.c.post("/api/auth/register/", self.payload(role="user"), format="json")
         self.assertEqual(r.status_code, 201)
         user = User.objects.get(username="ali")
         self.assertEqual(user.role, Role.USER)
         self.assertIsNone(user.specialty)
 
-    def test_developer_still_requires_specialty(self):
-        payload = self.payload()
-        payload.pop("specialty")
-        r = self.c.post("/api/auth/register/", payload, format="json")
-        self.assertEqual(r.status_code, 400)
-        self.assertIn("specialty", r.data["fields"])
+    def test_registration_no_longer_collects_specialty(self):
+        """Mutaxassislik ro'yxatdan o'tishda so'ralmaydi (2026-10-09) — hech bir rolda majburiy emas."""
+        for role in ("developer", "pm", "department"):
+            kw = {"role": role, "username": f"ali_{role}"}
+            if role == "department":
+                kw["department_name"] = "IT"
+            r = self.c.post("/api/auth/register/", self.payload(**kw), format="json")
+            self.assertEqual(r.status_code, 201, r.data)
+            self.assertIsNone(User.objects.get(username=f"ali_{role}").specialty)
 
     def test_duplicate_username(self):
         make_user(Role.PM, username="ali")

@@ -1,4 +1,3 @@
-import { useQuery } from "@tanstack/react-query";
 import { Building2, CheckCircle2, ClipboardCheck, Code2, FolderKanban, KanbanSquare, Sparkles, User } from "lucide-react";
 import { type FormEvent, type ReactNode, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
@@ -88,8 +87,7 @@ const ROLE_ICON: Record<string, typeof Code2> = { developer: Code2, pm: Clipboar
 
 export function RegisterPage() {
   const meta = useMeta();
-  const specialties = useQuery({ queryKey: ["specialties"], queryFn: () => api.get<{ id: number; name: string }[]>("/specialties/") });
-  const [form, setForm] = useState({ first_name: "", last_name: "", specialty: "", role: "developer", department_name: "", telegram_username: "", username: "", password: "" });
+  const [form, setForm] = useState({ first_name: "", last_name: "", role: "developer", department_name: "", telegram_username: "", username: "", password: "" });
   const [error, setError] = useState<ApiError | null>(null);
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState(false);
@@ -100,7 +98,7 @@ export function RegisterPage() {
     setBusy(true);
     setError(null);
     try {
-      await api.post("/auth/register/", { ...form, specialty: form.specialty ? Number(form.specialty) : null });
+      await api.post("/auth/register/", form);
       setDone(true);
     } catch (err) {
       setError(err instanceof ApiError ? err : new ApiError(0, T.common.errorGeneric));
@@ -142,18 +140,6 @@ export function RegisterPage() {
             {(id, bad) => <input id={id} className="input" aria-invalid={bad} value={form.last_name} onChange={set("last_name")} autoComplete="family-name" />}
           </Field>
         </div>
-        {form.role !== "user" && (
-          <Field label={T.auth.specialty} required error={fe("specialty")}>
-            {(id, bad) => (
-              <select id={id} className="select" aria-invalid={bad} value={form.specialty} onChange={set("specialty")}>
-                <option value="">{T.auth.specialtyPick}</option>
-                {specialties.data?.map((s) => (
-                  <option key={s.id} value={s.id}>{s.name}</option>
-                ))}
-              </select>
-            )}
-          </Field>
-        )}
         <div className="field">
           <span className="field-label">{T.auth.role} <span className="req">*</span></span>
           <div className="role-cards" role="group" aria-label={T.auth.role}>

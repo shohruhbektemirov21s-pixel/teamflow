@@ -77,12 +77,13 @@ Barcha ruxsatlar **serverda** tekshiriladi, frontendda tugmani yashirish yetarli
 Forma maydonlari:
 1. Ism
 2. Familiya
-3. Mutaxassislik (ro'yxatdan tanlanadi)
-4. Rol: Loyiha menejeri / Dasturchi / Boshqarma
-5. **Boshqarma** tanlansa, pastida **boshqarma nomi** maydoni chiqadi
-6. Telegram username (`@username`) — bildirishnomalar uchun (8-bo'lim)
-7. Login
-8. Parol
+3. Rol: Loyiha menejeri / Dasturchi / Boshqarma / Oddiy foydalanuvchi
+4. **Boshqarma** tanlansa, pastida **boshqarma nomi** maydoni chiqadi
+5. Telegram username (`@username`) — bildirishnomalar uchun (8-bo'lim)
+6. Login
+7. Parol
+
+**Mutaxassislik ro'yxatdan o'tishda so'ralmaydi** (2026-10-09) — `User.specialty` maydoni bazada qoladi (portfolio, Xodimlar va h.k.da ko'rsatiladi), kerak bo'lsa Django adminda keyinroq belgilanadi.
 
 Qoidalar:
 - Ro'yxatdan o'tgan foydalanuvchi **darrov kira olmaydi**. Django adminda faollashtirilgach kiradi.
