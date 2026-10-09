@@ -515,7 +515,7 @@ Batafsil qoidalar: `CLAUDE.md` 4-bo'lim. Dizayn oldingi loyiha skrinshotlaridan 
 - Yangi flow yoki modal `docs/FLOWS_MODALS.md` ga yoziladi, cheklov haqida foydalanuvchiga aytiladi.
 - Commit va push faqat foydalanuvchi so'raganda.
 
-- **2026-10-06:** Rad etilgan buyurtmaga TZ v2 fayli va tuzatish izohi yuborish tekshirildi. Yakunlash so'rovi davomida, boshqarma tasdig'i kutilganda va loyiha yakunlangach yangi vazifa qo'shish/berish tugmalari yashiriladi; server ham yangi vazifani rad etadi.
+- **2026-10-06:** Rad etilgan buyurtmaga TZ v2 fayli va tuzatish izohi yuborish tekshirildi. Yakunlash so'rovi davomida, boshqarma tasdig'i kutilganda va loyiha yakunlangach yangi vazifa qo'shish/berish tugmalari yashiriladi; server ham yangi vazifani rad etadi. **2026-10-09:** server endi mavjud vazifaga ijrochi qo'shish/almashtirish va topshiriq qo'shishni ham rad etadi (`projects/workflow.py: completion_locked`); bloklangan dasturchi yakunlashni to'xtatib qo'ymaydi (`pending_acks`); jamoa o'zgarmasa yig'ilgan tasdiqlar saqlanadi.
 
 - **2026-10-06 (UX/UI):** Sahifa amallari qidiruv/filtr bilan bir qatorda, asosiy tugma o'ngda; modalda yakunlash/saqlash pastki panelda. Telefon ekranida sarlavha amallari alohida qatorda, tugmalar va buyurtma holati kesilmaydi. Klaviatura fokusi yashirin/o'chiq elementlarni o'tkazib yuboradi; tablar strelka/Home/End bilan ishlaydi. Rang kontrasti yaxshilandi; doskada sudrash dastagi va vazifani ochish tugmasi alohida.
 - **2026-10-06 (Buyurtmalar tartibi):** Boshqarma ro'yxatida yakunlash tasdig'i kutilayotgan loyihalar birinchi, yangi va davom etayotgan buyurtmalar keyingi, to'liq yakunlanganlar oxirida turadi. Har bir guruhda yangilari tepada; server tartibi sahifalashda ham saqlanadi.

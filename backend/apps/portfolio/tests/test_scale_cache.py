@@ -53,9 +53,11 @@ class PortfolioScaleTests(TestCase):
         first = client_for(self.viewer).get("/api/portfolio/")
         self.assertIsNone(self._row(first)["rating"])
 
-        review = client_for(self.viewer).post(
-            f"/api/portfolio/items/{item.pk}/reviews/", {"stars": 5, "text": "A'lo"}, format="json"
-        )
+        with self.captureOnCommitCallbacks(execute=True) as callbacks:
+            review = client_for(self.viewer).post(
+                f"/api/portfolio/items/{item.pk}/reviews/", {"stars": 5, "text": "A'lo"}, format="json"
+            )
+        self.assertTrue(callbacks, "kesh tranzaksiya tasdiqlangach tozalanadi")
         self.assertEqual(review.status_code, 200)
         second = client_for(self.viewer).get("/api/portfolio/")
         self.assertEqual(self._row(second)["rating"], 5.0)

@@ -4,7 +4,7 @@ from apps.core.api_utils import JSONListField, file_info, user_brief
 from apps.core.files import validate_upload
 
 from .models import Project
-from .workflow import project_targets
+from .workflow import completion_locked, pending_acks, project_targets
 
 S = Project.Stage
 
@@ -62,7 +62,7 @@ class ProjectDetailSerializer(ProjectListSerializer):
             "edit_info": manager,  # buyurtmadan bo'lsa ham nomi/izohi tahrirlanadi, buyurtmaga ham ko'chadi
             "members": manager,
             "files": manager,
-            "add_task": manager and obj.stage not in (S.DONE, S.PENDING_APPROVAL) and not obj.completion_requested_at,
+            "add_task": manager and not completion_locked(obj),
         }
 
     def _completion_acks(self, obj):
@@ -76,7 +76,7 @@ class ProjectDetailSerializer(ProjectListSerializer):
         paytida bo'sh — qaror endi boshqarmaga tegishli). Dasturchi tasdig'i hali kutilayotgan paytda
         "Yakunlangan" qayta tanlanmaydi; hammasi rozi bo'lgach PM yakunlay oladi."""
         targets = list(project_targets(obj.stage, self.context["request"].user.role))
-        if any(a.confirmed is not True for a in (self._completion_acks(obj) or [])):
+        if pending_acks(obj):
             targets = [t for t in targets if t != S.DONE]
         return targets
 
@@ -88,7 +88,7 @@ class ProjectDetailSerializer(ProjectListSerializer):
             return None
         return {
             "requested_at": obj.completion_requested_at,
-            "pending": [user_brief(a.developer) for a in acks if a.confirmed is None],
+            "pending": [user_brief(a.developer) for a in pending_acks(obj)],
             "confirmed": [user_brief(a.developer) for a in acks if a.confirmed is True],
         }
 

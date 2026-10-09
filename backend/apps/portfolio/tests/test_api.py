@@ -1,6 +1,7 @@
 ﻿"""Portfolio: ko'rish, to'ldirish, video, baho/sharh, kuzatish va reyting tartibi."""
 from datetime import timedelta
 
+from django.core.cache import cache
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import connection
 from django.test import TestCase, override_settings
@@ -23,6 +24,9 @@ def mp4(name="demo.mp4", data=MP4):
 
 class PortfolioTestCase(TestCase):
     def setUp(self):
+        # Reyting keshi commit'dan keyin tozalanadi (TestCase'da commit yo'q) — testlar bir-biriga ta'sir qilmasin
+        cache.clear()
+        self.addCleanup(cache.clear)
         self.pm = make_user(Role.PM)
         self.dev = make_user(Role.DEVELOPER)
         self.other = make_user(Role.DEVELOPER)

@@ -4,6 +4,7 @@ Hisoblanadi, saqlanmaydi (holatdan kelib chiqadigan qiymatni saqlash — nomuvof
 Sonlar subquery bilan olinadi: bir nechta JOIN bir-birini ko'paytirib, o'rtacha bahoni buzmasin.
 """
 from django.core.cache import cache
+from django.db import transaction
 from django.db.models import Avg, BooleanField, Count, Exists, F, IntegerField, OuterRef, Subquery, Value
 from django.db.models.functions import Coalesce, ExtractYear
 from django.utils import timezone
@@ -19,7 +20,9 @@ DEVELOPER_RANKING_CACHE_KEY = "portfolio:developer-ranking:default"
 
 
 def invalidate_developer_ranking():
-    cache.delete(DEVELOPER_RANKING_CACHE_KEY)
+    """Tranzaksiya tasdiqlangach o'chiriladi: undan oldin o'chirilsa, parallel so'rov keshni eski
+    (hali commit bo'lmagan) ma'lumot bilan qayta to'ldirib, 60 soniya noto'g'ri reyting ko'rsatardi."""
+    transaction.on_commit(lambda: cache.delete(DEVELOPER_RANKING_CACHE_KEY))
 
 
 def _count(qs, group):

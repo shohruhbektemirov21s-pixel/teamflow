@@ -16,7 +16,7 @@ from apps.orders.models import Order
 from apps.orders.workflow import check_order_transition
 
 from .models import Project, ProjectCompletionAck, ProjectFile, ProjectMember
-from .workflow import active_members, check_project_transition
+from .workflow import active_members, check_project_transition, completion_locked, pending_acks
 
 K = Notification.Kind
 S = Project.Stage
@@ -25,6 +25,13 @@ S = Project.Stage
 def _require_manager(user):
     if not user.is_manager:
         raise ServiceError("Loyihani faqat loyiha menejeri yoki boshliq boshqaradi.")
+
+
+def ensure_open(project, field="project"):
+    """Yakunlangan / yakunlash tasdig'i kutilayotgan loyihada vazifa qo'shish va ish biriktirish taqiqlanadi."""
+    if completion_locked(project):
+        raise ServiceError("Yakunlangan yoki yakunlash tasdig'i kutilayotgan loyihada vazifa qo'shib "
+                           "yoki ish biriktirib bo'lmaydi.", field)
 
 
 def _check_dates(start_date, end_date):
@@ -72,7 +79,8 @@ def create_project(user, *, code, name="", description="", start_date=None, end_
 
     project = Project.objects.create(
         code=code, name=name.strip(), description=description, start_date=start_date, end_date=end_date,
-        stage=S.PLANNED if order is not None and stage == S.DONE else stage,
+        # "Yakunlangan" darhol qo'yilmaydi, _apply_stage orqali (jamoa bo'lsa dasturchilar tasdig'i so'raladi)
+        stage=S.PLANNED if stage == S.DONE else stage,
         order=order, created_by=user,
     )
     for developer in _developers(member_ids):
@@ -91,7 +99,7 @@ def create_project(user, *, code, name="", description="", start_date=None, end_
     for f in files or []:
         ProjectFile.objects.create(project=project, file=f, original_name=f.name[:255], uploaded_by=user)
 
-    if order is not None and stage == S.DONE:
+    if stage == S.DONE:
         _apply_stage(project, user, stage)
         project.save(update_fields=["stage", "updated_at"])
 
@@ -112,7 +120,7 @@ def update_project(project, user, **data):
     if completion_note is not None or completion_files:
         if stage != S.DONE:
             raise ServiceError("Yakunlash izohi va fayllari faqat yakunlashda yuboriladi.")
-        if project.completion_requested_at is not None and project.completion_acks.filter(confirmed__isnull=True).exists():
+        if pending_acks(project):
             raise ServiceError("Hali hamma dasturchi rozi bo'lmagan — javoblarini kuting.")
     new_completion_round = project.completion_requested_at is None
     info_changed = any(data.get(f) is not None for f in ("name", "description", "start_date", "end_date"))
@@ -173,8 +181,7 @@ def _apply_stage(project, user, stage):
             if project.completion_requested_at is None:
                 _request_completion_acks(project, user, developers)
                 return
-            member_ids = {d.pk for d in developers}
-            if project.completion_acks.filter(developer_id__in=member_ids, confirmed__isnull=True).exists():
+            if pending_acks(project):
                 raise ServiceError("Hali hamma dasturchi tasdiqlamagan — javoblarini kutamiz.")
             project.completion_acks.all().delete()
             project.completion_requested_at = None
@@ -238,8 +245,7 @@ def ack_completion(project, user, *, confirmed, reason=""):
 
     log(user, "project_completion_ack_confirmed",
         f"{user.full_name} loyihani yakunlashni tasdiqladi: {project.name}", project)
-    member_ids = set(project.memberships.values_list("developer_id", flat=True))
-    if not project.completion_acks.filter(developer_id__in=member_ids, confirmed__isnull=True).exists():
+    if not pending_acks(project):
         notify([project.created_by], K.PROJECT_COMPLETION_ACK_DONE,
                f"Barcha dasturchilar rozi. Loyihani yakunlashingiz mumkin: {project.name}", project, exclude=user)
     return project
@@ -287,16 +293,18 @@ def set_members(project, user, member_ids):
     olib tashlanadi (loyihani ko'rmay turib vazifasi qolmasin). Bajarilgan vazifalar tarix sifatida qoladi.
     Faol vazifaning yagona ijrochisini chiqarib bo'lmaydi — vazifa ijrochisiz qolmasligi uchun."""
     _require_manager(user)
+    # Qator qulflanadi: parallel jamoa o'zgarishi va yakunlash tasdig'i bir-birini yo'qotmasin
+    project = Project.objects.select_for_update().get(pk=project.pk)
     wanted = {d.pk: d for d in _developers(member_ids)}
     current = set(project.memberships.values_list("developer_id", flat=True))
     removed = current - set(wanted)
+    added = set(wanted) - current
     if removed:
         _release_developers(project, removed)
     project.memberships.exclude(developer_id__in=wanted).delete()
-    for pk, developer in wanted.items():
-        if pk not in current:
-            ProjectMember.objects.create(project=project, developer=developer)
-    if project.completion_requested_at:
+    for pk in added:
+        ProjectMember.objects.create(project=project, developer=wanted[pk])
+    if project.completion_requested_at and (added or removed):
         # Jamoa o'zgargach eski yakunlash so'rovi eskirib qoladi (yangi a'zo so'rovsiz qolmasin) —
         # bekor qilinadi, PM qayta so'raganda hammadan yangidan so'raladi.
         project.completion_acks.all().delete()
@@ -331,7 +339,9 @@ def _release_developers(project, developer_ids):
 
 def ensure_members(project, developers):
     """Vazifa oynasida jamoadan tashqari dasturchi tanlansa — u loyiha jamoasiga qo'shiladi.
-    Ruxsat chaqiruvchi xizmatda (tasks.services) tekshiriladi. Qo'shilganlar ro'yxati qaytadi."""
+    Ruxsat chaqiruvchi xizmatda (tasks.services) tekshiriladi. Qo'shilganlar ro'yxati qaytadi.
+    Yakunlash davrida yangi a'zo qo'shilmaydi: u yakunlash so'rovisiz qolib ketardi."""
+    ensure_open(project, "assignee_ids")
     current = set(project.memberships.values_list("developer_id", flat=True))
     added = [d for d in developers if d.pk not in current]
     for developer in added:
