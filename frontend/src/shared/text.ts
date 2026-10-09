@@ -60,6 +60,7 @@ export const T = {
   } as Record<string, string>,
 
   nav: {
+    skipContent: "Asosiy qismga o'tish",
     groupMain: "Asosiy ish",
     groupTeam: "Muloqot",
     groupControl: "Kuzatuv",
@@ -75,7 +76,10 @@ export const T = {
     suggestions: "Takliflar",
     review: "Tekshiruv navbati",
     logout: "Chiqish",
-    menu: "Menyu",
+    menu: "Asosiy menyu",
+    openMenu: "Menyuni ochish",
+    closeMenu: "Menyuni yopish",
+    workspace: "Ish maydoni",
     theme: "Tungi / kunduzgi rejim",
     searchPlaceholder: "Vazifa, loyiha yoki odamni qidiring",
     profile: "Profil",
@@ -713,8 +717,10 @@ export const T = {
     chars: (n: number, max: number) => `${n}/${max}`,
   },
   landing: {
+    eyebrow: "Jamoa ishini boshqarish",
     title: "Jamoangiz bir joyda ishlaydigan platforma",
     subtitle: "Loyiha oching, jamoani mutaxassisligi bo'yicha yig'ing, vazifalarni bering va hammasini bitta tizimda kuzatib boring.",
+    featuresTitle: "Ish jarayoni sodda va ko'rinadigan",
     register: "Ro'yxatdan o'tish",
     login: "Kirish",
     features: [

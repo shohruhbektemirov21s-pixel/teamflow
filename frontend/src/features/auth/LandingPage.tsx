@@ -30,46 +30,48 @@ export default function LandingPage() {
   };
 
   return (
-    <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", background: "var(--bg)", color: "var(--text)" }}>
-      <header style={{ display: "flex", alignItems: "center", padding: "16px 32px", borderBottom: "1px solid var(--border)", background: "var(--surface)" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: 600, fontSize: 18 }}>
-          <Sparkles color="var(--primary)" />
-          {T.app}
-        </div>
-        <div style={{ flex: 1 }} />
-        <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-          <Button variant="ghost" onClick={toggleTheme} aria-label={T.nav.theme} title={T.nav.theme}>
+    <div className="landing">
+      <a className="skip-link" href="#landing-main">{T.nav.skipContent}</a>
+      <header className="landing-header">
+        <Link to="/" className="brand landing-brand">
+          <span className="brand-mark"><Sparkles /></span>
+          <span className="brand-copy"><strong>{T.app}</strong><span>{T.nav.workspace}</span></span>
+        </Link>
+        <nav className="landing-nav" aria-label={T.nav.menu}>
+          <Button variant="ghost" className="landing-theme" onClick={toggleTheme} aria-label={T.nav.theme} title={T.nav.theme} aria-pressed={theme === "dark"}>
             {theme === "light" ? <Moon size={18} /> : <Sun size={18} />}
           </Button>
           <Link to="/kirish" className="btn btn-ghost">{T.landing.login}</Link>
           <Link to="/royxatdan-otish" className="btn btn-primary">{T.landing.register}</Link>
-        </div>
+        </nav>
       </header>
 
-      <main style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", padding: "80px 20px" }}>
-        <h1 style={{ fontSize: "clamp(2rem, 6vw, 3rem)", fontWeight: 800, letterSpacing: "-1px", marginBottom: 24, lineHeight: 1.1, maxWidth: 640 }}>
-          {T.landing.title}
-        </h1>
-        <p style={{ fontSize: "1.2rem", color: "var(--muted)", maxWidth: 600, marginBottom: 40 }}>
-          {T.landing.subtitle}
-        </p>
-        <div style={{ display: "flex", gap: 16, flexWrap: "wrap", justifyContent: "center" }}>
-          <Link to="/royxatdan-otish" className="btn btn-primary btn-lg">{T.landing.register}</Link>
-          <Link to="/kirish" className="btn btn-lg">{T.landing.login}</Link>
-        </div>
+      <main id="landing-main" className="landing-main" tabIndex={-1}>
+        <section className="landing-hero">
+          <span className="landing-eyebrow">{T.landing.eyebrow}</span>
+          <h1>{T.landing.title}</h1>
+          <p>{T.landing.subtitle}</p>
+          <div className="landing-actions">
+            <Link to="/royxatdan-otish" className="btn btn-primary btn-lg">{T.landing.register}</Link>
+            <Link to="/kirish" className="btn btn-lg">{T.landing.login}</Link>
+          </div>
+        </section>
 
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 24, marginTop: 80, maxWidth: 1040, width: "100%" }}>
+        <section className="landing-feature-section" aria-labelledby="landing-features-title">
+          <h2 id="landing-features-title">{T.landing.featuresTitle}</h2>
+          <div className="landing-features">
           {T.landing.features.map((f) => (
-            <div key={f.key} style={{ padding: 24, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "var(--radius)", textAlign: "left", boxShadow: "var(--shadow)" }}>
-              <div style={{ marginBottom: 16 }}>{FEATURE_ICONS[f.key]}</div>
-              <h3 style={{ fontSize: 18, marginBottom: 8, fontWeight: 600 }}>{f.title}</h3>
-              <p style={{ color: "var(--muted)", fontSize: 14, lineHeight: 1.5 }}>{f.desc}</p>
-            </div>
+            <article key={f.key} className="landing-feature">
+              <div className="landing-feature-icon">{FEATURE_ICONS[f.key]}</div>
+              <h3>{f.title}</h3>
+              <p>{f.desc}</p>
+            </article>
           ))}
-        </div>
+          </div>
+        </section>
       </main>
 
-      <footer style={{ padding: "32px", textAlign: "center", color: "var(--muted)", borderTop: "1px solid var(--border)" }}>
+      <footer className="landing-footer">
         &copy; {new Date().getFullYear()} {T.app}. {T.landing.footer}
       </footer>
     </div>

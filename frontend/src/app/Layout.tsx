@@ -56,6 +56,17 @@ export default function Layout() {
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
   }, []);
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        setMenuOpen(false);
+      }
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [menuOpen]);
 
   const groups = navFor(me.role);
   const home = "/"; // hamma rolda bosh sahifa — Bosh panel (Boshqarmada o'z buyurtmalari)
@@ -63,15 +74,28 @@ export default function Layout() {
 
   return (
     <div className="app">
-      <div className={`sidebar-backdrop ${menuOpen ? "open" : ""}`} onClick={() => setMenuOpen(false)} />
-      <aside className={`sidebar ${menuOpen ? "open" : ""}`} aria-label={T.nav.menu}>
-        <Link to={home} className="brand" style={{ color: "var(--text)" }}>
+      <a className="skip-link" href="#main-content">
+        {T.nav.skipContent}
+      </a>
+      <button
+        type="button"
+        className={`sidebar-backdrop ${menuOpen ? "open" : ""}`}
+        onClick={() => setMenuOpen(false)}
+        aria-label={T.nav.closeMenu}
+        aria-hidden={!menuOpen}
+        tabIndex={menuOpen ? 0 : -1}
+      />
+      <aside id="app-sidebar" className={`sidebar ${menuOpen ? "open" : ""}`} aria-label={T.nav.menu}>
+        <Link to={home} className="brand">
           <span className="brand-mark">
             <Sparkles />
           </span>
-          {T.app}
+          <span className="brand-copy">
+            <strong>{T.app}</strong>
+            <span>{T.nav.workspace}</span>
+          </span>
         </Link>
-        <nav className="nav">
+        <nav className="nav" aria-label={T.nav.menu}>
           {groups.map((g) => (
             <div className="nav-group" key={g.title}>
               <div className="nav-group-title">{g.title}</div>
@@ -91,12 +115,10 @@ export default function Layout() {
           ))}
         </nav>
         <div className="me">
-          <Link to="/profil" className="grow" style={{ display: "flex", alignItems: "center", gap: 12, textDecoration: "none", color: "inherit", minWidth: 0 }}>
+          <Link to="/profil" className="me-link grow">
             <Avatar user={me} />
-            <div className="grow" style={{ minWidth: 0 }}>
-              <div className="ellipsis" style={{ fontWeight: 650 }}>
-                {me.full_name}
-              </div>
+            <div className="grow me-copy">
+              <div className="me-name ellipsis">{me.full_name}</div>
               <div className="me-role ellipsis">{me.department_name || meta.label("roles", me.role)}</div>
             </div>
           </Link>
@@ -108,7 +130,13 @@ export default function Layout() {
 
       <div className="main">
         <header className="topbar">
-          <button className="icon-btn mobile-only" onClick={() => setMenuOpen(true)} aria-label={T.nav.menu}>
+          <button
+            className="icon-btn mobile-only"
+            onClick={() => setMenuOpen(true)}
+            aria-label={T.nav.openMenu}
+            aria-controls="app-sidebar"
+            aria-expanded={menuOpen}
+          >
             <Menu />
           </button>
           {!isHome && (
@@ -116,9 +144,10 @@ export default function Layout() {
               <ArrowLeft />
             </button>
           )}
-          <h1 className="ellipsis" style={{ fontSize: 17 }}>
-            {pageTitle(location.pathname, me.role)}
-          </h1>
+          <div className="topbar-title">
+            <span className="topbar-eyebrow">{T.nav.workspace}</span>
+            <h1 className="ellipsis">{pageTitle(location.pathname, me.role)}</h1>
+          </div>
           <div className="spacer" />
           <button type="button" className="search-trigger" aria-label={T.nav.searchPlaceholder} onClick={() => setSearchOpen(true)}>
             <Search />
@@ -127,7 +156,7 @@ export default function Layout() {
             </span>
             <kbd className="hide-sm">Ctrl K</kbd>
           </button>
-          <button className="icon-btn" onClick={toggleTheme} title={T.nav.theme} aria-label={T.nav.theme}>
+          <button className="icon-btn" onClick={toggleTheme} title={T.nav.theme} aria-label={T.nav.theme} aria-pressed={theme === "dark"}>
             {theme === "dark" ? <Sun /> : <Moon />}
           </button>
           <button className="icon-btn" onClick={() => open({ notifications: true })} aria-label={T.nav.notifications} title={T.nav.notifications}>
@@ -135,7 +164,7 @@ export default function Layout() {
             {counters.notifications > 0 && <span className="bell-dot">{counters.notifications}</span>}
           </button>
         </header>
-        <main className="page">
+        <main id="main-content" className="page" tabIndex={-1}>
           <Outlet />
         </main>
       </div>
