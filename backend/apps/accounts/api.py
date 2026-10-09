@@ -9,20 +9,16 @@ from rest_framework.exceptions import PermissionDenied
 from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
-from rest_framework.throttling import AnonRateThrottle
 
 from apps.core.api_utils import ServiceError, avatar_url
 
 from . import services
 from .models import Role, Specialty, User
+from .throttles import LOGIN_THROTTLES, AuthThrottle
 from .serializers import (
     LoginSerializer, MeSerializer, RegisterSerializer, SpecialtySerializer,
     ProfileSerializer, ProfileUpdateSerializer, ChangePasswordSerializer, BusinessTripSerializer, ResponsibilitiesSerializer
 )
-
-
-class AuthThrottle(AnonRateThrottle):
-    scope = "auth"
 
 
 @api_view(["GET"])
@@ -54,7 +50,7 @@ def register(request):
 
 @api_view(["POST"])
 @permission_classes([AllowAny])
-@throttle_classes([AuthThrottle])
+@throttle_classes(LOGIN_THROTTLES)
 @csrf_protect
 def login_view(request):
     serializer = LoginSerializer(data=request.data)

@@ -8,6 +8,22 @@ import { Callout } from "@/shared/ui";
 
 const ext = (name: string) => name.split(".").pop()?.toLowerCase() ?? "";
 
+const SAFE_PROTOCOLS = new Set(["http:", "https:", "mailto:", "blob:"]);
+
+/** Hujjat ichidagi havolalardan faqat xavfsizlarini qoldiradi (`javascript:` va h.k. olib tashlanadi). */
+export function stripUnsafeLinks(root: HTMLElement) {
+  root.querySelectorAll("[href]").forEach((el) => {
+    const raw = el.getAttribute("href") ?? "";
+    let protocol = "";
+    try {
+      protocol = new URL(raw, window.location.href).protocol;
+    } catch {
+      protocol = "";
+    }
+    if (!SAFE_PROTOCOLS.has(protocol)) el.removeAttribute("href");
+  });
+}
+
 /** Modal sarlavhasi hujjat ko'rish rejimida: "← Orqaga" + fayl nomi (modal ustida modal ochilmaydi). */
 export function DocTitle({ file, onBack }: { file: FileInfo; onBack: () => void }) {
   return (
@@ -46,7 +62,13 @@ export function DocViewer({ file }: { file: FileInfo }) {
           const { renderAsync } = await import("docx-preview");
           if (!alive || !host.current) return;
           host.current.innerHTML = "";
-          await renderAsync(blob, host.current, undefined, { inWrapper: true, ignoreLastRenderedPageBreak: true });
+          // renderAltChunks: docx ichidagi HTML'ni iframe'da ishga tushirmaslik uchun o'chirilgan (stored XSS).
+          await renderAsync(blob, host.current, undefined, {
+            inWrapper: true,
+            ignoreLastRenderedPageBreak: true,
+            renderAltChunks: false,
+          });
+          if (host.current) stripUnsafeLinks(host.current);
         } else {
           const typed = kind === "pdf" ? new Blob([blob], { type: "application/pdf" }) : blob;
           objectUrl = URL.createObjectURL(typed);

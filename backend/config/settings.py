@@ -150,14 +150,37 @@ PORTFOLIO_VIDEOS_PER_ITEM = 5
 PORTFOLIO_RANKING_CACHE_SECONDS = int(os.environ.get("PORTFOLIO_RANKING_CACHE_SECONDS", "60"))
 NOTIFICATION_UNREAD_CACHE_SECONDS = int(os.environ.get("NOTIFICATION_UNREAD_CACHE_SECONDS", "60"))
 
+# Faqat ishonchli reverse-proxy (deploy/nginx.conf) ortida yoqiladi; Gunicorn'ni to'g'ridan-to'g'ri ochmang.
+TRUST_PROXY = os.environ.get("DJANGO_TRUST_PROXY", "0") == "1"
+
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": ["apps.core.authentication.SessionAuth"],
     "DEFAULT_PERMISSION_CLASSES": ["rest_framework.permissions.IsAuthenticated"],
     "DEFAULT_PAGINATION_CLASS": "apps.core.pagination.BoundedPagination",
     "PAGE_SIZE": 50,
     "EXCEPTION_HANDLER": "apps.core.api_utils.api_exception_handler",
-    "DEFAULT_THROTTLE_RATES": {"auth": "20/min", "ai_web_agent": "5/hour"},
+    "DEFAULT_THROTTLE_RATES": {"auth": "20/min", "login_user": "30/hour", "ai_web_agent": "5/hour"},
+    # Throttle uchun mijoz IP'si: ishonchli nginx ortida `X-Forwarded-For`ning oxirgi qiymati (nginx uni
+    # `$remote_addr` bilan almashtiradi), aks holda faqat `REMOTE_ADDR` — sarlavhani soxtalab limitdan qochib bo'lmaydi.
+    "NUM_PROXIES": int(os.environ.get("DJANGO_NUM_PROXIES", "1" if TRUST_PROXY else "0")),
 }
+
+# SPA sahifasi (index.html) uchun. Skript faqat o'z serverimizdan; inline skript va `javascript:` havolalar
+# ishlamaydi (masalan .docx ichidagi zararli kod). Uslublar inline: React `style` va docx-preview <style> qo'yadi.
+CONTENT_SECURITY_POLICY = "; ".join([
+    "default-src 'self'",
+    "script-src 'self'",
+    "style-src 'self' 'unsafe-inline'",
+    "img-src 'self' data: blob:",
+    "font-src 'self' data: blob:",
+    "media-src 'self' blob:",
+    "frame-src blob:",
+    "connect-src 'self'",
+    "object-src blob:",  # PDF blob iframe'da ochiladi (Chrome PDF ko'ruvchisi); blob'ni faqat o'z skriptimiz yaratadi
+    "base-uri 'self'",
+    "form-action 'self'",
+    "frame-ancestors 'none'",
+])
 
 SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SAMESITE = "Lax"
@@ -179,5 +202,5 @@ if not DEBUG:
     SECURE_REFERRER_POLICY = "same-origin"
     X_FRAME_OPTIONS = "DENY"
     # Only enable behind the trusted reverse proxy; never expose Gunicorn directly.
-    if os.environ.get("DJANGO_TRUST_PROXY", "0") == "1":
+    if TRUST_PROXY:
         SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
