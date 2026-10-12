@@ -89,6 +89,13 @@ def my_review_row(review):
             "text": review.text, "updated_at": review.updated_at}
 
 
+def rating_row(review):
+    """Baholar ro'yxati: kim, qaysi loyiha va dasturchini, necha yulduz, qanday sharh bilan baholagan."""
+    owner = review.item.owner
+    return {**review_row(review), "item_id": review.item_id, "item_title": review.item.display_title,
+            "developer": {"id": owner.pk, "full_name": owner.full_name}}
+
+
 def image_row(image):
     return {"id": image.pk, "url": f"/api/portfolio/images/{image.pk}/"}
 

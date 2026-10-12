@@ -37,13 +37,16 @@ export interface PortfolioSummary {
   specialties: { id: number; name: string; count: number }[];
 }
 
-export interface MyReview {
+/** Baholar ro'yxati qatori: kim, qaysi loyiha va dasturchini baholagan. */
+export interface Rating {
   id: number;
   item_id: number;
   item_title: string;
   developer: { id: number; full_name: string };
+  author: UserBrief;
   stars: number;
   text: string;
+  created_at: string;
   updated_at: string;
 }
 

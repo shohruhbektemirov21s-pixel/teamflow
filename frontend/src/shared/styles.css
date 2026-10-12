@@ -1123,3 +1123,13 @@ button.list-row:focus-visible { outline-offset: -2px; }
   .urow { flex-wrap: wrap; }
   .urow-name { flex-basis: calc(100% - 120px); }
 }
+
+/* ───────── Reytinglar (/baholarim) ───────── */
+.ratings-avg { display: flex; align-items: center; }
+.check-inline { display: inline-flex; align-items: center; gap: 8px; min-height: 48px; cursor: pointer; }
+.rating-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+.rating-card { display: flex; align-items: flex-start; gap: 12px; width: 100%; padding: 16px; text-align: left; font: inherit; color: var(--text); cursor: pointer; transition: border-color .15s var(--ease); }
+.rating-card:hover { border-color: var(--primary); }
+.rating-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.rating-top { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.rating-text { white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.45; margin-top: 4px; }

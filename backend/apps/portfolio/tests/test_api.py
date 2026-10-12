@@ -333,3 +333,24 @@ class FollowTests(PortfolioTestCase):
         self.assertEqual(client_for(self.dev).post(f"/api/portfolio/{self.pm.pk}/follow/").status_code, 404)
         self.assertFalse(client_for(self.dev).get(f"/api/portfolio/{self.dev.pk}/").data["actions"]["follow"])
         self.assertFalse(Follow.objects.exists())
+
+    def test_ratings_feed_search_sort_and_mine(self):
+        user = make_user(Role.USER)
+        site, shop = self.manual_item(title="Shaxsiy sayt"), self.manual_item(owner=self.other, title="Do'kon")
+        client_for(user).post(f"/api/portfolio/items/{site.pk}/reviews/", {"stars": 2, "text": "Oddiy"}, format="json")
+        client_for(self.dept).post(f"/api/portfolio/items/{shop.pk}/reviews/", {"stars": 5, "text": "Ajoyib"}, format="json")
+        hidden = self.manual_item(owner=make_user(Role.DEVELOPER), title="Yashirin")
+        client_for(user).post(f"/api/portfolio/items/{hidden.pk}/reviews/", {"stars": 4}, format="json")
+        hidden.owner.is_active = False
+        hidden.owner.save()
+
+        res = client_for(self.dept).get("/api/portfolio/ratings/?sort=high")
+        self.assertEqual([r["stars"] for r in res.data["results"]], [5, 2])
+        row = res.data["results"][0]
+        self.assertEqual((row["item_title"], row["developer"]["id"], row["author"]["id"]), ("Do'kon", self.other.pk, self.dept.pk))
+        self.assertEqual([r["stars"] for r in client_for(user).get("/api/portfolio/ratings/?sort=low").data["results"]], [2, 5])
+        self.assertEqual(client_for(user).get("/api/portfolio/ratings/?q=sayt").data["count"], 1)
+        self.assertEqual(client_for(user).get(f"/api/portfolio/ratings/?q={self.other.first_name}").data["count"], 1)
+        mine = client_for(user).get("/api/portfolio/ratings/?mine=1").data["results"]
+        self.assertEqual([r["author"]["id"] for r in mine], [user.pk])
+        self.assertEqual(self.client_class().get("/api/portfolio/ratings/").status_code, 401)

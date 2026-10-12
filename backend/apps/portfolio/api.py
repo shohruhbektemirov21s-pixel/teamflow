@@ -15,7 +15,7 @@ from . import services
 from .files import video_response
 from .models import Follow, PortfolioImage, PortfolioItem, PortfolioReview, PortfolioVideo
 from .permissions import can_follow, portfolio_owners
-from .serializers import ItemInput, ReviewInput, developer_review_row, developer_row, my_review_row, item_detail, item_row, review_row, video_row
+from .serializers import ItemInput, ReviewInput, developer_review_row, developer_row, my_review_row, rating_row, item_detail, item_row, review_row, video_row
 from .stats import DEVELOPER_RANKING_CACHE_KEY, SUMMARY_CACHE_KEY, developer_highlights, developer_technologies, item_work, developers_with_stats, following_count, experience, items_with_stats, recent_tasks, summary, tasks_done_by_project, years
 
 
@@ -161,6 +161,27 @@ def my_reviews(request):
     paginator = BoundedPagination()
     page = paginator.paginate_queryset(qs, request)
     return paginator.get_paginated_response([my_review_row(r) for r in page])
+
+
+RATING_SORTS = {"new": ("-updated_at", "-id"), "high": ("-stars", "-updated_at", "-id"), "low": ("stars", "-updated_at", "-id")}
+
+
+@api_view(["GET"])
+def ratings(request):
+    """Barcha baholar (faqat faol dasturchilar loyihalari). `q` — loyiha yoki dasturchi nomi;
+    `sort` — new (standart) | high | low; `mine=1` — faqat o'zim qo'ygan baholar."""
+    qs = (PortfolioReview.objects.filter(item__owner__in=portfolio_owners())
+          .select_related("author", "item__project", "item__owner"))
+    if request.query_params.get("mine") == "1":
+        qs = qs.filter(author=request.user)
+    q = (request.query_params.get("q") or "").strip()
+    if q:
+        qs = qs.filter(Q(item__title__icontains=q) | Q(item__project__name__icontains=q)
+                       | Q(item__owner__first_name__icontains=q) | Q(item__owner__last_name__icontains=q))
+    qs = qs.order_by(*RATING_SORTS.get(request.query_params.get("sort"), RATING_SORTS["new"]))
+    paginator = BoundedPagination()
+    page = paginator.paginate_queryset(qs, request)
+    return paginator.get_paginated_response([rating_row(r) for r in page])
 
 
 @api_view(["GET", "POST", "DELETE"])

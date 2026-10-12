@@ -65,6 +65,7 @@ api = [
     path("portfolio/images/<int:pk>/", portfolio.image_file),
     path("portfolio/summary/", portfolio.developers_summary),
     path("portfolio/my-reviews/", portfolio.my_reviews),
+    path("portfolio/ratings/", portfolio.ratings),
     path("portfolio/items/", portfolio.item_create),
     path("portfolio/items/<int:pk>/", portfolio.item),
     path("portfolio/items/<int:pk>/reviews/", portfolio.reviews),
