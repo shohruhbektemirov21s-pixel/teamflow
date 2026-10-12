@@ -16,7 +16,7 @@ from apps.core.api_utils import ServiceError, avatar_url
 from . import services
 from .models import Role, Specialty, User
 from .serializers import (
-    LoginSerializer, MeSerializer, RegisterSerializer, SpecialtySerializer,
+    LoginSerializer, MeSerializer, NewDeveloperSerializer, RegisterSerializer, SpecialtySerializer,
     ProfileSerializer, ProfileUpdateSerializer, ChangePasswordSerializer, BusinessTripSerializer, ResponsibilitiesSerializer
 )
 
@@ -177,6 +177,19 @@ def profile(request):
         setattr(user, k, v)
     user.save(update_fields=fields)
     return Response(ProfileSerializer(request.user).data)
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def add_developer(request):
+    """Boshliq yangi dasturchi qo'shadi (multipart, ixtiyoriy `avatar`). Hisob administrator tasdiqlaguncha nofaol."""
+    if not request.user.is_boss:
+        raise PermissionDenied("Yangi dasturchini faqat Boshliq qo'sha oladi.")
+    s = NewDeveloperSerializer(data=request.data)
+    s.is_valid(raise_exception=True)
+    user = services.create_developer(request.user, s.validated_data, request.FILES.get("avatar"))
+    return Response({"detail": f"{user.full_name} qo'shildi. Administrator tasdiqlagach tizimga kira oladi."},
+                    status=status.HTTP_201_CREATED)
 
 
 @api_view(["POST", "DELETE"])

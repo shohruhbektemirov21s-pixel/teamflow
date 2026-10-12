@@ -286,6 +286,8 @@ Menyu guruhlarga bo'lingan: *Asosiy ish* | *Muloqot* | *Kuzatuv* (Kuzatuv faqat 
 ### Izohlar
 - Buyurtma, loyiha va vazifa oynalarida izohlar bo'limi bor. Izoh yozilsa, ishtirokchilarga bildirishnoma boradi va tarixga yoziladi.
 
+**Yangi dasturchi qo'shish (Boshliq, 2026-10-12):** Xodimlar sahifasida "Yangi dasturchi" tugmasi modal ochadi: rasm (ko'rinishi bilan), ism, familiya, mutaxassislik, qisqacha o'zi haqida, texnologiyalar, login va parol. Hisob nofaol yaratiladi; administrator Django adminda faollashtirgandan keyingina dasturchi tizimga kira oladi va ro'yxatlarda ko'rinadi. Faqat Boshliq qo'sha oladi (serverda tekshiriladi). Kiritilgan texnologiyalar dasturchi portfoliosida loyihasi bo'lmasa ham ko'rinadi.
+
 **Mas'uliyatlarni kiritish:** Boshliq va PM xodim profilidagi 'Mas?uliyatlar' bo'limida xodim qaysi ishlar/yo'nalishlarga mas'ul ekanini yozadi, tahrirlaydi va saqlaydi (2000 belgigacha; matnni tozalash ham mumkin). Saqlangan ma'lumot Xodimlar ro'yxatida ko'rinadi va qidiruvda ishlaydi. PM faqat faol dasturchilarni, Boshliq barcha faol xodimlarni tahrirlaydi.
 
 **Xodimlar (Boshliq va PM):** har bir xodimning faol ishlari, loyiha nomi/raqami, holati va muddati ro'yxatda ko'rinadi. 'Profilni ko'rish' yoki ism orqali xodim profili ochiladi: barcha vazifalar, dasturchi hisoboti va biriktirilgan loyihalar. Ro'yxatda 1 ta eng yaqin ish (vazifasi bo'lmasa 1 ta faol loyiha) qisqa ko'rsatiladi, qolganlari profilda (2026-10-09 da soddalashtirildi; avval 3 ta ish va 2 ta loyiha edi). Ish yoki loyihani bosish mavjud tafsilot oynasini ochadi. Telefonda kartalar, kompyuterda jadval; kunduzgi va tungi rejim.

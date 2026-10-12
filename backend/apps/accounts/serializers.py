@@ -3,6 +3,7 @@ from django.utils import timezone
 from rest_framework import serializers
 
 from apps.core.api_utils import avatar_url
+from apps.core.technologies import TechnologiesField
 
 from .models import Role, Specialty, User
 
@@ -79,6 +80,31 @@ class RegisterSerializer(serializers.Serializer):
         return user
 
 
+class NewDeveloperSerializer(serializers.Serializer):
+    """Boshliq qo'shadigan yangi dasturchi. Hisob nofaol yaratiladi — Django adminda tasdiqlangach kira oladi."""
+
+    first_name = serializers.CharField(max_length=150)
+    last_name = serializers.CharField(max_length=150)
+    specialty = serializers.PrimaryKeyRelatedField(queryset=Specialty.objects.filter(is_active=True))
+    bio = serializers.CharField(max_length=300, required=False, allow_blank=True, default="")
+    technologies = TechnologiesField(required=False, default=list)
+    username = serializers.RegexField(
+        r"^[A-Za-z0-9_.-]{3,150}$",
+        error_messages={"invalid": "Login 3–150 belgi: lotin harflari, raqam, _ . - bo'lishi mumkin."},
+    )
+    password = serializers.CharField(write_only=True, trim_whitespace=False)
+
+    validate_username = RegisterSerializer.validate_username
+
+    def validate(self, attrs):
+        candidate = User(username=attrs["username"], first_name=attrs["first_name"], last_name=attrs["last_name"])
+        try:
+            password_validation.validate_password(attrs["password"], candidate)
+        except Exception as exc:  # django ValidationError
+            raise serializers.ValidationError({"password": list(exc.messages)})
+        return attrs
+
+
 class LoginSerializer(serializers.Serializer):
     username = serializers.CharField()
     password = serializers.CharField(trim_whitespace=False)
@@ -134,7 +160,7 @@ class ProfileSerializer(serializers.ModelSerializer):
         items = PortfolioItem.objects.filter(owner=user)
         return {"rating": round_rating(row.rating), "reviews_count": row.reviews_count,
                 "projects_count": row.projects_count,
-                "technologies": [t["name"] for t in developer_technologies(items)]}
+                "technologies": [t["name"] for t in developer_technologies(items, own=user.technologies)]}
 
     def get_activity(self, user):
         """Oddiy foydalanuvchi faolligi: nechta baho qo'ygan va kimni kuzatadi."""

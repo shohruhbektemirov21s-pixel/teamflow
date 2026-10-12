@@ -1,14 +1,14 @@
 # TeamFlow — Flow va Modal reestri
 
 > Yangi flow yoki modal qo'shishdan oldin shu ro'yxatni tekshir. O'xshashi bo'lsa, uni kengaytir.
-> Cheklov: bitta bo'limda **3–4 ta flow**, istisnoda **5 ta**. Modallar amalda **16 ta** (reja 8 ta edi — yangi modal kerak bo'lsa, avval mavjudini kengaytirish ko'rib chiqiladi).
+> Cheklov: bitta bo'limda **3–4 ta flow**, istisnoda **5 ta**. Modallar amalda **17 ta** (reja 8 ta edi — yangi modal kerak bo'lsa, avval mavjudini kengaytirish ko'rib chiqiladi).
 > Holat: kod to'liq yozilgan va sinovdan o'tgan (2026-09-28). Barcha flow va modallar **Faol**.
 
 ## Flow'lar
 
 | # | Nomi | Bo'lim | Bosqichlar (qisqa) | Holati |
 |---|---|---|---|---|
-| 1 | Ro'yxatdan o'tish va tasdiqlash | auth | Forma → "Tasdiqlanmagan" → Django adminda faollashtirish → Kirish | Faol |
+| 1 | Ro'yxatdan o'tish va tasdiqlash | auth | Forma → "Tasdiqlanmagan" → Django adminda faollashtirish → Kirish. Boshliq ham dasturchini qo'shishi mumkin (Xodimlar → "Yangi dasturchi"): hisob nofaol yaratiladi va xuddi shunday adminda tasdiqlanadi | Faol |
 | 2 | Buyurtma yuborish | orders | Boshqarma nom, izoh, TZ, muddat kiritadi → Yuborildi | Faol |
 | 3 | Buyurtmani ko'rib chiqish | orders | PM ochadi → Tasdiqlash (sana, izoh) yoki Rad etish (sabab) | Faol |
 | 4 | TZ qayta yuborish (v2, v3…) | orders | Rad etilgach kamchilikni tuzatib yangi TZ yuboriladi | Faol |
@@ -28,7 +28,7 @@
 Bo'limlar bo'yicha son: auth 1 · orders 3 · projects 2 · tasks 3 · profile 1 · history 1 · suggestions 1 · notifications 1 · portfolio 3. Cheklovdan oshmagan.
 Eslatma: `orders` bo'limidagi 3 flow ham UI da bitta "buyurtma holati" oqimi sifatida (holatga qarab tugma almashadi) amalga oshiriladi, alohida sahifalar ko'paytirilmaydi.
 
-## Modallar (amalda: 16 ta)
+## Modallar (amalda: 17 ta)
 
 Modal holati brauzer tarixida saqlanadi, manzil satri toza qoladi. Quyidagi "Parametr" ustuni — `useModal().open()` ga beriladigan qiymat (eski `?task=12` havolalar ham ishlaydi va tozalanadi).
 
@@ -50,6 +50,7 @@ Modal holati brauzer tarixida saqlanadi, manzil satri toza qoladi. Quyidagi "Par
 | 14 | Buyurtma amali | PM/Boshliq, Boshqarma | Buyurtma oynasi **ustida** qora fonli alohida modal: Tasdiqlash (sanalar, muhimlik, izoh), Rad etish (sabab), Sanani o'zgartirish, Yangi TZ, Kamchilik bor (`OrderModal.tsx`, `Modal stacked`) | buyurtma oynasi ichidan | Faol (2026-10-06) |
 | 15 | Loyiha yakunlash amali | PM, Boshliq | Loyiha oynasi ustida izoh va fayllarni yuborish; orqadagi loyiha ko'rinadi, inert. Mavjud yakunlash tasdiqlash jarayoni saqlanadi | loyiha oynasi ichidan | Faol (2026-10-06) |
 | 16 | Portfolio | Hamma | Bitta modal, ichida 3 ko'rinish (modal ustida modal yo'q): dasturchi profili (cover'li header — avatar, ism, mutaxassislik, reyting — barcha bo'limlarda bir xil; tablar: Umumiy · Loyihalar · Baholar · Tajriba; kuzatish/loyiha qo'shish) → loyiha (video, havola, baho va sharhlar; egasiga tahrirlash/video) → yangi loyiha formasi. Loyiha/forma "← Orqaga" yoki ✕ bilan dasturchi sahifasiga qaytadi (`features/portfolio/PortfolioModal.tsx`, `PortfolioItem.tsx`) | `{ portfolio: id }`, `{ portfolio, item }`, `{ portfolio, add: true }` | Faol (2026-10-08) |
+| 17 | Yangi dasturchi | Boshliq | Xodimlar sahifasidagi "Yangi dasturchi" tugmasi: rasm (ko'rinishi bilan), ism, familiya, mutaxassislik, qisqacha o'zi haqida, texnologiyalar, login, parol. Hisob `is_active=False` yaratiladi — Django adminda tasdiqlanmaguncha kira olmaydi va ro'yxatda ko'rinmaydi (`features/people/NewDeveloperModal.tsx`, `POST /api/people/new-developer/`) | `{ new: "developer" }` | Faol (2026-10-12) |
 
 > Yon panellar (drawer) butunlay taqiqlangan, faqat modal va sahifalardan foydalaniladi.
 
@@ -70,6 +71,7 @@ Modal holati brauzer tarixida saqlanadi, manzil satri toza qoladi. Quyidagi "Par
 | 2026-10-05 | notifications | 0 (yangi flow emas) | "Bildirishnomalar" sahifasi (`/bildirishnomalar`, `NotificationsPage.tsx`) modalga aylantirildi (`NotificationsModal.tsx`) — modallar 12 ta. Sabab: chap menyudagi "Bildirishnomalar" bandi tepadagi qo'ng'iroq ikonkasi bilan ikki marta bir joyga havola edi (foydalanuvchi so'rovi bilan band olib tashlandi), shundan keyin qo'ng'iroq sahifaga emas, modalga ochilishi so'raldi. Mavjud modal kartasiga (sarlavha + filtr + ro'yxat + "hammasini o'qildi" tugmasi) sig'di, yangi infratuzilma kerak bo'lmadi. |
 | 2026-10-06 | tasks, orders | 0 (yangi flow emas) | Foydalanuvchi talabi bilan "modal ustida modal yo'q" qoidasidan istisno: vazifa va buyurtma oynasidagi amal panellari asosiy oyna ustida qora fonli alohida modalga aylandi — modallar 12 → 14 ta. Foydalanuvchiga aytildi. Umumiy `Modal` endi ustma-ust oynalarni qo'llaydi (Esc/Tab faqat ustdagisiga, orqadagisi `inert`). |
 | 2026-10-08 | portfolio | 3 (yangi bo'lim) | Dasturchi portfoliosi: 3 ta flow (ko'rish va kuzatish · to'ldirish · baholash). Foydalanuvchi "flow'lar 3–5 tadan oshmasin" dedi — kuzatish alohida flow emas, ko'rish ichida. Modallar 15 → 16: "Xodim profili" faqat menejerlar uchun va ichki ish ma'lumotlari bor, shuning uchun hammaga ochiq portfolio uchun kengaytirilmadi; loyiha va forma alohida modal emas, shu modal ichini almashtiradi. Foydalanuvchiga aytildi. |
+| 2026-10-12 | people | 0 (yangi flow emas, flow 1 kengaydi) | "Yangi dasturchi" modali qo'shildi — modallar 16 → 17. Sabab: ro'yxatdan o'tish formasi dasturchining o'zi uchun, Boshliq nomidan qo'shish rasm, bio va texnologiyalarni ham so'raydi; mavjud modallarga sig'maydi. Tasdiqlash o'sha Django admin orqali (yangi flow ochilmadi). Foydalanuvchiga aytiladi. |
 
 ## UX/UI tartibi (2026-10-06)
 

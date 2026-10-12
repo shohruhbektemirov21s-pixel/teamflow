@@ -72,3 +72,20 @@ def end_business_trip(actor, employee):
         employee.save(update_fields=["business_trip_return_date"])
         log(actor, "business_trip_ended", f"{actor.full_name} {employee.full_name}ning xizmat safarini tugatdi", employee)
     return employee
+
+
+@transaction.atomic
+def create_developer(actor, data, avatar=None):
+    """Boshliq yangi dasturchi qo'shadi. Hisob nofaol (`is_active=False`): Django adminda tasdiqlanmaguncha
+    tizimga kira olmaydi va ro'yxatlarda ko'rinmaydi. Rasm noto'g'ri bo'lsa hisob ham yaratilmaydi."""
+    if not actor.is_boss:
+        raise ServiceError("Yangi dasturchini faqat Boshliq qo'sha oladi.")
+    data = dict(data)
+    password = data.pop("password")
+    user = type(actor)(**data, role=Role.DEVELOPER, is_active=False)
+    user.set_password(password)
+    if avatar is not None:
+        user.avatar.save("avatar.jpg", to_jpeg(avatar, "avatar", AVATAR_MAX_MB, AVATAR_SIZE), save=False)
+    user.save()
+    log(actor, "developer_added", f"{actor.full_name} yangi dasturchi qo'shdi: {user.full_name} (tasdiqlash kutilmoqda)", user)
+    return user

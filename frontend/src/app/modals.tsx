@@ -18,6 +18,7 @@ const ProjectWizard = lazy(() => import("@/features/projects/ProjectWizard"));
 const SuggestionCreateModal = lazy(() => import("@/features/suggestions/SuggestionCreateModal"));
 const SuggestionModal = lazy(() => import("@/features/suggestions/SuggestionModal"));
 const PersonModal = lazy(() => import("@/features/people/PersonModal"));
+const NewDeveloperModal = lazy(() => import("@/features/people/NewDeveloperModal"));
 const DayModal = lazy(() => import("@/features/calendar/DayModal"));
 const PhotoModal = lazy(() => import("@/features/people/PhotoModal"));
 const NotificationsModal = lazy(() => import("@/features/notifications/NotificationsModal"));
@@ -38,7 +39,8 @@ export type ModalTarget =
   | { bulk: "task"; project?: number }
   | { new: "order" }
   | { new: "project"; order?: number }
-  | { new: "suggestion" };
+  | { new: "suggestion" }
+  | { new: "developer" };
 
 /** Tarixdagi holat. `pushed` — modal ilova ichidan yangi tarix yozuvi bilan ochilgan (yopilganda orqaga qaytiladi). */
 interface ModalState {
@@ -125,6 +127,7 @@ export function ModalHost() {
   else if (params.get("bulk") === "task") node = <TaskBulkModal projectId={num("project")} />;
   else if (kind === "order") node = <OrderCreateModal />;
   else if (kind === "project") node = <ProjectWizard orderId={num("order")} />;
+  else if (kind === "developer") node = <NewDeveloperModal />;
   else if (kind === "suggestion") node = <SuggestionCreateModal />;
   else if (params.get("task")) node = <TaskModal id={num("task")!} submitMode={params.get("submit") === "1"} />;
   else if (params.get("order")) node = <OrderModal id={num("order")!} />;

@@ -92,7 +92,7 @@ def developer_detail(request, pk):
     return Response({
         **row,
         "experience": experience(owner, items),
-        "technologies": developer_technologies(items),
+        "technologies": developer_technologies(items, own=owner.technologies),
         "years": years(owner, items),
         "items": [item_row(i, done.get(i.project_id, 0)) for i in items],
         "recent_tasks": recent_tasks(owner),

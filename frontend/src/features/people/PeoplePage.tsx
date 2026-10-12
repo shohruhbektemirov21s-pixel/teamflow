@@ -1,4 +1,4 @@
-import { Eye, Plus, Search, Users, X } from "lucide-react";
+import { Eye, Plus, Search, UserPlus, Users, X } from "lucide-react";
 import { useState } from "react";
 
 import { useMe } from "@/app/auth";
@@ -85,6 +85,7 @@ export default function PeoplePage() {
         </div>}
         <label className="check people-filter-free"><input type="checkbox" checked={onlyFree} onChange={(e) => setOnlyFree(e.target.checked)} />{T.people.onlyFree}</label>
         {dirty && <Button variant="ghost" icon={<X size={16} />} className="people-filter-clear" onClick={clear}>{T.filters.clear}</Button>}
+        {boss && <div className="page-actions"><Button variant="primary" icon={<UserPlus size={16} />} onClick={() => open({ new: "developer" })}>{T.people.newDeveloper.button}</Button></div>}
       </div>
       {peopleQuery.data && <p className="small muted people-found" role="status">
         {T.people.found(peopleQuery.pagination?.count ?? 0)}{hasRange && ` · ${T.people.rangeHint}`}

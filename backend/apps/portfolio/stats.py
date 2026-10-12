@@ -180,9 +180,13 @@ def item_work(item):
             "completed": [a.task for a in completed], "team": [m.developer for m in team]}
 
 
-def developer_technologies(items, limit=12):
-    """Dasturchi texnologiyalari = loyihalaridagilar yig'indisi (ko'p uchraganlari avval)."""
+def developer_technologies(items, limit=12, own=()):
+    """Dasturchi texnologiyalari = loyihalaridagilar yig'indisi (ko'p uchraganlari avval); `own` — Boshliq
+    dasturchini qo'shganda kiritgan texnologiyalar, loyihasi bo'lmasa ham ko'rinadi (loyihalar soni 0)."""
     counts, names = {}, {}
+    for name in own:
+        names.setdefault(name.lower(), name)
+        counts.setdefault(name.lower(), 0)
     for item in items:
         for name in item.technologies:
             key = name.lower()
