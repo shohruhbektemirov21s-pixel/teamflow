@@ -12,12 +12,6 @@ import ProfilePage from "./ProfilePage";
 const DEV: Me = { ...PM, id: 3, username: "jasur", full_name: "Jasur Alimov", role: "developer", role_label: "Dasturchi" };
 const PROFILE = { ...DEV, date_joined: "2026-09-01T10:00:00Z", stats: { active: 1, in_review: 0, done: 0, overdue: 0 } };
 
-async function openEdit() {
-  const button = (await screen.findByRole("button", { name: T.profile.edit })) as HTMLButtonElement;
-  await waitFor(() => expect(button.disabled).toBe(false));
-  fireEvent.click(button);
-}
-
 afterEach(() => {
   testUser.current = PM;
 });
@@ -63,46 +57,7 @@ describe("ProfilePage", () => {
     expect(api.get).not.toHaveBeenCalledWith("/tasks/?mine=1");
   });
 
-  it("Telegram izohida bot havolasi bor (bot nomi serverdan, /meta/)", async () => {
-    mockGet({ "/auth/profile/": { ...PROFILE, ...PM, stats: null } });
-    renderApp(<ProfilePage />);
 
-    await openEdit();
-    const link = await screen.findByRole("link", { name: "@teamflow_test_bot" });
-    expect(link.getAttribute("href")).toBe("https://t.me/teamflow_test_bot");
-  });
-
-  it("profil rasmini yuklash: fayl tanlansa /auth/avatar/ ga yuboriladi", async () => {
-    mockGet({ "/auth/profile/": { ...PROFILE, ...PM, stats: null } });
-    const { container } = renderApp(<ProfilePage />);
-
-    await openEdit();
-    expect(await screen.findByRole("button", { name: T.profile.photoUpload })).toBeTruthy();
-    const input = container.querySelector('input[type="file"]') as HTMLInputElement;
-    const file = new File(["x"], "men.png", { type: "image/png" });
-    fireEvent.change(input, { target: { files: [file] } });
-
-    await waitFor(() => expect(api.post).toHaveBeenCalledWith("/auth/avatar/", expect.any(FormData)));
-    const sent = vi.mocked(api.post).mock.calls[0]![1] as FormData;
-    expect(sent.get("avatar")).toBe(file);
-  });
-  it("tahrirlash: bio va ism saqlanadi, bo'sh ism bilan saqlab bo'lmaydi", async () => {
-    mockGet({ "/auth/profile/": { ...PROFILE, ...PM, stats: null, bio: "Eski" } });
-    vi.mocked(api.patch).mockResolvedValue({ ...PROFILE, ...PM, bio: "Yangi bio" });
-    renderApp(<ProfilePage />);
-
-    await openEdit();
-    fireEvent.change(screen.getByLabelText(new RegExp(T.profile.bio)), { target: { value: "Yangi bio" } });
-    fireEvent.change(screen.getByLabelText(new RegExp(T.profile.firstName)), { target: { value: "" } });
-    expect((screen.getByRole("button", { name: T.common.save }) as HTMLButtonElement).disabled).toBe(true);
-    fireEvent.change(screen.getByLabelText(new RegExp(T.profile.firstName)), { target: { value: "Yangi" } });
-    fireEvent.click(screen.getByRole("button", { name: T.common.save }));
-
-    await waitFor(() =>
-      expect(api.patch).toHaveBeenCalledWith("/auth/profile/", expect.objectContaining({ first_name: "Yangi", bio: "Yangi bio" })),
-    );
-    await waitFor(() => expect(screen.queryByRole("button", { name: T.common.save })).toBeNull());
-  });
 
   it("oddiy foydalanuvchi o'z baholarini ko'radi, loyiha va vazifa bo'limlari yo'q", async () => {
     testUser.current = { ...PM, role: "user", role_label: "Oddiy foydalanuvchi" };

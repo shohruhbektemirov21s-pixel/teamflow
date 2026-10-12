@@ -109,14 +109,18 @@ class ProfileSerializer(serializers.ModelSerializer):
     activity = serializers.SerializerMethodField()
     avatar = serializers.SerializerMethodField()
     portfolio = serializers.SerializerMethodField()
+    telegram_connected = serializers.SerializerMethodField()
 
     class Meta:
         model = User
         fields = [
             "id", "username", "first_name", "last_name", "full_name",
-            "role", "role_label", "specialty", "department_name", "bio",
+            "role", "role_label", "specialty", "department_name", "bio", "email", "last_login", "telegram_connected",
             "telegram_username", "date_joined", "stats", "activity", "avatar", "portfolio",
         ]
+
+    def get_telegram_connected(self, user):
+        return bool(user.telegram_chat_id)
 
     def get_portfolio(self, user):
         """Faqat dasturchida: o'z portfoliosi ko'rsatkichlari va texnologiyalari (portfolio ma'lumotidan)."""
@@ -163,6 +167,7 @@ class ProfileUpdateSerializer(serializers.Serializer):
     last_name = serializers.CharField(max_length=150, required=False)
     telegram_username = serializers.CharField(max_length=100, required=False, allow_blank=True)
     bio = serializers.CharField(max_length=300, required=False, allow_blank=True)
+    email = serializers.EmailField(max_length=254, required=False, allow_blank=True)
 
     def validate_telegram_username(self, value):
         value = normalize_telegram(value)

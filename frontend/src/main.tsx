@@ -26,6 +26,7 @@ const ProjectsPage = lazy(() => import("./features/projects/ProjectsPage"));
 const CalendarPage = lazy(() => import("./features/calendar/CalendarPage"));
 const PeoplePage = lazy(() => import("./features/people/PeoplePage"));
 const ProfilePage = lazy(() => import("./features/people/ProfilePage"));
+const SettingsPage = lazy(() => import("./features/settings/SettingsPage"));
 const WorkDonePage = lazy(() => import("./features/history/WorkDonePage"));
 const SuggestionsPage = lazy(() => import("./features/suggestions/SuggestionsPage"));
 const MessagesPage = lazy(() => import("./features/chat/MessagesPage"));
@@ -77,6 +78,7 @@ function AppRoutes() {
               <Route index element={page(<UserDashboard />)} />
               <Route path="baholarim" element={page(<RatingsPage />)} />
               <Route path="profil" element={page(<ProfilePage />)} />
+              <Route path="sozlamalar" element={page(<SettingsPage />)} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Route>
           ) : (
@@ -93,6 +95,7 @@ function AppRoutes() {
               <Route path="xabarlar" element={page(<MessagesPage />)} />
               <Route path="portfolio" element={page(<PortfolioPage />)} />
               <Route path="profil" element={page(<ProfilePage />)} />
+              <Route path="sozlamalar" element={page(<SettingsPage />)} />
               {manager && <Route path="qilingan-ishlar" element={page(<WorkDonePage />)} />}
               <Route path="*" element={<Navigate to="/" replace />} />
             </Route>

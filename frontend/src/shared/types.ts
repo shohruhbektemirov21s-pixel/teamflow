@@ -21,6 +21,9 @@ export interface Me {
 export interface Profile extends Me {
   date_joined: string;
   bio: string;
+  email: string;
+  last_login: string | null;
+  telegram_connected: boolean;
   /** Faqat dasturchida: o'z portfoliosi ko'rsatkichlari va texnologiyalari. */
   portfolio?: { rating: number | null; reviews_count: number; projects_count: number; technologies: string[] } | null;
   stats?: { active: number; in_review: number; done: number; overdue: number };

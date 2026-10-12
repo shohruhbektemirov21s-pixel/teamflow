@@ -1,37 +1,17 @@
-import { ArrowLeft, Bell, LogOut, Menu, Moon, Search, Sparkles, Sun } from "lucide-react";
+import { ArrowLeft, Bell, LogOut, Menu, Moon, Settings, Search, Sparkles, Sun } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 
 import SearchPalette from "@/features/search/SearchPalette";
 import { useMeta } from "@/shared/meta";
 import { T } from "@/shared/text";
+import { useTheme } from "@/shared/theme";
 import { Avatar } from "@/shared/ui";
 
 import { useAuth, useMe } from "./auth";
 import { ModalHost, useModal } from "./modals";
 import { navFor, pageTitle } from "./nav";
 import { useCounters } from "./queries";
-
-export function useTheme() {
-  const [theme, setTheme] = useState<"light" | "dark">(() => {
-    try {
-      const saved = localStorage.getItem("theme");
-      if (saved === "light" || saved === "dark") return saved;
-    } catch {
-      /* brauzer xotirasi yopiq bo'lishi mumkin */
-    }
-    return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
-  });
-  useEffect(() => {
-    document.documentElement.dataset.theme = theme;
-    try {
-      localStorage.setItem("theme", theme);
-    } catch {
-      /* e'tiborsiz */
-    }
-  }, [theme]);
-  return [theme, () => setTheme((t) => (t === "dark" ? "light" : "dark"))] as const;
-}
 
 export default function Layout() {
   const me = useMe();
@@ -121,6 +101,9 @@ export default function Layout() {
               <div className="me-name ellipsis">{me.full_name}</div>
               <div className="me-role ellipsis">{me.department_name || meta.label("roles", me.role)}</div>
             </div>
+          </Link>
+          <Link to="/sozlamalar" className="icon-btn" title={T.settings.open} aria-label={T.settings.open}>
+            <Settings />
           </Link>
           <button className="icon-btn" onClick={logout} title={T.nav.logout} aria-label={T.nav.logout}>
             <LogOut />

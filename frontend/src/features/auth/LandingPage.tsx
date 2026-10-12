@@ -1,9 +1,9 @@
 import { Building2, CheckCircle, History, KanbanSquare, Moon, Sparkles, Sun } from "lucide-react";
 import type { ReactNode } from "react";
-import { useState } from "react";
 import { Link } from "react-router-dom";
 
 import { T } from "@/shared/text";
+import { useTheme } from "@/shared/theme";
 import { Button } from "@/shared/ui";
 
 const FEATURE_ICONS: Record<string, ReactNode> = {
@@ -14,20 +14,7 @@ const FEATURE_ICONS: Record<string, ReactNode> = {
 };
 
 export default function LandingPage() {
-  const [theme, setTheme] = useState<"light" | "dark">(
-    () => (document.documentElement.dataset.theme === "dark" ? "dark" : "light")
-  );
-  
-  const toggleTheme = () => {
-    const next = theme === "light" ? "dark" : "light";
-    document.documentElement.dataset.theme = next;
-    setTheme(next);
-    try {
-      localStorage.setItem("theme", next);
-    } catch {
-      /* brauzer xotirasi yopiq bo'lishi mumkin */
-    }
-  };
+  const [theme, toggleTheme] = useTheme();
 
   return (
     <div className="landing">

@@ -108,3 +108,18 @@ class ProfileBioAndPortfolioTests(TestCase):
         self.assertEqual((data["rating"], data["reviews_count"], data["projects_count"]), (None, 0, 1))
         self.assertEqual(sorted(data["technologies"]), ["Django", "React"])
         self.assertIsNone(client_for(make_user(Role.USER)).get("/api/auth/profile/").data["portfolio"])
+
+    def test_email_is_validated_and_security_fields_are_exposed(self):
+        user = make_user(Role.DEVELOPER)
+        api = client_for(user)
+        self.assertEqual(api.patch("/api/auth/profile/", {"email": "bu-email-emas"}, format="json").status_code, 400)
+        ok = api.patch("/api/auth/profile/", {"email": " Ali@Example.com "}, format="json")
+        self.assertEqual((ok.status_code, ok.data["email"]), (200, "Ali@Example.com"))
+        self.assertEqual(api.patch("/api/auth/profile/", {"email": ""}, format="json").data["email"], "")
+        data = api.get("/api/auth/profile/").data
+        self.assertIs(data["telegram_connected"], False)
+        self.assertIn("last_login", data)
+        self.assertNotIn("password", data)
+        user.telegram_chat_id = "123"
+        user.save(update_fields=["telegram_chat_id"])
+        self.assertIs(api.get("/api/auth/profile/").data["telegram_connected"], True)

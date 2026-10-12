@@ -1,11 +1,11 @@
-import { LogOut, Moon, Sparkles, Star, Sun, User, Users } from "lucide-react";
+import { LogOut, Moon, Settings, Sparkles, Star, Sun, User, Users } from "lucide-react";
 import { Link, NavLink, Outlet } from "react-router-dom";
 
 import { T } from "@/shared/text";
 import { Avatar } from "@/shared/ui";
 
 import { useAuth, useMe } from "./auth";
-import { useTheme } from "./Layout";
+import { useTheme } from "@/shared/theme";
 import { ModalHost } from "./modals";
 
 /** Oddiy foydalanuvchi: tepada panel, kompyuterda chap menyu, telefonda pastki menyu (Dasturchilar · Mening baholarim · Profil). */
@@ -26,6 +26,9 @@ export default function UserLayout() {
         <Link to="/profil" className="ubar-me" aria-label={T.user.userMenu}>
           <Avatar user={me} size="lg" card={false} />
           <span className="ubar-name ellipsis">{me.first_name || me.full_name}</span>
+        </Link>
+        <Link to="/sozlamalar" className="btn btn-ghost" aria-label={T.settings.open} title={T.settings.open}>
+          <Settings size={18} />
         </Link>
         <button type="button" className="btn btn-ghost" onClick={logout}>
           <LogOut size={16} /> <span className="ubar-logout">{T.nav.logout}</span>

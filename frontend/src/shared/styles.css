@@ -1124,6 +1124,25 @@ button.list-row:focus-visible { outline-offset: -2px; }
   .urow-name { flex-basis: calc(100% - 120px); }
 }
 
+/* ───────── Sozlamalar (/sozlamalar) ───────── */
+.settings { display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: 16px; align-items: start; max-width: 960px; width: 100%; margin: 0 auto; }
+.settings-nav { display: flex; flex-direction: column; gap: 4px; }
+.settings-tab { display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 8px 12px; border: 0; border-radius: var(--radius); background: transparent; color: var(--text); font: inherit; font-weight: 500; text-align: left; cursor: pointer; transition: background-color .15s var(--ease); }
+.settings-tab svg { width: 18px; height: 18px; flex: none; color: var(--muted); }
+.settings-tab:hover { background: var(--surface-hover); }
+.settings-tab[aria-current="true"] { background: var(--primary-soft); color: var(--primary); font-weight: 600; }
+.settings-tab[aria-current="true"] svg { color: var(--primary); }
+.settings-body { max-width: 640px; }
+.theme-options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.theme-option { display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 72px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); color: var(--text); font: inherit; font-weight: 600; cursor: pointer; }
+.theme-option svg { width: 20px; height: 20px; }
+.theme-option[aria-checked="true"] { border-color: var(--primary); background: var(--primary-soft); color: var(--primary); }
+@media (max-width: 720px) {
+  .settings { grid-template-columns: minmax(0, 1fr); }
+  .settings-nav { flex-direction: row; overflow-x: auto; padding-bottom: 4px; }
+  .settings-tab { flex: none; white-space: nowrap; }
+}
+
 /* Profil: o'qish rejimidagi ma'lumotlar */
 .kv { margin: 0; display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
 .kv dt { font-size: var(--fs-sm); color: var(--muted); }

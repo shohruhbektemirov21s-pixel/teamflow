@@ -86,7 +86,7 @@ export function navFor(role: Role): NavGroup[] {
 }
 
 /** Menyuda yo'q, lekin sarlavhasi bor sahifalar (profil foydalanuvchi kartasi orqali ochiladi). */
-const EXTRA_TITLES: Record<string, string> = { "/profil": T.nav.profile };
+const EXTRA_TITLES: Record<string, string> = { "/profil": T.nav.profile, "/sozlamalar": T.settings.title };
 
 export function pageTitle(pathname: string, role: Role): string {
   for (const g of navFor(role)) for (const i of g.items) if (i.to === pathname) return i.label;
