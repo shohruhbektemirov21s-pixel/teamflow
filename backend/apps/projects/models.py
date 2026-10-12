@@ -33,6 +33,8 @@ class Project(models.Model):
     # Yakunlashdan oldin dasturchilardan so'ralgan tasdiq davri boshlangan payt (null — faol so'rov yo'q).
     completion_requested_at = models.DateTimeField("Dasturchi tasdig'i so'ralgan payt", null=True, blank=True)
     completion_note = models.TextField("Yakunlash izohi", blank=True)
+    technologies = models.JSONField("Texnologiyalar", default=list, blank=True)  # ["Python", "Django"], 10 tagacha
+    cover = models.ImageField("Muqova rasmi", upload_to=UploadTo("projects/covers"), blank=True)
     created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="+")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

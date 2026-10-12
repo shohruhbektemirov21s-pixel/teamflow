@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { useModal } from "@/app/modals";
 import { useDevelopers, useRefresh } from "@/app/queries";
 import { api, ApiError, formData } from "@/shared/api";
-import { fmtDate, fromLocalInput, minDate, minDateTime } from "@/shared/format";
+import { fmtDate, fromLocalInput, minDate, minDateTime, splitTechnologies } from "@/shared/format";
 import { useMeta } from "@/shared/meta";
 import { useDebounced } from "@/shared/hooks";
 import { T } from "@/shared/text";
@@ -37,6 +37,7 @@ export default function ProjectWizard({ orderId }: { orderId?: number }) {
   const [code, setCode] = useState("");
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
+  const [technologies, setTechnologies] = useState("");
   const [start, setStart] = useState("");
   const [end, setEnd] = useState("");
   const [stage, setStage] = useState<ProjectStage>("planned");
@@ -75,6 +76,7 @@ export default function ProjectWizard({ orderId }: { orderId?: number }) {
           start_date: start,
           end_date: end,
           stage,
+          technologies: splitTechnologies(technologies),
           member_ids: members,
           tasks: readyTasks.map((t) => ({ title: t.title.trim(), assignee_id: t.assignee, starts_at: fromLocalInput(t.starts), due_at: fromLocalInput(t.due) })),
         },
@@ -91,7 +93,7 @@ export default function ProjectWizard({ orderId }: { orderId?: number }) {
     onError: (e: Error) => {
       const err = e instanceof ApiError ? e : new ApiError(0, e.message);
       setError(err);
-      if (err.field("code") || err.field("name") || err.field("start_date") || err.field("end_date")) setStep(0);
+      if (err.field("code") || err.field("name") || err.field("technologies") || err.field("start_date") || err.field("end_date")) setStep(0);
       else if (err.field("member_ids")) setStep(1);
     },
   });
@@ -151,6 +153,9 @@ export default function ProjectWizard({ orderId }: { orderId?: number }) {
             </Field>
             <Field label={T.projects.description}>
               {(id) => <textarea id={id} className="textarea" value={description} disabled={fromOrder} onChange={(e) => setDescription(e.target.value)} />}
+            </Field>
+            <Field label={T.techField.label} hint={T.techField.hint} error={fe("technologies")}>
+              {(id, bad) => <input id={id} className="input" aria-invalid={bad} placeholder={T.techField.placeholder} value={technologies} onChange={(e) => setTechnologies(e.target.value)} />}
             </Field>
             <div className="grid-2">
               <Field label={T.projects.startDate} required error={fe("start_date")}>

@@ -1,11 +1,13 @@
 from django.db.models import Count, Prefetch, Q
+from django.http import FileResponse, Http404
 from django.shortcuts import get_object_or_404
 from django.utils.dateparse import parse_date
 from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action
+from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.response import Response
 
-from apps.core.api_utils import IsDepartment, IsManager
+from apps.core.api_utils import IsDepartment, IsManager, ServiceError
 from apps.core.pagination import bounded_unpaged
 from apps.core.codes import resolve_code
 from apps.orders.permissions import visible_orders
@@ -13,6 +15,7 @@ from apps.orders.permissions import visible_orders
 from . import services
 from .models import Project, ProjectCompletionAck
 from .permissions import visible_projects
+from .workflow import STATUSES, status_condition
 from .serializers import (
     CompletionAckSerializer,
     FilesSerializer,
@@ -26,7 +29,7 @@ from .serializers import (
 
 
 class ProjectViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.GenericViewSet):
-    MANAGER_ACTIONS = {"create", "partial_update", "members", "files", "delete_file"}
+    MANAGER_ACTIONS = {"create", "partial_update", "members", "files", "delete_file", "cover"}
 
     def get_queryset(self):
         qs = (
@@ -46,6 +49,8 @@ class ProjectViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.
         params = self.request.query_params
         if params.get("stage"):
             qs = qs.filter(stage__in=params["stage"].split(","))
+        if params.get("status") in STATUSES:
+            qs = qs.filter(status_condition(params["status"]))
         if params.get("q"):
             code = resolve_code(params["q"])
             if code and code[0] == "project":
@@ -110,6 +115,34 @@ class ProjectViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.
         s.is_valid(raise_exception=True)
         services.update_project(project, request.user, **s.validated_data)
         return Response(self._detail(project))
+
+    @action(detail=True, methods=["post", "delete"], parser_classes=[MultiPartParser, FormParser])
+    def cover(self, request, pk=None):
+        """Loyiha muqova rasmi (PM/Boshliq): POST (multipart `cover`) — yuklash/almashtirish, DELETE — o'chirish."""
+        project = self.get_object()
+        if request.method == "DELETE":
+            services.remove_cover(project, request.user)
+        else:
+            upload = request.FILES.get("cover")
+            if upload is None:
+                raise ServiceError("Rasm tanlang.", "cover")
+            services.set_cover(project, request.user, upload)
+        return Response(self._detail(project))
+
+    @action(detail=True, methods=["get"], url_path="cover-image")
+    def cover_image(self, request, pk=None):
+        """Muqova rasmi — faqat loyihani ko'ra oladiganlarga (media papkasi ochiq berilmaydi)."""
+        project = self.get_object()
+        if not project.cover:
+            raise Http404
+        try:
+            handle = project.cover.open("rb")
+        except (FileNotFoundError, ValueError):
+            raise Http404
+        response = FileResponse(handle, content_type="image/jpeg")
+        response["X-Content-Type-Options"] = "nosniff"
+        response["Cache-Control"] = "private, max-age=86400"  # `?v=` almashadi — eski rasm keshda qolmaydi
+        return response
 
     @action(detail=True, methods=["put"])
     def members(self, request, pk=None):

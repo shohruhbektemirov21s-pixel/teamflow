@@ -225,8 +225,9 @@ Menyu guruhlarga bo'lingan: *Asosiy ish* | *Muloqot* | *Kuzatuv* (Kuzatuv faqat 
 - Kundagi vazifa/loyiha belgisini to'g'ridan-to'g'ri bossa ham o'z oynasi ochiladi; "yana N ta" kun ro'yxatini ochadi.
 
 ### Loyihalar (`/loyihalar`, PM, Boshliq)
-- Loyihalar ro'yxati: qidiruv, daraja filtri, har birida jarayon ("5 / 12 vazifa bajarildi") va "Buyurtmadan" belgisi. Eng yangisi tepada. Ro'yxatda loyiha izohi ko'rsatilmaydi (izoh loyiha oynasida).
-- "Yangi loyiha" — 3 qadamli yaratish oynasi (5-bo'lim). Loyiha bosilsa loyiha oynasi ochiladi.
+- Loyihalar ro'yxati (2026-10-12 qayta ishlandi): qidiruv (nom yoki raqam) va holat filtri — **Barchasi · Bajarilgan · Jarayonda · Kechikkan** (server filtrlaydi va sahifalaydi; holat: yakunlangan → Bajarilgan, yakunlanmagan va tugash sanasi o'tgan → Kechikkan, qolgani → Jarayonda). **Kartalar / Ro'yxat** ko'rinishi (tanlov eslab qolinadi; kompyuterda 3 ustun, planshetda 2, telefonda 1). Har birida: muqova rasmi (yo'q bo'lsa gradient), nom, raqam, holat, qisqa tavsif, boshlanish—tugash sanasi, texnologiyalar, jarayon ("5 / 12 vazifa bajarildi"), ishtirokchilar va "Ko'rish". Karta yoki "Ko'rish" bosilsa loyiha oynasi ochiladi (alohida sahifa emas). Eng yangisi tepada. Dasturchi faqat o'z loyihalarini ko'radi.
+- **Texnologiyalar va muqova:** PM/Boshliq loyiha yaratishda (1-qadam) yoki loyiha oynasida tahrirlaganda kiritadi — texnologiyalar vergul bilan (10 tagacha, har biri 30 belgigacha), muqova rasmi ixtiyoriy (JPG/PNG/WEBP, 5 MB gacha, server 1280px gacha kichraytirib JPEG qiladi; rasm faqat loyihani ko'ra oladiganlarga beriladi).
+- "Yangi loyiha" (faqat PM/Boshliq) — 3 qadamli yaratish oynasi (5-bo'lim).
 
 ### Buyurtmalar (`/buyurtmalar`)
 - PM/Boshliq uchun "Buyurtmalar (TZ)", Boshqarma uchun "Buyurtmalarim" (faqat o'z buyurtmalari).

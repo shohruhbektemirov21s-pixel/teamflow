@@ -7,9 +7,10 @@ import { useDevelopers, usePagedList, useRefresh } from "@/app/queries";
 import { Comments } from "@/features/comments/Comments";
 import { DocTitle, DocViewer } from "@/features/docs/DocViewer";
 import { TaskTable } from "@/features/tasks/TaskTable";
+import { CoverEditor } from "@/shared/ui/CoverEditor";
 import { Pagination } from "@/shared/ui/Pagination";
 import { api, ApiError, formData, qs } from "@/shared/api";
-import { fmtDate, minDate } from "@/shared/format";
+import { fmtDate, minDate, splitTechnologies } from "@/shared/format";
 import { useMeta } from "@/shared/meta";
 import { useDebounced } from "@/shared/hooks";
 import { T } from "@/shared/text";
@@ -49,7 +50,7 @@ export default function ProjectModal({ id }: { id: number }) {
   const [historyPage, setHistoryPage] = useState(1);
   const [viewing, setViewing] = useState<FileInfo | null>(null);
   const [editingInfo, setEditingInfo] = useState(false);
-  const [form, setForm] = useState({ name: "", description: "", start_date: "", end_date: "" });
+  const [form, setForm] = useState({ name: "", description: "", start_date: "", end_date: "", technologies: "" });
   const [members, setMembers] = useState<number[]>([]);
   const [teamQ, setTeamQ] = useState("");
   const developerSearch = useDebounced(teamQ.trim());
@@ -69,14 +70,14 @@ export default function ProjectModal({ id }: { id: number }) {
 
   useEffect(() => {
     if (!p) return;
-    setForm({ name: p.name, description: p.description, start_date: p.start_date, end_date: p.end_date });
+    setForm({ name: p.name, description: p.description, start_date: p.start_date, end_date: p.end_date, technologies: p.technologies.join(", ") });
     setMembers(p.members.map((m) => m.id));
     setEditingInfo(false);
   }, [p?.id]);
 
   const cancelEdit = () => {
     if (!p) return;
-    setForm({ name: p.name, description: p.description, start_date: p.start_date, end_date: p.end_date });
+    setForm({ name: p.name, description: p.description, start_date: p.start_date, end_date: p.end_date, technologies: p.technologies.join(", ") });
     setEditingInfo(false);
   };
 
@@ -92,7 +93,7 @@ export default function ProjectModal({ id }: { id: number }) {
   };
 
   const save = useMutation({
-    mutationFn: () => api.patch(`/projects/${id}/`, form),
+    mutationFn: () => api.patch(`/projects/${id}/`, { ...form, technologies: splitTechnologies(form.technologies) }),
     onSuccess: () => (done(T.common.saved)(), setEditingInfo(false)),
     onError,
   });
@@ -134,7 +135,8 @@ export default function ProjectModal({ id }: { id: number }) {
       </Modal>
     );
 
-  const infoDirty = form.name !== p.name || form.description !== p.description || form.start_date !== p.start_date || form.end_date !== p.end_date;
+  const infoDirty = form.name !== p.name || form.description !== p.description || form.start_date !== p.start_date || form.end_date !== p.end_date
+    || JSON.stringify(splitTechnologies(form.technologies)) !== JSON.stringify(p.technologies);
   const teamDirty = JSON.stringify([...members].sort()) !== JSON.stringify(p.members.map((m) => m.id).sort());
   const fe = (k: string) => error?.field(k);
   // Jamoa: ro'yxatda faqat loyiha a'zolari; qolgan dasturchilar qidiruv orqali qo'shiladi.
@@ -310,9 +312,22 @@ export default function ProjectModal({ id }: { id: number }) {
                       {(fid, bad) => <input id={fid} type="date" className="input" aria-invalid={bad} min={minDate(p.end_date, form.start_date)} value={form.end_date} onChange={(e) => setForm({ ...form, end_date: e.target.value })} />}
                     </Field>
                   </div>
+                  <Field label={T.techField.label} hint={T.techField.hint} error={fe("technologies")}>
+                    {(fid, bad) => <input id={fid} className="input" aria-invalid={bad} placeholder={T.techField.placeholder} value={form.technologies} onChange={(e) => setForm({ ...form, technologies: e.target.value })} />}
+                  </Field>
+                  <CoverEditor path={`/projects/${id}/cover/`} cover={p.cover} onChanged={refresh} />
                 </>
               ) : (
-                <p className="prose">{p.description || T.common.none}</p>
+                <>
+                  {p.cover && <img className="pf-item-cover" src={p.cover} alt="" />}
+                  <p className="prose">{p.description || T.common.none}</p>
+                  {!!p.technologies.length && (
+                    <div>
+                      <div className="section-title">{T.techField.label}</div>
+                      <span className="pf-chips">{p.technologies.map((name) => <span key={name} className="utag" title={name}>{name}</span>)}</span>
+                    </div>
+                  )}
+                </>
               )}
             </div>
             <aside className="card card-pad meta">

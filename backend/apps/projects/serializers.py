@@ -2,9 +2,10 @@ from rest_framework import serializers
 
 from apps.core.api_utils import JSONListField, file_info, user_brief
 from apps.core.files import validate_upload
+from apps.core.technologies import TechnologiesField
 
 from .models import Project
-from .workflow import completion_locked, pending_acks, project_targets
+from .workflow import completion_locked, pending_acks, project_status, project_targets
 
 S = Project.Stage
 
@@ -13,11 +14,22 @@ class ProjectListSerializer(serializers.ModelSerializer):
     stage_label = serializers.CharField(source="get_stage_display")
     members = serializers.SerializerMethodField()
     progress = serializers.SerializerMethodField()
+    status = serializers.SerializerMethodField()
+    cover = serializers.SerializerMethodField()
 
     class Meta:
         model = Project
         fields = ["id", "code", "name", "description", "stage", "stage_label", "start_date", "end_date",
-                  "order_id", "members", "progress", "created_at"]
+                  "order_id", "members", "progress", "created_at", "status", "technologies", "cover"]
+
+    def get_status(self, obj):
+        return project_status(obj)
+
+    def get_cover(self, obj):
+        if not obj.cover:
+            return None
+        version = obj.cover.name.rsplit("/", 1)[-1].split(".")[0][:12]
+        return f"/api/projects/{obj.pk}/cover-image/?v={version}"
 
     def get_members(self, obj):
         return [user_brief(m.developer) for m in obj.memberships.all()]
@@ -106,6 +118,7 @@ class ProjectCreateSerializer(serializers.Serializer):
         default=Project.Stage.PLANNED,
     )
     member_ids = JSONListField(child=serializers.IntegerField(), required=False, default=list)
+    technologies = TechnologiesField(required=False, default=list)
     files = serializers.ListField(child=serializers.FileField(validators=[validate_upload]), required=False, default=list)
 
 
@@ -116,6 +129,7 @@ class ProjectUpdateSerializer(serializers.Serializer):
     description = serializers.CharField(required=False, allow_blank=True)
     start_date = serializers.DateField(required=False)
     end_date = serializers.DateField(required=False)
+    technologies = TechnologiesField(required=False)
     # PENDING_APPROVAL tanlovdan chiqarilgan — u faqat "done" so'ralganda ichki hosil bo'ladigan oraliq
     # holat (services._apply_stage), foydalanuvchi to'g'ridan-to'g'ri tanlamasligi kerak.
     stage = serializers.ChoiceField(

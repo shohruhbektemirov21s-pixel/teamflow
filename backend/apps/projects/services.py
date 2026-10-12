@@ -9,6 +9,7 @@ from rest_framework.exceptions import PermissionDenied
 from apps.accounts.models import Role
 from apps.core.api_utils import ServiceError
 from apps.core.dates import ensure_not_past
+from apps.core.images import to_jpeg
 from apps.core.services import log
 from apps.notifications.models import Notification
 from apps.notifications.services import notify
@@ -49,7 +50,7 @@ def _developers(ids):
 
 @transaction.atomic
 def create_project(user, *, code, name="", description="", start_date=None, end_date=None,
-                   member_ids=None, files=None, order=None, stage=Project.Stage.PLANNED):
+                   member_ids=None, files=None, order=None, stage=Project.Stage.PLANNED, technologies=None):
     """Qo'lda yoki tasdiqlangan buyurtmadan loyiha yaratadi.
 
     Buyurtmadan: nom, izoh va TZ fayli buyurtmadan olinadi; sanalar — PM tasdiqlaganda kiritganlari
@@ -81,7 +82,7 @@ def create_project(user, *, code, name="", description="", start_date=None, end_
         code=code, name=name.strip(), description=description, start_date=start_date, end_date=end_date,
         # "Yakunlangan" darhol qo'yilmaydi, _apply_stage orqali (jamoa bo'lsa dasturchilar tasdig'i so'raladi)
         stage=S.PLANNED if stage == S.DONE else stage,
-        order=order, created_by=user,
+        order=order, created_by=user, technologies=technologies or [],
     )
     for developer in _developers(member_ids):
         ProjectMember.objects.create(project=project, developer=developer)
@@ -107,6 +108,29 @@ def create_project(user, *, code, name="", description="", start_date=None, end_
     return project
 
 
+COVER_MAX_MB = 5
+COVER_SIZE = 1280  # px, eng uzun tomoni
+
+
+def set_cover(project, user, upload):
+    _require_manager(user)
+    content = to_jpeg(upload, "cover", COVER_MAX_MB, COVER_SIZE)
+    old = project.cover.name
+    project.cover.save("cover.jpg", content, save=False)
+    project.save(update_fields=["cover", "updated_at"])
+    if old:
+        project.cover.storage.delete(old)
+    return project
+
+
+def remove_cover(project, user):
+    _require_manager(user)
+    if project.cover:
+        project.cover.delete(save=False)
+        project.save(update_fields=["cover", "updated_at"])
+    return project
+
+
 @transaction.atomic
 def update_project(project, user, **data):
     """PM/Boshliq loyihani tahrirlaydi: nom, izoh, sana, daraja. Buyurtmadan yaratilgan bo'lsa,
@@ -129,6 +153,8 @@ def update_project(project, user, **data):
     for field in ("name", "description", "start_date", "end_date"):
         if data.get(field) is not None:
             setattr(project, field, data[field])
+    if data.get("technologies") is not None:  # buyurtmaga ko'chmaydi — buyurtmada texnologiya yo'q
+        project.technologies = data["technologies"]
     if not project.name.strip():
         raise ServiceError("Loyiha nomini yozing.", "name")
     _check_dates(project.start_date, project.end_date)

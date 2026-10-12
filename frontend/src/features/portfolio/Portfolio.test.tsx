@@ -144,7 +144,7 @@ describe("Portfolio oynasi", () => {
     vi.mocked(api.post).mockResolvedValue({ ...ITEM, id: 12 });
     renderApp(<PortfolioModal id={JASUR.id} add />);
     fireEvent.change(await screen.findByLabelText(new RegExp(T.portfolio.fields.title)), { target: { value: "Bot" } });
-    fireEvent.change(screen.getByLabelText(T.portfolio.fields2.technologies), { target: { value: " Python, Django ,," } });
+    fireEvent.change(screen.getByLabelText(T.techField.label), { target: { value: " Python, Django ,," } });
     fireEvent.click(screen.getByRole("button", { name: T.common.save }));
     await waitFor(() => expect(api.post).toHaveBeenCalledWith("/portfolio/items/", expect.objectContaining({ technologies: ["Python", "Django"] })));
   });

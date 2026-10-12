@@ -99,3 +99,8 @@ export function initials(name: string): string {
     .map((p) => p[0]!.toUpperCase())
     .join("");
 }
+
+/** "Python, Django ,," → ["Python", "Django"]: texnologiyalar maydoni (vergul bilan ajratilgan matn) → ro'yxat. */
+export function splitTechnologies(text: string): string[] {
+  return text.split(",").map((name) => name.trim()).filter(Boolean);
+}

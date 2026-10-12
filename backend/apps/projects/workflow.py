@@ -6,6 +6,9 @@ avval "pending_approval" ga o'tadi (services.set_stage hal qiladi) va faqat BUYU
 boshqarma uni "done" (tasdiqlash) yoki "rejected" (rad etish, sabab bilan) qila oladi.
 Bajarilgan ("done") loyiha holati boshqa holatga o'zgarmaydi.
 """
+from django.db.models import Q
+from django.utils import timezone
+
 from apps.accounts.models import Role
 from apps.core.workflow import allowed_targets, check_transition
 
@@ -71,3 +74,28 @@ def pending_acks(project):
     member_ids = {m.developer_id for m in project.memberships.all()}
     return [a for a in project.completion_acks.all()
             if a.confirmed is None and a.developer_id in member_ids and a.developer.is_active]
+
+
+# ─── Ro'yxat holati: Bajarilgan · Jarayonda · Kechikkan (bir-birini istisno qiladi) ───
+STATUS_DONE, STATUS_ACTIVE, STATUS_OVERDUE = "done", "active", "overdue"
+STATUSES = (STATUS_DONE, STATUS_ACTIVE, STATUS_OVERDUE)
+
+
+def project_status(project, today=None):
+    """Yakunlangan → "done"; yakunlanmagan va tugash sanasi o'tgan → "overdue"; qolgani → "active"."""
+    today = today or timezone.localdate()
+    if project.stage == S.DONE:
+        return STATUS_DONE
+    return STATUS_OVERDUE if project.end_date < today else STATUS_ACTIVE
+
+
+def status_condition(status, today=None):
+    """`project_status` bilan bir xil qoida, bazada filtr uchun (ro'yxat va holat doim mos)."""
+    today = today or timezone.localdate()
+    if status == STATUS_DONE:
+        return Q(stage=S.DONE)
+    if status == STATUS_OVERDUE:
+        return ~Q(stage=S.DONE) & Q(end_date__lt=today)
+    if status == STATUS_ACTIVE:
+        return ~Q(stage=S.DONE) & Q(end_date__gte=today)
+    return Q()

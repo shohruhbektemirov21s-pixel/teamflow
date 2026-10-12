@@ -4,12 +4,11 @@ from django.utils.text import Truncator
 from rest_framework import serializers
 
 from apps.core.api_utils import avatar_url, user_brief
+from apps.core.technologies import TechnologiesField
 
 from .permissions import can_edit_item, can_review_item
 from .stats import item_status, round_rating
 
-TECH_MAX_COUNT = 10
-TECH_MAX_LENGTH = 30
 SUMMARY_CHARS = 200  # ro'yxat kartasidagi qisqa tavsif; to'liq matn loyiha oynasida
 
 
@@ -27,20 +26,10 @@ class ItemInput(serializers.Serializer):
                                 validators=[URLValidator(schemes=["http", "https"])])
     start_date = serializers.DateField(required=False, allow_null=True)
     end_date = serializers.DateField(required=False, allow_null=True)
-    technologies = serializers.ListField(child=serializers.CharField(max_length=TECH_MAX_LENGTH, allow_blank=True),
-                                         max_length=TECH_MAX_COUNT, required=False)
+    technologies = TechnologiesField(required=False)
 
     def validate_title(self, value):
         return value.strip()
-
-    def validate_technologies(self, value):
-        """Bo'shlar tashlanadi, takrorlar (harf katta-kichikligiga qaramay) bittaga keltiriladi."""
-        seen, result = set(), []
-        for name in (v.strip() for v in value):
-            if name and name.lower() not in seen:
-                seen.add(name.lower())
-                result.append(name)
-        return result
 
 
 class ReviewInput(serializers.Serializer):

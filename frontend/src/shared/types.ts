@@ -191,7 +191,13 @@ export interface Project {
   members: UserBrief[];
   progress: { total: number; done: number };
   created_at: string;
+  /** Server hisoblaydi: yakunlangan · tugash sanasi o'tgan · qolgani. */
+  status: ProjectStatus;
+  technologies: string[];
+  cover: string | null;
 }
+
+export type ProjectStatus = "done" | "active" | "overdue";
 
 export interface ProjectDetail extends Project {
   completion_note?: string;

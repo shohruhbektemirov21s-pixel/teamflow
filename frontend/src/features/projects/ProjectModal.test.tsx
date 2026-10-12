@@ -13,6 +13,7 @@ const PROJECT: ProjectDetail = {
   id: 1, code: "200000001", name: "Portal", description: "", stage: "started",
   start_date: "2026-09-01", end_date: "2026-11-01", order_id: null,
   members: [JASUR], progress: { total: 0, done: 0 }, created_at: "2026-09-01T10:00:00Z",
+  status: "active", technologies: [], cover: null,
   created_by: { id: PM.id, full_name: PM.full_name, role: "pm", department_name: "" },
   files: [], order: null,
   actions: { edit: true, edit_info: true, members: true, files: true, add_task: true },
