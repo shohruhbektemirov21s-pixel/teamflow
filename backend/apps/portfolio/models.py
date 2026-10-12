@@ -28,6 +28,8 @@ class PortfolioItem(models.Model):
     link = models.URLField("Havola", max_length=500, blank=True, validators=[URLValidator(schemes=["http", "https"])])
     start_date = models.DateField("Boshlanish", null=True, blank=True)
     end_date = models.DateField("Tugash", null=True, blank=True)
+    technologies = models.JSONField("Texnologiyalar", default=list, blank=True)  # ["Python", "Django"], 10 tagacha
+    cover = models.ImageField("Muqova rasmi", upload_to=UploadTo("portfolio/covers"), blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

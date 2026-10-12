@@ -147,6 +147,33 @@ def years(owner, items):
             for y in sorted(set(projects) | set(tasks), reverse=True) if y <= today.year]
 
 
+def item_status(item):
+    """Loyiha holati: "done" · "active" · "planned" yoki None (sanasi ham, loyihasi ham yo'q).
+    TeamFlow loyihasida — bosqichidan, o'zi qo'shganda — sanalaridan."""
+    if item.project_id:
+        stage = item.project.stage
+        return "done" if stage == Project.Stage.DONE else "planned" if stage == Project.Stage.PLANNED else "active"
+    start, end = item.period
+    today = timezone.localdate()
+    if end and end <= today:
+        return "done"
+    if start and start > today:
+        return "planned"
+    return "active" if start or end else None
+
+
+def developer_technologies(items, limit=12):
+    """Dasturchi texnologiyalari = loyihalaridagilar yig'indisi (ko'p uchraganlari avval)."""
+    counts, names = {}, {}
+    for item in items:
+        for name in item.technologies:
+            key = name.lower()
+            names.setdefault(key, name)
+            counts[key] = counts.get(key, 0) + 1
+    ordered = sorted(counts, key=lambda k: (-counts[k], k))
+    return [{"name": names[k], "projects": counts[k]} for k in ordered[:limit]]
+
+
 def recent_tasks(owner, limit=10):
     rows = (done_assignments().filter(developer=owner).select_related("task__project")
             .order_by(F("task__completed_at").desc(nulls_last=True), "-task_id")[:limit])

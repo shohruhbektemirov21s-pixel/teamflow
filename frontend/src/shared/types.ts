@@ -316,6 +316,8 @@ export interface PortfolioDeveloper extends UserBrief {
   experience_months?: number | null;
 }
 
+export type PortfolioStatus = "done" | "active" | "planned";
+
 export interface PortfolioItem {
   id: number;
   /** TeamFlow loyihasi (avtomatik) yoki dasturchi o'zi qo'shgan. */
@@ -324,6 +326,12 @@ export interface PortfolioItem {
   link: string;
   start_date: string | null;
   end_date: string | null;
+  /** "done" · "active" · "planned" — loyiha bosqichi yoki sanalaridan hisoblanadi; sana ham, loyiha ham bo'lmasa null. */
+  status: PortfolioStatus | null;
+  /** Kartada ko'rinadigan qisqa tavsif (to'liq matn — loyiha oynasida). */
+  summary: string;
+  technologies: string[];
+  cover: string | null;
   project: { code: string; stage: ProjectStage } | null;
   tasks_done: number | null;
   rating: number | null;
@@ -333,6 +341,8 @@ export interface PortfolioItem {
 
 export interface PortfolioDetail extends PortfolioDeveloper {
   experience: { since: string; months: number };
+  /** Loyihalaridagi texnologiyalar yig'indisi (ko'p uchraganlari avval). */
+  technologies: { name: string; projects: number }[];
   years: { year: number; projects: number; tasks: number }[];
   items: PortfolioItem[];
   recent_tasks: { id: number; code: string; title: string; project: string; completed_at: string | null }[];
@@ -346,6 +356,12 @@ export interface PortfolioReview {
   text: string;
   created_at: string;
   updated_at: string;
+}
+
+/** Dasturchining barcha loyihalaridagi sharh: qaysi loyiha uchunligi bilan. */
+export interface DeveloperReview extends PortfolioReview {
+  item_id: number;
+  item_title: string;
 }
 
 export interface PortfolioItemDetail extends PortfolioItem {

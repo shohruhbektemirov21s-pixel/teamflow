@@ -2,7 +2,7 @@
 from django.conf import settings
 from django.core.cache import cache
 from django.db.models import Q
-from django.http import Http404
+from django.http import FileResponse, Http404
 from django.shortcuts import get_object_or_404
 from rest_framework import status
 from rest_framework.decorators import api_view, parser_classes
@@ -13,10 +13,10 @@ from apps.core.pagination import BoundedPagination
 
 from . import services
 from .files import video_response
-from .models import Follow, PortfolioReview, PortfolioVideo
+from .models import Follow, PortfolioItem, PortfolioReview, PortfolioVideo
 from .permissions import can_follow, portfolio_owners
-from .serializers import ItemInput, ReviewInput, developer_row, my_review_row, item_detail, item_row, review_row, video_row
-from .stats import DEVELOPER_RANKING_CACHE_KEY, SUMMARY_CACHE_KEY, developer_highlights, developers_with_stats, following_count, experience, items_with_stats, recent_tasks, summary, tasks_done_by_project, years
+from .serializers import ItemInput, ReviewInput, developer_review_row, developer_row, my_review_row, item_detail, item_row, review_row, video_row
+from .stats import DEVELOPER_RANKING_CACHE_KEY, SUMMARY_CACHE_KEY, developer_highlights, developer_technologies, developers_with_stats, following_count, experience, items_with_stats, recent_tasks, summary, tasks_done_by_project, years
 
 
 SORTS = {"followers": ("-followers_count",), "projects": ("-projects_count",), "reviews": ("-reviews_count",)}
@@ -91,11 +91,23 @@ def developer_detail(request, pk):
     return Response({
         **row,
         "experience": experience(owner, items),
+        "technologies": developer_technologies(items),
         "years": years(owner, items),
         "items": [item_row(i, done.get(i.project_id, 0)) for i in items],
         "recent_tasks": recent_tasks(owner),
         "actions": {"follow": can_follow(request.user, owner), "add": owner.pk == request.user.pk},
     })
+
+
+@api_view(["GET"])
+def developer_reviews(request, pk):
+    """Dasturchining barcha loyihalaridagi baho va sharhlari (eng yangisi tepada)."""
+    owner = get_object_or_404(portfolio_owners(), pk=pk)
+    qs = (PortfolioReview.objects.filter(item__owner=owner).select_related("author", "item__project")
+          .order_by("-updated_at", "-id"))
+    paginator = BoundedPagination()
+    page = paginator.paginate_queryset(qs, request)
+    return paginator.get_paginated_response([developer_review_row(r) for r in page])
 
 
 @api_view(["POST", "DELETE"])
@@ -184,6 +196,37 @@ def video_delete(request, pk, video_pk):
     video = get_object_or_404(PortfolioVideo, pk=video_pk, item=obj)
     services.delete_video(video, request.user)
     return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+@api_view(["POST", "DELETE"])
+@parser_classes([MultiPartParser, FormParser])
+def cover(request, pk):
+    """Loyiha muqova rasmi (faqat egasi): POST (multipart `cover`) — yuklash/almashtirish, DELETE — o'chirish."""
+    obj = _item(pk)
+    if request.method == "DELETE":
+        services.remove_cover(obj, request.user)
+    else:
+        upload = request.FILES.get("cover")
+        if upload is None:
+            return Response({"detail": "Rasm tanlang.", "fields": {"cover": ["Rasm tanlang."]}}, status=400)
+        services.set_cover(obj, request.user, upload)
+    return Response(_item_payload(_item(pk), request.user))
+
+
+@api_view(["GET"])
+def cover_file(request, pk):
+    """Muqova rasmi — faqat tizimga kirganlarga (media papkasi ochiq berilmaydi)."""
+    obj = get_object_or_404(PortfolioItem.objects.filter(owner__in=portfolio_owners()), pk=pk)
+    if not obj.cover:
+        raise Http404
+    try:
+        handle = obj.cover.open("rb")
+    except (FileNotFoundError, ValueError):
+        raise Http404
+    response = FileResponse(handle, content_type="image/jpeg")
+    response["X-Content-Type-Options"] = "nosniff"
+    response["Cache-Control"] = "private, max-age=86400"  # `?v=` almashadi — eski rasm keshda qolmaydi
+    return response
 
 
 @api_view(["GET"])

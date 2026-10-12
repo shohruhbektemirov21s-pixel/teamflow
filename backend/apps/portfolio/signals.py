@@ -19,6 +19,13 @@ def materialize_project_portfolio_item(sender, instance, created, **kwargs):
         invalidate_developer_ranking()
 
 
+@receiver(post_delete, sender=PortfolioItem)
+def delete_cover_file(sender, instance, **kwargs):
+    if instance.cover:
+        storage, name = instance.cover.storage, instance.cover.name
+        transaction.on_commit(lambda: storage.delete(name))
+
+
 @receiver(post_delete, sender=PortfolioVideo)
 def delete_video_file(sender, instance, **kwargs):
     if instance.file:

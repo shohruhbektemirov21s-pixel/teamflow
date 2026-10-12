@@ -5,10 +5,15 @@ from rest_framework.exceptions import PermissionDenied
 
 from apps.core.api_utils import ServiceError
 
+from apps.core.images import to_jpeg
+
 from .files import validate_video
 from .models import Follow, PortfolioItem, PortfolioReview, PortfolioVideo
 from .permissions import can_edit_item, can_follow, can_review_item
 from .stats import invalidate_developer_ranking
+
+COVER_MAX_MB = 5
+COVER_SIZE = 1280  # px, eng uzun tomoni
 
 # Faqat o'zi qo'shgan loyihada o'zgaradigan maydonlar; TeamFlow loyihasida nomi va sanalari loyihadan olinadi.
 MANUAL_ONLY_FIELDS = ("title", "start_date", "end_date")
@@ -37,6 +42,25 @@ def update_item(item, user, **data):
         setattr(item, field, value)
     item.full_clean()
     item.save()
+    return item
+
+
+def set_cover(item, user, upload):
+    _require_owner(user, item)
+    content = to_jpeg(upload, "cover", COVER_MAX_MB, COVER_SIZE)
+    old = item.cover.name
+    item.cover.save("cover.jpg", content, save=False)
+    item.save(update_fields=["cover", "updated_at"])
+    if old:
+        item.cover.storage.delete(old)
+    return item
+
+
+def remove_cover(item, user):
+    _require_owner(user, item)
+    if item.cover:
+        item.cover.delete(save=False)
+        item.save(update_fields=["cover", "updated_at"])
     return item
 
 

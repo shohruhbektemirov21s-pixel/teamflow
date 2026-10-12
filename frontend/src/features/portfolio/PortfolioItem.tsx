@@ -4,7 +4,7 @@ import { type ReactNode, useState } from "react";
 
 import { useModal } from "@/app/modals";
 import { usePagedList, useRefresh } from "@/app/queries";
-import { api, ApiError } from "@/shared/api";
+import { api, ApiError, formData } from "@/shared/api";
 import { fileSize, fmtDate, timeAgo } from "@/shared/format";
 import { T } from "@/shared/text";
 import type { PortfolioItemDetail, PortfolioReview } from "@/shared/types";
@@ -23,12 +23,15 @@ interface Draft {
   link: string;
   start_date: string;
   end_date: string;
+  /** Vergul bilan ajratilgan matn ("Python, Django"); serverga ro'yxat bo'lib ketadi. */
+  technologies: string;
 }
 
-const EMPTY: Draft = { title: "", description: "", link: "", start_date: "", end_date: "" };
+const EMPTY: Draft = { title: "", description: "", link: "", start_date: "", end_date: "", technologies: "" };
 
 function payload(draft: Draft, auto: boolean) {
-  const base = { description: draft.description.trim(), link: draft.link.trim() };
+  const technologies = draft.technologies.split(",").map((name) => name.trim()).filter(Boolean);
+  const base = { description: draft.description.trim(), link: draft.link.trim(), technologies };
   if (auto) return base;
   return { ...base, title: draft.title.trim(), start_date: draft.start_date || null, end_date: draft.end_date || null };
 }
@@ -58,6 +61,9 @@ function ItemFields({ draft, onChange, error, auto }: { draft: Draft; onChange: 
       )}
       <Field label={T.portfolio.fields.description} hint={T.portfolio.chars(draft.description.length, DESCRIPTION_MAX)} error={err("description")}>
         {(id, invalid) => <textarea id={id} className="textarea" rows={4} maxLength={DESCRIPTION_MAX} aria-invalid={invalid} placeholder={T.portfolio.fields.descriptionPh} value={draft.description} onChange={set("description")} />}
+      </Field>
+      <Field label={T.portfolio.fields2.technologies} hint={T.portfolio.fields2.technologiesHint} error={err("technologies")}>
+        {(id, invalid) => <input id={id} className="input" aria-invalid={invalid} placeholder={T.portfolio.fields2.technologiesPh} value={draft.technologies} onChange={set("technologies")} />}
       </Field>
       <Field label={T.portfolio.fields.link} hint={T.portfolio.fields.linkHint} error={err("link")}>
         {(id, invalid) => <input id={id} type="url" inputMode="url" className="input" maxLength={500} aria-invalid={invalid} placeholder={T.portfolio.fields.linkPh} value={draft.link} onChange={set("link")} />}
@@ -138,7 +144,7 @@ export function PortfolioItemView({ id }: { id: number }) {
       dirty={reviewDirty}
       onDirty={setReviewDirty}
       onEdit={() => setEditing({ title: item.manual.title, description: item.description, link: item.link,
-        start_date: item.manual.start_date ?? "", end_date: item.manual.end_date ?? "" })}
+        start_date: item.manual.start_date ?? "", end_date: item.manual.end_date ?? "", technologies: item.technologies.join(", ") })}
     />
   );
 }
@@ -170,8 +176,54 @@ function ItemEdit({ item, draft, onDraft, onDone, subtitle }: { item: PortfolioI
         </>
       }
     >
-      <ItemFields draft={draft} onChange={(d) => (onDraft(d), save.reset())} error={save.error} auto={item.is_auto} />
+      <div className="stack">
+        <ItemFields draft={draft} onChange={(d) => (onDraft(d), save.reset())} error={save.error} auto={item.is_auto} />
+        <CoverEditor item={item} />
+      </div>
     </Modal>
+  );
+}
+
+/** Muqova rasmi: tanlansa darrov yuklanadi (matn maydonlari esa "Saqlash" bilan). */
+function CoverEditor({ item }: { item: PortfolioItemDetail }) {
+  const toast = useToast();
+  const refresh = useRefresh(["portfolio"]);
+  const [error, setError] = useState<string | null>(null);
+  const done = () => {
+    setError(null);
+    void refresh();
+  };
+  const upload = useMutation({
+    mutationFn: (file: File) => api.post<PortfolioItemDetail>(`/portfolio/items/${item.id}/cover/`, formData({}, [file], "cover")),
+    onSuccess: () => {
+      toast(T.portfolio.fields2.coverSavedToast);
+      done();
+    },
+    onError: (err) => setError(err instanceof ApiError ? err.field("cover") || err.message : T.common.errorGeneric),
+  });
+  const remove = useMutation({
+    mutationFn: () => api.del<PortfolioItemDetail>(`/portfolio/items/${item.id}/cover/`),
+    onSuccess: done,
+    onError: (err) => setError(err.message),
+  });
+  return (
+    <Field label={T.portfolio.fields2.cover} hint={T.portfolio.fields2.coverHint} error={error ?? undefined}>
+      {(id) => (
+        <div className="row-wrap" style={{ gap: 12 }}>
+          {item.cover && <img className="pf-cover-preview" src={item.cover} alt="" />}
+          <label className="btn" htmlFor={id}>
+            {item.cover ? T.portfolio.fields2.coverChange : T.portfolio.fields2.coverPick}
+            <input id={id} type="file" accept="image/jpeg,image/png,image/webp" hidden disabled={upload.isPending}
+              onChange={(e) => { const file = e.target.files?.[0]; e.target.value = ""; if (file) upload.mutate(file); }} />
+          </label>
+          {item.cover && (
+            <Button variant="ghost" size="sm" icon={<Trash2 size={15} />} loading={remove.isPending} onClick={() => remove.mutate()}>
+              {T.portfolio.fields2.coverRemove}
+            </Button>
+          )}
+        </div>
+      )}
+    </Field>
   );
 }
 
@@ -270,6 +322,15 @@ function ItemDetails({ item, subtitle, dirty, onDirty, onEdit }: {
             </a>
           )}
         </div>
+
+        {item.cover && <img className="pf-item-cover" src={item.cover} alt="" />}
+
+        {!!item.technologies.length && (
+          <section>
+            <h3 className="section-title">{T.portfolio.technologies}</h3>
+            <span className="pf-chips">{item.technologies.map((name) => <span key={name} className="utag" title={name}>{name}</span>)}</span>
+          </section>
+        )}
 
         {item.description && (
           <section>
