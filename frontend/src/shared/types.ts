@@ -375,6 +375,15 @@ export interface PortfolioItemDetail extends PortfolioItem {
   manual: { title: string; start_date: string | null; end_date: string | null };
   owner: UserBrief;
   videos: FileInfo[];
+  /** Galereya (screenshotlar). */
+  images: { id: number; url: string }[];
+  /** TeamFlow loyihasi uchun (o'zi qo'shgan loyihada null): mas'ul, umumiy jarayon, egasi bajargan ishlar, jamoa. */
+  work: {
+    lead: UserBrief | null;
+    progress: { total: number; done: number };
+    completed_tasks: { id: number; title: string; completed_at: string | null }[];
+    team: UserBrief[];
+  } | null;
   my_review: PortfolioReview | null;
   actions: { edit: boolean; delete: boolean; upload: boolean; review: boolean };
 }

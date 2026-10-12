@@ -1,20 +1,23 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { ArrowLeft, ExternalLink, MessageSquare, Pencil, Save, Trash2, Upload, Video } from "lucide-react";
+import { ArrowLeft, CheckCircle2, ExternalLink, MessageSquare, Pencil, Save, Trash2, Upload, Video } from "lucide-react";
 import { type ReactNode, useState } from "react";
 
 import { useModal } from "@/app/modals";
 import { usePagedList, useRefresh } from "@/app/queries";
-import { api, ApiError } from "@/shared/api";
+import { api, ApiError, formData } from "@/shared/api";
 import { fileSize, fmtDate, splitTechnologies, timeAgo } from "@/shared/format";
+import type { Tone } from "@/shared/status";
 import { T } from "@/shared/text";
 import type { PortfolioItemDetail, PortfolioReview } from "@/shared/types";
-import { Avatar, Badge, Button, Callout, CodeTag, ConfirmButton, Empty, ErrorBox, Field, FilePicker, Modal, Skeleton, SkeletonRows, useToast } from "@/shared/ui";
+import { Avatar, Badge, Button, Callout, CodeTag, ConfirmButton, Empty, ErrorBox, Field, FilePicker, Modal, Skeleton, SkeletonRows, Tabs, useToast } from "@/shared/ui";
 import { CoverEditor } from "@/shared/ui/CoverEditor";
 import { Pagination } from "@/shared/ui/Pagination";
 
 import { periodText } from "./period";
 import { StarInput, Stars } from "./Stars";
 
+type ItemTab = "overview" | "work" | "reviews";
+const ITEM_STATUS_TONE: Record<string, Tone> = { done: "success", active: "info", planned: "slate" };
 const REVIEW_MAX = 1000;
 const DESCRIPTION_MAX = 2000;
 
@@ -193,7 +196,9 @@ function ItemDetails({ item, subtitle, dirty, onDirty, onEdit }: {
   const [stars, setStars] = useState(item.my_review?.stars ?? 0);
   const [text, setText] = useState(item.my_review?.text ?? "");
   const [starsError, setStarsError] = useState(false);
-  const reviews = usePagedList<PortfolioReview>(["portfolio", "reviews", item.id], `/portfolio/items/${item.id}/reviews/`, {});
+  const tabs: ItemTab[] = item.work ? ["overview", "work", "reviews"] : ["overview", "reviews"];
+  const [tab, setTab] = useState<ItemTab>("overview");
+  const reviews = usePagedList<PortfolioReview>(["portfolio", "reviews", item.id], `/portfolio/items/${item.id}/reviews/`, {}, tab === "reviews");
 
   const changed = stars !== (item.my_review?.stars ?? 0) || text !== (item.my_review?.text ?? "");
   const saveReview = useMutation({
@@ -250,7 +255,7 @@ function ItemDetails({ item, subtitle, dirty, onDirty, onEdit }: {
       {item.actions.edit && (
         <Button variant="primary" icon={<Pencil size={16} />} onClick={onEdit}>{T.common.edit}</Button>
       )}
-      {item.actions.review && (
+      {item.actions.review && tab === "reviews" && (
         <Button variant="primary" icon={<Save size={16} />} loading={saveReview.isPending} disabled={!changed} onClick={submitReview}>
           {item.my_review ? T.portfolio.reviewUpdate : T.portfolio.reviewSave}
         </Button>
@@ -271,36 +276,96 @@ function ItemDetails({ item, subtitle, dirty, onDirty, onEdit }: {
           </span>
         </div>
 
-        <div className="row-wrap" style={{ justifyContent: "space-between", gap: 12 }}>
-          <Stars value={item.rating} count={item.reviews_count} size={20} />
-          {item.link && (
-            <a className="btn" href={item.link} target="_blank" rel="noopener noreferrer nofollow">
-              <ExternalLink size={16} /> {T.portfolio.openLink}
-            </a>
+        {/* Sarlavha barcha tablarda bir xil: baho, holat, mas'ul, jarayon va qisqa tavsif */}
+        <header className="stack-sm">
+          <div className="row-wrap" style={{ justifyContent: "space-between", gap: 12 }}>
+            <span className="row-wrap" style={{ gap: 12 }}>
+              <Stars value={item.rating} count={item.reviews_count} size={20} />
+              {item.status && <Badge tone={ITEM_STATUS_TONE[item.status]}>{T.portfolio.status[item.status]}</Badge>}
+            </span>
+            {item.link && (
+              <a className="btn" href={item.link} target="_blank" rel="noopener noreferrer nofollow">
+                <ExternalLink size={16} /> {T.portfolio.openLink}
+              </a>
+            )}
+          </div>
+          {item.summary && <p className="portfolio-description">{item.summary}</p>}
+          {item.work && (
+            <div className="row-wrap small muted" style={{ gap: 16 }}>
+              {item.work.lead && <span>{T.portfolio.lead}: <b style={{ color: "var(--text)" }}>{item.work.lead.full_name}</b></span>}
+              <span>{T.projects.progress(item.work.progress.done, item.work.progress.total)}</span>
+            </div>
           )}
-        </div>
+        </header>
 
-        {item.cover && <img className="pf-item-cover" src={item.cover} alt="" />}
+        <Tabs tabs={tabs.map((key) => ({ key, label: T.portfolio.itemTabs[key] }))} value={tab} onChange={setTab} />
 
-        {!!item.technologies.length && (
-          <section>
-            <h3 className="section-title">{T.portfolio.technologies}</h3>
-            <span className="pf-chips">{item.technologies.map((name) => <span key={name} className="utag" title={name}>{name}</span>)}</span>
-          </section>
+        {tab === "overview" && (
+          <>
+            {item.cover && <img className="pf-item-cover" src={item.cover} alt="" />}
+
+            {!!item.technologies.length && (
+              <section>
+                <h3 className="section-title">{T.portfolio.technologies}</h3>
+                <span className="pf-chips">{item.technologies.map((name) => <span key={name} className="utag" title={name}>{name}</span>)}</span>
+              </section>
+            )}
+
+            {/* Qisqa tavsif sarlavhada bor; to'liq matn faqat u qisqartirilgan bo'lsa takrorlanadi */}
+            {item.description && item.description !== item.summary && (
+              <section>
+                <h3 className="section-title">{T.portfolio.description}</h3>
+                <p className="portfolio-description">{item.description}</p>
+              </section>
+            )}
+
+            {(item.images.length > 0 || item.actions.upload) && (
+              <section>
+                <h3 className="section-title">{T.portfolio.gallery}</h3>
+                <GallerySection item={item} />
+              </section>
+            )}
+
+            <section>
+              <h3 className="section-title">{T.portfolio.videos}</h3>
+              <VideoSection item={item} />
+            </section>
+          </>
         )}
 
-        {item.description && (
-          <section>
-            <h3 className="section-title">{T.portfolio.description}</h3>
-            <p className="portfolio-description">{item.description}</p>
-          </section>
+        {tab === "work" && item.work && (
+          <>
+            <section>
+              <h3 className="section-title">{T.portfolio.completedWork}</h3>
+              {item.work.completed_tasks.length ? (
+                <div className="card">
+                  {item.work.completed_tasks.map((t) => (
+                    <div key={t.id} className="list-row" style={{ padding: "12px 16px" }}>
+                      <CheckCircle2 size={18} style={{ color: "var(--success)", flex: "none" }} aria-hidden />
+                      <span className="grow ellipsis" style={{ fontWeight: 600 }}>{t.title}</span>
+                      {t.completed_at && <span className="small muted nowrap">{fmtDate(t.completed_at)}</span>}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="small muted">{T.portfolio.completedWorkEmpty}</p>
+              )}
+            </section>
+            <section>
+              <h3 className="section-title">{T.portfolio.team}</h3>
+              <div className="card">
+                {item.work.team.map((u) => (
+                  <div key={u.id} className="list-row" style={{ padding: "10px 16px" }}>
+                    <Avatar user={u} size="sm" />
+                    <span className="grow ellipsis">{u.full_name}</span>
+                  </div>
+                ))}
+              </div>
+            </section>
+          </>
         )}
 
-        <section>
-          <h3 className="section-title">{T.portfolio.videos}</h3>
-          <VideoSection item={item} />
-        </section>
-
+        {tab === "reviews" && (
         <section className="stack">
           <h3 className="section-title" style={{ marginBottom: 0 }}>{T.portfolio.reviews}</h3>
           {item.actions.review ? (
@@ -347,8 +412,60 @@ function ItemDetails({ item, subtitle, dirty, onDirty, onEdit }: {
           )}
           <Pagination data={reviews.pagination} page={reviews.page} onPageChange={reviews.onPageChange} />
         </section>
+        )}
       </div>
     </Modal>
+  );
+}
+
+/** Screenshotlar: rasm bosilsa to'liq o'lchamda yangi tabda ochiladi (modal ustida modal yo'q). Egasi qo'shadi va o'chiradi. */
+function GallerySection({ item }: { item: PortfolioItemDetail }) {
+  const toast = useToast();
+  const refresh = useRefresh(["portfolio"]);
+  const upload = useMutation({
+    mutationFn: (file: File) => api.post(`/portfolio/items/${item.id}/images/`, formData({}, [file], "image")),
+    onSuccess: () => {
+      toast(T.portfolio.galleryAddedToast);
+      void refresh();
+    },
+  });
+  const remove = useMutation({
+    mutationFn: (imageId: number) => api.del(`/portfolio/items/${item.id}/images/${imageId}/`),
+    onSuccess: () => void refresh(),
+    onError: (e) => toast(e.message, "error"),
+  });
+  const error = upload.error instanceof ApiError ? upload.error.field("image") || upload.error.message : null;
+  return (
+    <div className="stack">
+      {!!item.images.length && (
+        <div className="pf-gallery">
+          {item.images.map((image, i) => (
+            <figure key={image.id} className="pf-shot">
+              <a href={image.url} target="_blank" rel="noopener noreferrer">
+                <img src={image.url} alt={T.portfolio.galleryAlt(i + 1)} loading="lazy" />
+              </a>
+              {item.actions.upload && (
+                <button type="button" className="pf-shot-remove" aria-label={`${T.portfolio.galleryRemove} (${i + 1})`}
+                  disabled={remove.isPending} onClick={() => remove.mutate(image.id)}>
+                  <Trash2 size={14} aria-hidden />
+                </button>
+              )}
+            </figure>
+          ))}
+        </div>
+      )}
+      {item.actions.upload && (
+        <div className="stack-sm">
+          <label className="btn" style={{ alignSelf: "flex-start" }}>
+            <Upload size={16} aria-hidden /> {T.portfolio.galleryAdd}
+            <input type="file" accept="image/jpeg,image/png,image/webp" hidden disabled={upload.isPending}
+              onChange={(e) => { const file = e.target.files?.[0]; e.target.value = ""; if (file) upload.mutate(file); }} />
+          </label>
+          <span className="small muted">{T.portfolio.galleryHint}</span>
+          {error && <span className="field-error" role="alert">{error}</span>}
+        </div>
+      )}
+    </div>
   );
 }
 

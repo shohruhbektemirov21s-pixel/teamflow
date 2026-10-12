@@ -8,12 +8,14 @@ from apps.core.api_utils import ServiceError
 from apps.core.images import to_jpeg
 
 from .files import validate_video
-from .models import Follow, PortfolioItem, PortfolioReview, PortfolioVideo
+from .models import Follow, PortfolioImage, PortfolioItem, PortfolioReview, PortfolioVideo
 from .permissions import can_edit_item, can_follow, can_review_item
 from .stats import invalidate_developer_ranking
 
 COVER_MAX_MB = 5
 COVER_SIZE = 1280  # px, eng uzun tomoni
+IMAGE_MAX_MB = 5
+IMAGE_SIZE = 1600  # px, galereya rasmi
 
 # Faqat o'zi qo'shgan loyihada o'zgaradigan maydonlar; TeamFlow loyihasida nomi va sanalari loyihadan olinadi.
 MANUAL_ONLY_FIELDS = ("title", "start_date", "end_date")
@@ -62,6 +64,21 @@ def remove_cover(item, user):
         item.cover.delete(save=False)
         item.save(update_fields=["cover", "updated_at"])
     return item
+
+
+def add_image(item, user, upload):
+    _require_owner(user, item)
+    if item.images.count() >= settings.PORTFOLIO_IMAGES_PER_ITEM:
+        raise ServiceError(f"Galereyaga {settings.PORTFOLIO_IMAGES_PER_ITEM} tagacha rasm qo'shish mumkin.", "image")
+    image = PortfolioImage(item=item)
+    image.file.save("image.jpg", to_jpeg(upload, "image", IMAGE_MAX_MB, IMAGE_SIZE), save=False)
+    image.save()
+    return image
+
+
+def delete_image(image, user):
+    _require_owner(user, image.item)
+    image.delete()  # fayl tranzaksiyadan keyin o'chadi (signals.py)
 
 
 def delete_item(item, user):

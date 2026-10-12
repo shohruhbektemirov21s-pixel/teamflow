@@ -1,10 +1,15 @@
 from django.contrib import admin
 
-from .models import Follow, PortfolioItem, PortfolioReview, PortfolioVideo
+from .models import Follow, PortfolioImage, PortfolioItem, PortfolioReview, PortfolioVideo
 
 
 class PortfolioVideoInline(admin.TabularInline):
     model = PortfolioVideo
+    extra = 0
+
+
+class PortfolioImageInline(admin.TabularInline):
+    model = PortfolioImage
     extra = 0
 
 
@@ -14,7 +19,7 @@ class PortfolioItemAdmin(admin.ModelAdmin):
     list_select_related = ["owner", "project"]
     search_fields = ["title", "project__name", "owner__first_name", "owner__last_name"]
     raw_id_fields = ["owner", "project"]
-    inlines = [PortfolioVideoInline]
+    inlines = [PortfolioVideoInline, PortfolioImageInline]
 
 
 @admin.register(PortfolioReview)

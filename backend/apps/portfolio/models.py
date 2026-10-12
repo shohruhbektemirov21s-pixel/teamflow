@@ -83,6 +83,22 @@ class PortfolioVideo(models.Model):
         return self.original_name
 
 
+class PortfolioImage(models.Model):
+    """Loyiha galereyasidagi rasm (screenshot). Server rasmni qayta ishlab JPEG qilib saqlaydi (`core.images`)."""
+
+    item = models.ForeignKey(PortfolioItem, on_delete=models.CASCADE, related_name="images")
+    file = models.ImageField(upload_to=UploadTo("portfolio/images"))
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["created_at", "id"]
+        verbose_name = "Portfolio rasmi"
+        verbose_name_plural = "Portfolio rasmlari"
+
+    def __str__(self):
+        return f"{self.item} #{self.pk}"
+
+
 class PortfolioReview(models.Model):
     """Loyihaga baho (1–5 yulduz) va sharh. Bitta foydalanuvchi bitta loyihaga bitta baho (yangilash mumkin)."""
 

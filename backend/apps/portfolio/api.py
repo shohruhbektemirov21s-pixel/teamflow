@@ -13,10 +13,10 @@ from apps.core.pagination import BoundedPagination
 
 from . import services
 from .files import video_response
-from .models import Follow, PortfolioItem, PortfolioReview, PortfolioVideo
+from .models import Follow, PortfolioImage, PortfolioItem, PortfolioReview, PortfolioVideo
 from .permissions import can_follow, portfolio_owners
 from .serializers import ItemInput, ReviewInput, developer_review_row, developer_row, my_review_row, item_detail, item_row, review_row, video_row
-from .stats import DEVELOPER_RANKING_CACHE_KEY, SUMMARY_CACHE_KEY, developer_highlights, developer_technologies, developers_with_stats, following_count, experience, items_with_stats, recent_tasks, summary, tasks_done_by_project, years
+from .stats import DEVELOPER_RANKING_CACHE_KEY, SUMMARY_CACHE_KEY, developer_highlights, developer_technologies, item_work, developers_with_stats, following_count, experience, items_with_stats, recent_tasks, summary, tasks_done_by_project, years
 
 
 SORTS = {"followers": ("-followers_count",), "projects": ("-projects_count",), "reviews": ("-reviews_count",)}
@@ -24,13 +24,14 @@ SORTS = {"followers": ("-followers_count",), "projects": ("-projects_count",), "
 
 def _item(pk):
     """Portfolio loyihasi — egasi faol dasturchi bo'lsagina ko'rinadi."""
-    return get_object_or_404(items_with_stats().filter(owner__in=portfolio_owners()).select_related("owner"), pk=pk)
+    return get_object_or_404(items_with_stats().filter(owner__in=portfolio_owners()).select_related("owner")
+                             .prefetch_related("images"), pk=pk)
 
 
 def _item_payload(item, user):
     done = tasks_done_by_project(item.owner, [item.project_id]).get(item.project_id, 0) if item.is_auto else None
     mine = PortfolioReview.objects.filter(item=item, author=user).select_related("author").first()
-    return item_detail(item, user, done, mine)
+    return item_detail(item, user, done, mine, item_work(item))
 
 
 def _rows(users, rank_of):
@@ -226,6 +227,40 @@ def cover_file(request, pk):
     response = FileResponse(handle, content_type="image/jpeg")
     response["X-Content-Type-Options"] = "nosniff"
     response["Cache-Control"] = "private, max-age=86400"  # `?v=` almashadi — eski rasm keshda qolmaydi
+    return response
+
+
+@api_view(["POST"])
+@parser_classes([MultiPartParser, FormParser])
+def image_upload(request, pk):
+    """Galereyaga rasm (faqat egasi): multipart `image`."""
+    obj = _item(pk)
+    upload = request.FILES.get("image")
+    if upload is None:
+        return Response({"detail": "Rasm tanlang.", "fields": {"image": ["Rasm tanlang."]}}, status=400)
+    services.add_image(obj, request.user, upload)
+    return Response(_item_payload(_item(pk), request.user), status=status.HTTP_201_CREATED)
+
+
+@api_view(["DELETE"])
+def image_delete(request, pk, image_pk):
+    obj = _item(pk)
+    image = get_object_or_404(PortfolioImage, pk=image_pk, item=obj)
+    services.delete_image(image, request.user)
+    return Response(_item_payload(_item(pk), request.user))
+
+
+@api_view(["GET"])
+def image_file(request, pk):
+    """Galereya rasmi — faqat tizimga kirganlarga (media papkasi ochiq berilmaydi)."""
+    image = get_object_or_404(PortfolioImage.objects.select_related("item"), pk=pk, item__owner__in=portfolio_owners())
+    try:
+        handle = image.file.open("rb")
+    except (FileNotFoundError, ValueError):
+        raise Http404
+    response = FileResponse(handle, content_type="image/jpeg")
+    response["X-Content-Type-Options"] = "nosniff"
+    response["Cache-Control"] = "private, max-age=86400"  # rasm almashmaydi (o'chirilib yangisi qo'shiladi)
     return response
 
 

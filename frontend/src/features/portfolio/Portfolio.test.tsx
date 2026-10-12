@@ -31,6 +31,12 @@ const DETAIL: PortfolioDetail = {
 const ITEM: PortfolioItemDetail = {
   ...DETAIL.items[0]!, description: "Ichki portal", manual: { title: "", start_date: null, end_date: null },
   owner: JASUR, videos: [{ id: 5, name: "demo.mp4", size: 2048, url: "/api/portfolio/videos/5/" }], my_review: null,
+  images: [{ id: 1, url: "/api/portfolio/images/1/" }],
+  work: {
+    lead: PM, progress: { total: 4, done: 1 },
+    completed_tasks: [{ id: 1, title: "Kirish sahifasi", completed_at: "2026-10-01T10:00:00Z" }],
+    team: [JASUR, MALIKA],
+  },
   actions: { edit: false, delete: false, upload: false, review: true },
 };
 
@@ -99,7 +105,8 @@ describe("Portfolio oynasi", () => {
     const dialog = await screen.findByRole("dialog", { name: "Portal" });
     expect(dialog.querySelector('video[src="/api/portfolio/videos/5/"]')).toBeTruthy();
 
-    // Yulduzsiz saqlab bo'lmaydi
+    // Baholash — "Baholar" tabida; yulduzsiz saqlab bo'lmaydi
+    fireEvent.click(within(dialog).getByRole("tab", { name: T.portfolio.itemTabs.reviews }));
     const save = within(dialog).getByRole("button", { name: T.portfolio.reviewSave });
     expect((save as HTMLButtonElement).disabled).toBe(true);
     fireEvent.change(within(dialog).getByLabelText(T.portfolio.reviewText), { target: { value: "Zo'r ish" } });
@@ -118,6 +125,7 @@ describe("Portfolio oynasi", () => {
       [`/portfolio/items/${ITEM.id}/reviews/`]: { count: 0, next: null, previous: null, results: [] },
     });
     renderApp(<PortfolioModal id={JASUR.id} item={ITEM.id} />);
+    fireEvent.click(await screen.findByRole("tab", { name: T.portfolio.itemTabs.reviews }));
     expect(await screen.findByText(T.portfolio.ownHint)).toBeTruthy();
     expect(screen.queryByRole("radiogroup")).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: T.common.edit }));
@@ -147,6 +155,57 @@ describe("Portfolio oynasi", () => {
     fireEvent.change(screen.getByLabelText(T.techField.label), { target: { value: " Python, Django ,," } });
     fireEvent.click(screen.getByRole("button", { name: T.common.save }));
     await waitFor(() => expect(api.post).toHaveBeenCalledWith("/portfolio/items/", expect.objectContaining({ technologies: ["Python", "Django"] })));
+  });
+});
+
+describe("Portfolio loyiha oynasi (tablar)", () => {
+  const REVIEWS = { count: 0, next: null, previous: null, results: [] };
+  const open = (item = ITEM) => {
+    mockGet({ [`/portfolio/items/${item.id}/`]: item, [`/portfolio/items/${item.id}/reviews/`]: REVIEWS });
+    renderApp(<PortfolioModal id={JASUR.id} item={item.id} />);
+    return screen.findByRole("dialog", { name: "Portal" });
+  };
+
+  it("sarlavhada baho, holat, mas'ul, jarayon va qisqa tavsif; tablar: Umumiy, Ishlar va jamoa, Baholar", async () => {
+    const dialog = await open();
+    expect(within(dialog).getByText(T.portfolio.status.active)).toBeTruthy();
+    expect(within(dialog).getByText("Ichki portal haqida qisqacha")).toBeTruthy();
+    expect(within(dialog).getByText(PM.full_name)).toBeTruthy();
+    expect(within(dialog).getByText(T.projects.progress(1, 4))).toBeTruthy();
+    expect(within(dialog).getAllByRole("tab").map((t) => t.textContent)).toEqual(
+      [T.portfolio.itemTabs.overview, T.portfolio.itemTabs.work, T.portfolio.itemTabs.reviews]);
+  });
+
+  it("o'zi qo'shgan loyihada 'Ishlar va jamoa' tabi yo'q", async () => {
+    const dialog = await open({ ...ITEM, work: null });
+    expect(within(dialog).queryByRole("tab", { name: T.portfolio.itemTabs.work })).toBeNull();
+  });
+
+  it("Umumiy tabida tavsif va galereya, tavsif sarlavhada takrorlanmaydi", async () => {
+    const dialog = await open({ ...ITEM, description: "Qisqa", summary: "Qisqa" });
+    expect(within(dialog).getAllByText("Qisqa")).toHaveLength(1);
+    expect(dialog.querySelector('img[src="/api/portfolio/images/1/"]')).toBeTruthy();
+  });
+
+  it("'Ishlar va jamoa' tabi bajarilgan ishlar va jamoani ko'rsatadi", async () => {
+    const dialog = await open();
+    fireEvent.click(within(dialog).getByRole("tab", { name: T.portfolio.itemTabs.work }));
+    expect(within(dialog).getByText("Kirish sahifasi")).toBeTruthy();
+    expect(within(dialog).getByText(MALIKA.full_name)).toBeTruthy();
+  });
+
+  it("galereya faqat egasiga qo'shish/o'chirish beradi", async () => {
+    const guest = await open();
+    expect(within(guest).queryByText(T.portfolio.galleryAdd)).toBeNull();
+    expect(within(guest).queryByRole("button", { name: new RegExp(T.portfolio.galleryRemove) })).toBeNull();
+  });
+
+  it("egasi galereya rasmini yuklaydi", async () => {
+    vi.mocked(api.post).mockResolvedValue({});
+    const dialog = await open({ ...ITEM, actions: { edit: true, delete: false, upload: true, review: false } });
+    const input = dialog.querySelector('input[type="file"][accept*="image"]') as HTMLInputElement;
+    fireEvent.change(input, { target: { files: [new File(["x"], "shot.png", { type: "image/png" })] } });
+    await waitFor(() => expect(api.post).toHaveBeenCalledWith(`/portfolio/items/${ITEM.id}/images/`, expect.any(FormData)));
   });
 });
 

@@ -6,7 +6,7 @@ from django.dispatch import receiver
 
 from apps.projects.models import ProjectMember
 
-from .models import PortfolioItem, PortfolioVideo
+from .models import PortfolioImage, PortfolioItem, PortfolioVideo
 from .stats import invalidate_developer_ranking
 
 
@@ -23,6 +23,13 @@ def materialize_project_portfolio_item(sender, instance, created, **kwargs):
 def delete_cover_file(sender, instance, **kwargs):
     if instance.cover:
         storage, name = instance.cover.storage, instance.cover.name
+        transaction.on_commit(lambda: storage.delete(name))
+
+
+@receiver(post_delete, sender=PortfolioImage)
+def delete_image_file(sender, instance, **kwargs):
+    if instance.file:
+        storage, name = instance.file.storage, instance.file.name
         transaction.on_commit(lambda: storage.delete(name))
 
 

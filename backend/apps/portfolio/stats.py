@@ -7,7 +7,7 @@ from datetime import timedelta
 
 from django.core.cache import cache
 from django.db import transaction
-from django.db.models import Avg, BooleanField, Count, Exists, F, IntegerField, OuterRef, Subquery, Value
+from django.db.models import Avg, BooleanField, Count, Exists, F, IntegerField, OuterRef, Q, Subquery, Value
 from django.db.models.functions import Coalesce, ExtractYear
 from django.utils import timezone
 
@@ -160,6 +160,24 @@ def item_status(item):
     if start and start > today:
         return "planned"
     return "active" if start or end else None
+
+
+WORK_LIMIT = 20  # loyiha oynasida ko'rsatiladigan bajarilgan ishlar soni
+
+
+def item_work(item):
+    """TeamFlow loyihasi uchun: mas'ul, umumiy jarayon, egasi bajargan ishlar va jamoa (o'zi qo'shgan loyihada — None)."""
+    if not item.project_id:
+        return None
+    project = item.project
+    totals = (Task.objects.filter(project=project, archived_at__isnull=True)
+              .aggregate(total=Count("pk"), done=Count("pk", filter=Q(status=Task.Status.DONE))))
+    completed = (done_assignments().filter(developer=item.owner, task__project=project).select_related("task")
+                 .order_by(F("task__completed_at").desc(nulls_last=True), "-task_id")[:WORK_LIMIT])
+    team = (ProjectMember.objects.filter(project=project, developer__is_active=True).select_related("developer")
+            .order_by("developer__first_name", "developer__last_name", "pk"))
+    return {"lead": project.created_by, "total": totals["total"], "done": totals["done"],
+            "completed": [a.task for a in completed], "team": [m.developer for m in team]}
 
 
 def developer_technologies(items, limit=12):

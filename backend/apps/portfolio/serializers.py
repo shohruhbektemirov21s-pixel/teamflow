@@ -89,10 +89,27 @@ def my_review_row(review):
             "text": review.text, "updated_at": review.updated_at}
 
 
-def item_detail(item, user, tasks_done, my_review):
+def image_row(image):
+    return {"id": image.pk, "url": f"/api/portfolio/images/{image.pk}/"}
+
+
+def work_row(work):
+    """TeamFlow loyihasi: mas'ul, jarayon, egasi bajargan ishlar va jamoa (o'zi qo'shgan loyihada — None)."""
+    if work is None:
+        return None
+    return {
+        "lead": user_brief(work["lead"]), "progress": {"total": work["total"], "done": work["done"]},
+        "completed_tasks": [{"id": t.pk, "title": t.title, "completed_at": t.completed_at} for t in work["completed"]],
+        "team": [user_brief(u) for u in work["team"]],
+    }
+
+
+def item_detail(item, user, tasks_done, my_review, work=None):
     editable = can_edit_item(user, item)
     return {
         **item_row(item, tasks_done),
+        "images": [image_row(i) for i in item.images.all()],
+        "work": work_row(work),
         "description": item.description,
         "manual": {"title": item.title, "start_date": item.start_date, "end_date": item.end_date},
         "owner": user_brief(item.owner),
