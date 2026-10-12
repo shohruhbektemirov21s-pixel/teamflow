@@ -127,7 +127,7 @@ def developers(request):
 def responsibilities(request, pk):
     if not request.user.is_manager:
         raise PermissionDenied("Mas'uliyatlarni faqat Boshliq yoki PM tahrirlaydi.")
-    employees = User.objects.filter(is_active=True).exclude(role="")
+    employees = User.objects.filter(is_active=True).exclude(role__in=["", Role.USER])
     if not request.user.is_boss:
         employees = employees.filter(role=Role.DEVELOPER)
     employee = get_object_or_404(employees, pk=pk)

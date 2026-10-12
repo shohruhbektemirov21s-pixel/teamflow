@@ -38,6 +38,17 @@ class PeopleWorkTests(TestCase):
             rows = client_for(manager).get("/api/people/").data
             self.assertEqual(next(p for p in rows if p["id"] == self.dev.pk)["work"], row["work"])
 
+    def test_ordinary_user_is_hidden_from_managers(self):
+        visitor = make_user(Role.USER)
+        for manager in (self.boss, self.pm):
+            client = client_for(manager)
+            ids = {p["id"] for p in client.get("/api/people/").data}
+            self.assertNotIn(visitor.pk, ids)
+            self.assertEqual(client.get(f"/api/people/{visitor.pk}/").status_code, 404)
+            self.assertEqual(client.get(f"/api/people/?role={Role.USER}").data, [])
+            patch = client.patch(f"/api/people/{visitor.pk}/responsibilities/", {"responsibilities": "x"}, format="json")
+            self.assertEqual(patch.status_code, 404)
+
     def test_pm_profile_shows_managed_project_without_tasks(self):
         row = client_for(self.boss).get(f"/api/people/{self.pm.pk}/").data
         self.assertEqual(row["work"], [])

@@ -156,7 +156,7 @@ def _people_rows(qs, due_condition=None):
 def people(request):
     """Xodimlar va band-bo'shligi. PM — dasturchilar; Boshliq — hamma xodimlar. Vazifasi yo'qlar tepada."""
     require_manager(request.user)
-    qs = User.objects.filter(is_active=True).exclude(role="")
+    qs = User.objects.filter(is_active=True).exclude(role__in=["", Role.USER])  # oddiy foydalanuvchi xodim emas
     if request.user.is_boss:
         if request.query_params.get("role"):
             qs = qs.filter(role=request.query_params["role"])
@@ -215,7 +215,7 @@ def search(request):
     if user.is_manager:
         people = [
             {"id": u.pk, "full_name": u.full_name, "role_label": u.get_role_display()}
-            for u in User.objects.filter(is_active=True).exclude(role="").filter(
+            for u in User.objects.filter(is_active=True).exclude(role__in=["", Role.USER]).filter(
                 Q(first_name__icontains=q) | Q(last_name__icontains=q) | Q(department_name__icontains=q)
             )[:6]
         ]
@@ -365,7 +365,7 @@ def workdone(request):
 def person_profile(request, pk):
     """Bitta xodim (xodim oynasi) — ro'yxatdagi bilan bir xil shakl. Faqat menejerlar ko'radi."""
     require_manager(request.user)
-    qs = User.objects.filter(pk=pk, is_active=True).exclude(role="")
+    qs = User.objects.filter(pk=pk, is_active=True).exclude(role__in=["", Role.USER])
     if not request.user.is_boss:
         qs = qs.filter(role=Role.DEVELOPER)
     rows = _people_rows(qs)

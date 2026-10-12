@@ -80,7 +80,7 @@ export default function PeoplePage() {
           <label className="field-label" htmlFor="people-role">{T.people.role}</label>
           <select id="people-role" className="select" value={role} onChange={(e) => setRole(e.target.value)}>
             <option value="">{T.common.all}</option>
-            {meta.roles.filter((r) => r.value !== "boss").map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
+            {meta.roles.filter((r) => r.value !== "boss" && r.value !== "user").map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
           </select>
         </div>}
         <label className="check people-filter-free"><input type="checkbox" checked={onlyFree} onChange={(e) => setOnlyFree(e.target.checked)} />{T.people.onlyFree}</label>
