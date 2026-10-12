@@ -536,6 +536,8 @@ export const T = {
     myProjects: "Mening loyihalarim",
     myProjectsEmpty: "Siz hali hech qanday loyihada ishtirok etmayapsiz. Menejer sizni loyihaga qo'shganda shu yerda ko'rasiz.",
     myRatings: "Mening reytinglarim",
+    tabGeneral: "Umumiy",
+    tabRatings: "Mening baholarim",
     myRatingsEmpty: "Hali baho qo'ymagansiz",
     myRatingsEmptyHint: "Dasturchi loyihasini oching va yulduz qo'ying — baholaringiz shu yerda chiqadi.",
     myRatingsCta: "Dasturchilarni ko'rish",

@@ -70,6 +70,9 @@ describe("ProfilePage", () => {
     });
     renderApp(<ProfilePage />);
 
+    expect(await screen.findByText(T.profile.personalTitle)).toBeTruthy();
+    expect(screen.queryByText("Shaxsiy sayt")).toBeNull();
+    fireEvent.click(screen.getByRole("tab", { name: new RegExp(T.profile.tabRatings) }));
     expect(await screen.findByText("Shaxsiy sayt")).toBeTruthy();
     expect(screen.queryByRole("region", { name: T.profile.myProjects })).toBeNull();
     expect(screen.queryByRole("region", { name: T.profile.myTasks })).toBeNull();

@@ -10,16 +10,16 @@ import { TaskTable } from "@/features/tasks/TaskTable";
 import { api } from "@/shared/api";
 import { fmtDate } from "@/shared/format";
 import { T } from "@/shared/text";
-import type { Profile, Project, ProjectStatus, Rating, Task } from "@/shared/types";
+import type { Profile, Project, ProjectStatus, Task } from "@/shared/types";
 import { Badge, Button, Empty, ErrorBox, SkeletonRows } from "@/shared/ui";
 import type { Tone } from "@/shared/status";
 import { Pagination } from "@/shared/ui/Pagination";
 
 import { ProfileHeader } from "./ProfileHeader";
+import { UserProfile } from "./UserProfile";
 import { BusinessTripPanel } from "./BusinessTripPanel";
 
 const STATUS_TONE: Record<ProjectStatus, Tone> = { done: "success", active: "info", overdue: "danger" };
-const RATINGS_PREVIEW = 5;
 
 /** Mening profilim: tepada sarlavha (rasm, ism, lavozim, bio, "Tahrirlash"), ostida bo'limlar.
  * Har bir ma'lumot bir joyda: ism va bio — sarlavhada, login/Telegram/sana — "Shaxsiy ma'lumotlar"da.
@@ -30,17 +30,19 @@ export default function ProfilePage() {
   const q = useQuery({ queryKey: ["profile"], queryFn: () => api.get<Profile>("/auth/profile/") });
   const p = q.data;
   const developer = me.role === "developer";
-  const ordinary = me.role === "user";
   const myTasks = usePagedList<Task>(["tasks", "mine", "profile"], "/tasks/", { mine: 1 }, developer);
   const myProjects = usePagedList<Project>(["projects", "mine", "profile"], "/projects/", {}, developer);
-  const myRatings = usePagedList<Rating>(["portfolio", "ratings", "profile"], "/portfolio/ratings/", { mine: 1 }, ordinary);
+
+  if (me.role === "user") {
+    return <UserProfile me={me} profile={p} loading={q.isLoading} error={q.error} onRetry={() => q.refetch()} />;
+  }
 
   return (
     <div className="stack" style={{ maxWidth: 800, width: "100%", margin: "0 auto" }}>
       <div className="card card-pad">
         <ProfileHeader
           user={me}
-          subtitle={me.department_name || (ordinary ? me.role_label : me.specialty || me.role_label)}
+          subtitle={me.department_name || me.specialty || me.role_label}
           bio={p?.bio}
           stats={p?.stats && { active: p.stats.active, overdue: p.stats.overdue, review: p.stats.in_review, done: p.stats.done }}
           actions={
@@ -132,37 +134,6 @@ export default function ProfilePage() {
         </section>
       )}
 
-      {ordinary && (
-        <section className="card" aria-label={T.profile.myRatings}>
-          <div className="card-head">
-            <h3 className="grow">
-              {T.profile.myRatings} {myRatings.pagination && <span className="count-pill soft">{myRatings.pagination.count}</span>}
-            </h3>
-            {(myRatings.pagination?.count ?? 0) > RATINGS_PREVIEW && (
-              <Link className="small" to="/baholarim">{T.profile.allRatings}</Link>
-            )}
-          </div>
-          {myRatings.error && <div className="card-pad"><ErrorBox error={myRatings.error} onRetry={() => myRatings.refetch()} /></div>}
-          {myRatings.isLoading && <div className="card-pad"><SkeletonRows rows={2} /></div>}
-          {myRatings.data && !myRatings.data.length && (
-            <Empty
-              title={T.profile.myRatingsEmpty}
-              hint={T.profile.myRatingsEmptyHint}
-              action={<Link className="btn btn-primary" to="/">{T.profile.myRatingsCta}</Link>}
-            />
-          )}
-          {myRatings.data?.slice(0, RATINGS_PREVIEW).map((r) => (
-            <button key={r.id} type="button" className="list-row clickable" onClick={() => open({ portfolio: r.developer.id, item: r.item_id })}>
-              <span className="grow stack-sm" style={{ gap: 4, minWidth: 0, textAlign: "left" }}>
-                <b className="ellipsis">{r.item_title}</b>
-                <span className="small muted ellipsis">{T.ratings.developer(r.developer.full_name)} · {fmtDate(r.updated_at)}</span>
-                {r.text && <span className="small">{r.text}</span>}
-              </span>
-              <Stars value={r.stars} />
-            </button>
-          ))}
-        </section>
-      )}
     </div>
   );
 }
