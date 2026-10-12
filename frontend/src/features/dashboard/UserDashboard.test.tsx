@@ -37,24 +37,16 @@ describe("UserDashboard", () => {
     expect(screen.getByText("Portal")).toBeTruthy();
     expect(screen.getByText("+2")).toBeTruthy();
     expect(screen.getByText(T.user.experienceShort(30))).toBeTruthy();
-    expect(screen.getByRole("button", { name: T.user.filterAll + " (3)" })).toBeTruthy();
   });
 
-  it("'Kuzatayotganlarim' va mutaxassislik chiplari tegishli filtrni so'raydi", async () => {
-    mockGet({
-      "/portfolio/summary/": SUMMARY,
-      "/portfolio/": page(dev(1, "Jasur Alimov", false)),
-      "/portfolio/?following=1": page(dev(2, "Malika Karimova", true)),
-      "/portfolio/?specialty=5": page(dev(3, "Bobur Rahimov", false)),
-    });
+  it("kategoriya va 'Kuzatayotganlarim' filtrlari yo'q, 'Profilni ko'rish' bor", async () => {
+    mockGet({ "/portfolio/summary/": SUMMARY, "/portfolio/": page(dev(1, "Jasur Alimov", false)) });
     renderApp(<UserDashboard />);
 
     await screen.findByText("Jasur Alimov");
-    fireEvent.click(await screen.findByRole("button", { name: `${T.user.filterFollowing} (1)` }));
-    expect(await screen.findByText("Malika Karimova")).toBeTruthy();
-
-    fireEvent.click(await screen.findByRole("button", { name: "Backend dasturchi (1)" }));
-    expect(await screen.findByText("Bobur Rahimov")).toBeTruthy();
+    expect(screen.queryByText(/Kuzatayotganlarim/)).toBeNull();
+    expect(screen.queryByRole("button", { name: /Backend dasturchi \(/ })).toBeNull();
+    expect(screen.getByRole("button", { name: new RegExp(T.user.viewProfile) })).toBeTruthy();
   });
 
   it("saralash tanlansa so'rovga sort qo'shiladi", async () => {

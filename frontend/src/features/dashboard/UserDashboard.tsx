@@ -15,8 +15,6 @@ const HINT_KEY = "user-how-seen";
 const VIEW_KEY = "user-view";
 type SortKey = keyof typeof T.user.sort;
 type View = "grid" | "list";
-/** "all" · "following" · `s:<mutaxassislik id>` */
-type Chip = string;
 
 function readStorage(key: string): string | null {
   try {
@@ -159,17 +157,14 @@ function DeveloperCard({ d, view }: { d: PortfolioDeveloper; view: View }) {
 /** Oddiy foydalanuvchi bosh sahifasi ("Dasturchilar portfoliosi"): barcha ma'lumot backenddan. */
 export default function UserDashboard() {
   const [q, setQ] = useState("");
-  const [chip, setChip] = useState<Chip>("all");
   const [sort, setSort] = useState<SortKey>("rating");
   const [view, setView] = useState<View>(() => (readStorage(VIEW_KEY) === "list" ? "list" : "grid"));
   const [seen, setSeen] = useState(() => readStorage(HINT_KEY) === "1");
   const searchRef = useRef<HTMLInputElement>(null);
   const search = useDebounced(q.trim());
   const summary = useQuery({ queryKey: ["portfolio", "summary"], queryFn: () => api.get<PortfolioSummary>("/portfolio/summary/") });
-  const list = usePagedList<PortfolioDeveloper>(["portfolio", "list", search, chip, sort], "/portfolio/", {
+  const list = usePagedList<PortfolioDeveloper>(["portfolio", "list", search, sort], "/portfolio/", {
     q: search,
-    following: chip === "following" ? 1 : undefined,
-    specialty: chip.startsWith("s:") ? Number(chip.slice(2)) : undefined,
     sort: sort === "rating" ? undefined : sort,
   });
   const rows = list.data ?? [];
@@ -195,20 +190,12 @@ export default function UserDashboard() {
     writeStorage(VIEW_KEY, next);
   };
 
-  const chips: { key: Chip; label: string }[] = [
-    { key: "all", label: `${T.user.filterAll}${stats ? ` (${stats.developers})` : ""}` },
-    { key: "following", label: `${T.user.filterFollowing}${stats ? ` (${stats.following})` : ""}` },
-    ...(stats?.specialties ?? []).map((s) => ({ key: `s:${s.id}`, label: `${s.name} (${s.count})` })),
-  ];
   const loading = summary.isLoading;
 
   return (
     <div className="stack">
       <div className="uhead">
-        <div className="uhead-text">
-          <h1 className="uhead-title">{T.user.title}</h1>
-          <p className="muted uhead-sub">{T.user.subtitle}</p>
-        </div>
+        <h1 className="uhead-title">{T.user.title}</h1>
       </div>
 
       <div className="utoolbar">
@@ -220,6 +207,10 @@ export default function UserDashboard() {
         <select className="input usort" aria-label={T.user.sortLabel} value={sort} onChange={(e) => setSort(e.target.value as SortKey)}>
           {(Object.keys(T.user.sort) as SortKey[]).map((key) => <option key={key} value={key}>{T.user.sort[key]}</option>)}
         </select>
+        <div className="uview-toggle" role="group" aria-label={T.user.viewLabel}>
+          <button type="button" aria-pressed={view === "grid"} aria-label={T.user.viewGrid} title={T.user.viewGrid} onClick={() => changeView("grid")}><LayoutGrid size={18} /></button>
+          <button type="button" aria-pressed={view === "list"} aria-label={T.user.viewList} title={T.user.viewList} onClick={() => changeView("list")}><List size={18} /></button>
+        </div>
       </div>
 
       {!seen && <HowItWorks onClose={closeHint} />}
@@ -233,29 +224,10 @@ export default function UserDashboard() {
         <StatCard tone="indigo" icon={<TrendingUp size={22} />} loading={loading} value={stats ? stats.active_projects : "–"} label={T.user.statActive} />
       </div>
 
-      <div className="uchips-row">
-        <div className="uchips" role="group" aria-label={T.user.filterLabel}>
-          {chips.map((c) => (
-            <button key={c.key} type="button" className="uchip" aria-pressed={chip === c.key} onClick={() => setChip(c.key)}>{c.label}</button>
-          ))}
-        </div>
-        <div className="uview-toggle" role="group" aria-label={T.user.viewLabel}>
-          <button type="button" aria-pressed={view === "grid"} aria-label={T.user.viewGrid} title={T.user.viewGrid} onClick={() => changeView("grid")}><LayoutGrid size={18} /></button>
-          <button type="button" aria-pressed={view === "list"} aria-label={T.user.viewList} title={T.user.viewList} onClick={() => changeView("list")}><List size={18} /></button>
-        </div>
-      </div>
-
       {list.error && <ErrorBox error={list.error} onRetry={() => list.refetch()} />}
       {list.isLoading && <div className="card"><SkeletonRows rows={4} /></div>}
       {list.data && !rows.length && (
-        <div className="card">
-          {chip === "following" && !search ? (
-            <Empty icon={<UserCheck />} title={T.user.emptyFollowing} hint={T.user.emptyFollowingHint}
-              action={<Button variant="primary" onClick={() => setChip("all")}>{T.user.showAll}</Button>} />
-          ) : (
-            <Empty icon={<Users />} title={T.portfolio.empty} hint={T.portfolio.emptyHint} />
-          )}
-        </div>
+        <div className="card"><Empty icon={<Users />} title={T.portfolio.empty} hint={T.portfolio.emptyHint} /></div>
       )}
       <div className={view === "grid" ? "ugrid" : "ulist"}>
         {rows.map((d) => <DeveloperCard key={d.id} d={d} view={view} />)}
