@@ -1124,6 +1124,11 @@ button.list-row:focus-visible { outline-offset: -2px; }
   .urow-name { flex-basis: calc(100% - 120px); }
 }
 
+/* Profil: o'qish rejimidagi ma'lumotlar */
+.kv { margin: 0; display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+.kv dt { font-size: var(--fs-sm); color: var(--muted); }
+.kv dd { margin: 2px 0 0; font-weight: 600; overflow-wrap: anywhere; }
+
 /* ───────── Reytinglar (/baholarim) ───────── */
 .ratings-avg { display: flex; align-items: center; }
 .check-inline { display: inline-flex; align-items: center; gap: 8px; min-height: 48px; cursor: pointer; }

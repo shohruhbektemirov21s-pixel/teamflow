@@ -20,6 +20,9 @@ export interface Me {
 
 export interface Profile extends Me {
   date_joined: string;
+  bio: string;
+  /** Faqat dasturchida: o'z portfoliosi ko'rsatkichlari va texnologiyalari. */
+  portfolio?: { rating: number | null; reviews_count: number; projects_count: number; technologies: string[] } | null;
   stats?: { active: number; in_review: number; done: number; overdue: number };
   /** Faqat oddiy foydalanuvchida: nechta baho qo'ygan va nechta dasturchini kuzatadi. */
   activity?: { reviews: number; following: number } | null;

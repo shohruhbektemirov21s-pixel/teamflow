@@ -85,3 +85,26 @@ class ProfileMatchesPersonTests(TestCase):
         self.assertEqual(client_for(pm).get(f"/api/people/{boss.pk}/").status_code, 404)
         self.assertEqual(client_for(pm).get(f"/api/people/{dev.pk}/").status_code, 200)
         self.assertEqual(client_for(boss).get(f"/api/people/{pm.pk}/").status_code, 200)
+
+
+class ProfileBioAndPortfolioTests(TestCase):
+    def test_bio_is_saved_trimmed_and_limited(self):
+        user = make_user(Role.USER)
+        api = client_for(user)
+        ok = api.patch("/api/auth/profile/", {"bio": "  Dizayn yoqtiraman  "}, format="json")
+        self.assertEqual((ok.status_code, ok.data["bio"]), (200, "Dizayn yoqtiraman"))
+        self.assertEqual(api.patch("/api/auth/profile/", {"bio": "x" * 301}, format="json").status_code, 400)
+        self.assertEqual(api.patch("/api/auth/profile/", {"first_name": ""}, format="json").status_code, 400)
+        self.assertEqual(api.patch("/api/auth/profile/", {"role": "boss"}, format="json").status_code, 200)
+        user.refresh_from_db()
+        self.assertEqual(user.role, Role.USER)
+        self.assertEqual(api.get("/api/auth/profile/").data["bio"], "Dizayn yoqtiraman")
+
+    def test_portfolio_summary_only_for_developers(self):
+        from apps.portfolio.models import PortfolioItem
+        dev = make_user(Role.DEVELOPER)
+        PortfolioItem.objects.create(owner=dev, title="Sayt", technologies=["Django", "React"])
+        data = client_for(dev).get("/api/auth/profile/").data["portfolio"]
+        self.assertEqual((data["rating"], data["reviews_count"], data["projects_count"]), (None, 0, 1))
+        self.assertEqual(sorted(data["technologies"]), ["Django", "React"])
+        self.assertIsNone(client_for(make_user(Role.USER)).get("/api/auth/profile/").data["portfolio"])

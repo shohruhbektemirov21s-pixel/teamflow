@@ -108,14 +108,29 @@ class ProfileSerializer(serializers.ModelSerializer):
     stats = serializers.SerializerMethodField()
     activity = serializers.SerializerMethodField()
     avatar = serializers.SerializerMethodField()
+    portfolio = serializers.SerializerMethodField()
 
     class Meta:
         model = User
         fields = [
             "id", "username", "first_name", "last_name", "full_name",
-            "role", "role_label", "specialty", "department_name",
-            "telegram_username", "date_joined", "stats", "activity", "avatar",
+            "role", "role_label", "specialty", "department_name", "bio",
+            "telegram_username", "date_joined", "stats", "activity", "avatar", "portfolio",
         ]
+
+    def get_portfolio(self, user):
+        """Faqat dasturchida: o'z portfoliosi ko'rsatkichlari va texnologiyalari (portfolio ma'lumotidan)."""
+        if not user.is_developer:
+            return None
+        from apps.portfolio.models import PortfolioItem
+        from apps.portfolio.stats import developer_technologies, developers_with_stats, round_rating
+        row = developers_with_stats(None).filter(pk=user.pk).first()
+        if row is None:
+            return None
+        items = PortfolioItem.objects.filter(owner=user)
+        return {"rating": round_rating(row.rating), "reviews_count": row.reviews_count,
+                "projects_count": row.projects_count,
+                "technologies": [t["name"] for t in developer_technologies(items)]}
 
     def get_activity(self, user):
         """Oddiy foydalanuvchi faolligi: nechta baho qo'ygan va kimni kuzatadi."""
@@ -147,6 +162,7 @@ class ProfileUpdateSerializer(serializers.Serializer):
     first_name = serializers.CharField(max_length=150, required=False)
     last_name = serializers.CharField(max_length=150, required=False)
     telegram_username = serializers.CharField(max_length=100, required=False, allow_blank=True)
+    bio = serializers.CharField(max_length=300, required=False, allow_blank=True)
 
     def validate_telegram_username(self, value):
         value = normalize_telegram(value)

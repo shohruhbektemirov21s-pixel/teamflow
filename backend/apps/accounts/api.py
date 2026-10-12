@@ -159,7 +159,7 @@ def business_trip(request, pk):
 @api_view(["GET", "PATCH"])
 @permission_classes([IsAuthenticated])
 def profile(request):
-    """Joriy foydalanuvchi profili. PATCH: first_name, last_name, telegram_username.
+    """Joriy foydalanuvchi profili. PATCH: first_name, last_name, bio, telegram_username.
 
     Telegram username o'zgarsa, eski chat uziladi — bildirishnomalar begona chatga ketmasin;
     foydalanuvchi botga /start ni qayta yuboradi.

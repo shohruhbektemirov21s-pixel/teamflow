@@ -253,7 +253,8 @@ Menyu guruhlarga bo'lingan: *Asosiy ish* | *Muloqot* | *Kuzatuv* (Kuzatuv faqat 
 
 ### Xabarlar (`/xabarlar`)
 - Foydalanuvchilar orasida shaxsiy yozishma. Chapda suhbatlar ro'yxati va ism bo'yicha qidiruv, o'ngda suhbat. Telefonga moslangan.
-- Rolsiz akkaunt ro'yxatda chiqmaydi, suhbatda oxirgi 200 xabar ko'rsatiladi.
+- Rolsiz akkaunt ro'yxatda chiqmaydi, suhbatda oxirgi 200 xabar ko'rsatiladi. Oddiy foydalanuvchida chat yo'q (serverda 403, ro'yxatlarda chiqmaydi).
+- Ro'yxatda avatar, ism, oxirgi xabar ("Siz:" belgisi), vaqt, o'qilmaganlar soni. Suhbatda kun ajratgichlari, har xabarda vaqt, Enter yuboradi (Shift+Enter yangi qator). Yuborilmasa xabar ostida xato va "Qayta yuborish". Real-time yo'q — polling; fayl biriktirish tizimda yo'q.
 
 ### Bildirishnomalar (modal — qo'ng'iroq ikonkasi, 9-bo'lim)
 - Alohida sahifa/menyu bandi emas — tepadagi qo'ng'iroq ikonkasi bosilganda modal ochiladi (2026-10-05).
@@ -271,6 +272,7 @@ Menyu guruhlarga bo'lingan: *Asosiy ish* | *Muloqot* | *Kuzatuv* (Kuzatuv faqat 
 - Loyiha, oxirgi necha kun va **"Faqat men"** bo'yicha filtr, sahifalash. PM/Boshliq vazifaga ijrochi bo'la olmagani uchun "Faqat men" — o'zi yaratgan va yakunlangan vazifalar, o'zi tekshirib qabul/rad etgan ishlar va o'z amallari (Tarix tabida).
 
 ### Profil (`/profil`)
+- **Mening profilim (2026-10-12):** tepada sarlavha (rasm, ism, lavozim yoki mutaxassislik, qisqacha bio — 300 belgigacha, "Profilni tahrirlash"). Tahrirlash modalsiz: "Shaxsiy ma'lumotlar" bo'limi formaga aylanadi (rasm, ism, familiya, bio, Telegram; Saqlash/Bekor qilish). Login, Telegram va qo'shilgan sana faqat shu bo'limda (takrorlanmaydi). Dasturchi: Mening loyihalarim (bosilsa loyiha oynasi), Mening vazifalarim, Mening reytinglarim (o'z reytingi, texnologiyalari, "Portfolioni ochish"). Oddiy foydalanuvchi: Mening reytinglarim (qo'ygan baholari). Boshliq: xizmat safarlari. Parolni almashtirish hammada pastda. `bio` — `User.bio`, `PATCH /api/auth/profile/` (ism bo'sh bo'lmaydi, bio 300 belgigacha; rol va boshqa maydonlar o'zgarmaydi); dasturchida `GET /api/auth/profile/` `portfolio` (reyting, sharhlar, loyihalar soni, texnologiyalar) qaytaradi.
 - Barcha profillar bir xil ko'rinishda (o'z profilim va xodim oynasi): umumiy `ProfileHeader` (avatar, ism, lavozim, 4 ko'rsatkich: faol, kechikkan, tekshiruvda, bajarilgan) va umumiy vazifalar jadvali (`TaskTable`). "Faol" soni hamma joyda bir xil qoida bilan hisoblanadi.
 - Ism, familiya, Telegram username, parolni almashtirish. Telegram username o'zgarsa, eski chat uziladi (botga `/start` qayta yuboriladi).
 - Dasturchi profilida **"Mening vazifalarim"** jadvali — faqat o'ziga biriktirilgan vazifalar.
@@ -361,6 +363,7 @@ Batafsil bosqichlar: `docs/FLOWS_MODALS.md`.
 - **Mas'ul PM:** buyurtmani tasdiqlagan PM avtomatik mas'ul bo'ladi. Dasturchilar loyiha yaratilganda biriktiriladi.
 - **Topshiriqlar:** kichik qadamlar, har biriga bir nechta dasturchi biriktirish mumkin.
 - **Xabarlar (chat):** foydalanuvchilar orasida shaxsiy yozishma.
+- **Reytinglar (`/baholarim`, oddiy foydalanuvchi):** barcha baholar (baholagan, loyiha, dasturchi, yulduz, sharh, sana), qidiruv, saralash, "Faqat meniki"; baho bo'lmasa "Hali baholanmagan". `GET /api/portfolio/ratings/`.
 - **Ommaviy vazifalar:** bir nechta vazifani matn shaklida birdaniga yaratish.
 - **Mutaxassisliklar** Django adminda boshqariladi. Demo ro'yxat: Backend dasturchi, Frontend dasturchi, Mobil dasturchi, Dizayner, Tester, Loyiha menejeri, Boshqaruv.
 - **Autentifikatsiya:** Cookie / Session (DRF standart), CSRF himoyasi bilan.

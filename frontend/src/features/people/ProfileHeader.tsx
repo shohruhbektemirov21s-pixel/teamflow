@@ -15,7 +15,7 @@ export interface ProfileStats {
  * Profil sarlavhasi — o'z profilim (`/profil`) va xodim oynasida (PersonModal) bir xil ko'rinish:
  * avatar, ism, lavozim/bo'lim va (dasturchi bo'lsa) 4 ta ko'rsatkich. `actions` — o'z profilimda rasm tugmalari.
  */
-export function ProfileHeader({ user, subtitle, stats, actions }: { user: { id: number; full_name: string; avatar?: string | null }; subtitle: string; stats?: ProfileStats | null; actions?: ReactNode }) {
+export function ProfileHeader({ user, subtitle, bio, stats, actions }: { user: { id: number; full_name: string; avatar?: string | null }; subtitle: string; bio?: string; stats?: ProfileStats | null; actions?: ReactNode }) {
   const { open } = useModal();
   const avatar = user.avatar;
   return (
@@ -32,6 +32,7 @@ export function ProfileHeader({ user, subtitle, stats, actions }: { user: { id: 
         <div className="grow">
           <h2 style={{ margin: 0 }}>{user.full_name}</h2>
           <div className="small muted">{subtitle}</div>
+          {bio && <p style={{ margin: "8px 0 0", overflowWrap: "anywhere" }}>{bio}</p>}
           {actions && <div className="row-wrap" style={{ marginTop: 8 }}>{actions}</div>}
         </div>
       </div>
