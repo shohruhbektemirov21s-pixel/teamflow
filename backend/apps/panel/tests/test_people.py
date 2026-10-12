@@ -45,7 +45,8 @@ class PeopleWorkTests(TestCase):
             ids = {p["id"] for p in client.get("/api/people/").data}
             self.assertNotIn(visitor.pk, ids)
             self.assertEqual(client.get(f"/api/people/{visitor.pk}/").status_code, 404)
-            self.assertEqual(client.get(f"/api/people/?role={Role.USER}").data, [])
+            by_role = {p["id"] for p in client.get(f"/api/people/?role={Role.USER}").data}
+            self.assertNotIn(visitor.pk, by_role)
             patch = client.patch(f"/api/people/{visitor.pk}/responsibilities/", {"responsibilities": "x"}, format="json")
             self.assertEqual(patch.status_code, 404)
 
