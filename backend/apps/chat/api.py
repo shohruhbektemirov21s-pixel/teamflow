@@ -1,19 +1,30 @@
 from django.db.models import Q
 from rest_framework import viewsets
 from rest_framework.decorators import action
+from rest_framework.permissions import BasePermission, IsAuthenticated
 from rest_framework.response import Response
 
-from apps.accounts.models import User
+from apps.accounts.models import Role, User
 from apps.core.api_utils import user_brief
 from .serializers import ChatMessageSerializer, ChatMessagesQuerySerializer, ChatSendSerializer
 from .services import conversation_summaries, messages_with_partner, send_message
 
+class IsStaffMember(BasePermission):
+    """Oddiy foydalanuvchida chat yo'q — xodimlar bilan yozishmaydi ham, ular ro'yxatda ham chiqmaydi."""
+
+    def has_permission(self, request, view):
+        user = request.user
+        return bool(user and user.is_authenticated and user.role and not user.is_ordinary_user)
+
+
 class ChatViewSet(viewsets.GenericViewSet):
+    permission_classes = [IsAuthenticated, IsStaffMember]
+
     @action(detail=False, methods=["get"])
     def people(self, request):
         q = (request.query_params.get("q") or "").strip()
         # Rolsiz akkauntlar (masalan, Django admin superuser) xodim emas — ro'yxatda chiqmaydi
-        qs = User.objects.filter(is_active=True).exclude(role="").exclude(pk=request.user.pk)
+        qs = User.objects.filter(is_active=True).exclude(role="").exclude(role=Role.USER).exclude(pk=request.user.pk)
         if q:
             qs = qs.filter(Q(first_name__icontains=q) | Q(last_name__icontains=q) | Q(username__icontains=q))
         qs = qs.order_by("first_name")[:25]

@@ -16,6 +16,32 @@ export function fmtDateTime(value: string | null | undefined): string {
   return `${fmtDate(d)} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
+/** HH:MM */
+export function fmtTime(value: string | Date): string {
+  const d = typeof value === "string" ? new Date(value) : value;
+  return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+/** Ikki sana bir kunmi (mahalliy vaqt bo'yicha) */
+export function sameDay(a: Date, b: Date): boolean {
+  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+}
+
+/** Suhbatlar ro'yxati uchun: bugun — soat, aks holda dd.mm.yyyy */
+export function fmtChatListTime(value: string, now: Date = new Date()): string {
+  const d = new Date(value);
+  return sameDay(d, now) ? fmtTime(d) : fmtDate(d);
+}
+
+/** Xabarlar orasidagi kun ajratgichi: "Bugun" / "Kecha" / dd.mm.yyyy */
+export function fmtDayLabel(value: string, now: Date = new Date()): string {
+  const d = new Date(value);
+  if (sameDay(d, now)) return T.chat.today;
+  const yesterday = new Date(now);
+  yesterday.setDate(now.getDate() - 1);
+  return sameDay(d, yesterday) ? T.chat.yesterday : fmtDate(d);
+}
+
 /** "2026-09-28" ni mahalliy sana sifatida o'qiydi (UTC siljishisiz). */
 export function parseDate(value: string): Date {
   if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {

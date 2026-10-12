@@ -593,6 +593,16 @@ export const T = {
     firstMessage: "Hali xabar yo'q. Birinchi bo'lib yozing!",
     messagePh: "Xabar yozing…",
     send: "Yuborish",
+    today: "Bugun",
+    yesterday: "Kecha",
+    sending: "Yuborilmoqda…",
+    failed: "Yuborilmadi. Internetni tekshiring.",
+    retry: "Qayta yuborish",
+    discard: "O'chirish",
+    you: "Siz: ",
+    unread: "o'qilmagan xabar",
+    listError: "Suhbatlar yuklanmadi.",
+    hint: "Enter — yuborish, Shift+Enter — yangi qator",
   },
 
   workDone: {

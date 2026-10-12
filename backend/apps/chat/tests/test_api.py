@@ -101,3 +101,18 @@ class ChatApiTests(TestCase):
             with self.subTest(after=after):
                 response = self.client.get(f"/api/chat/messages/?partner={self.partner.pk}&after={after}")
                 self.assertEqual(response.status_code, 400)
+
+    def test_third_party_cannot_read_a_conversation(self):
+        ChatMessage.objects.create(author=self.partner, recipient=self.other, text="Maxfiy")
+        response = self.client.get(f"/api/chat/messages/?partner={self.partner.pk}")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, [])
+        self.assertFalse(self.client.get("/api/chat/conversations/").data)
+
+    def test_ordinary_user_has_no_chat_and_is_not_listed(self):
+        ordinary = make_user(Role.USER)
+        for url in ("/api/chat/people/", "/api/chat/conversations/", f"/api/chat/messages/?partner={self.me.pk}"):
+            self.assertEqual(client_for(ordinary).get(url).status_code, 403)
+        self.assertEqual(client_for(ordinary).post("/api/chat/send/", {"partner": self.me.pk, "text": "Salom"}).status_code, 403)
+        self.assertEqual(self.client.get(f"/api/chat/people/?q={ordinary.first_name}").data, [])
+        self.assertEqual(self.client.post("/api/chat/send/", {"partner": ordinary.pk, "text": "Salom"}).status_code, 400)
