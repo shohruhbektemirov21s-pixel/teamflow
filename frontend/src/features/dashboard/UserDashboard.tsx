@@ -8,7 +8,7 @@ import { api } from "@/shared/api";
 import { useDebounced } from "@/shared/hooks";
 import { T } from "@/shared/text";
 import type { PortfolioDeveloper, PortfolioSummary } from "@/shared/types";
-import { Avatar, Button, Empty, ErrorBox, SkeletonRows, useToast } from "@/shared/ui";
+import { Avatar, Button, Dropdown, Empty, ErrorBox, SkeletonRows, useToast } from "@/shared/ui";
 import { Pagination } from "@/shared/ui/Pagination";
 
 type SortKey = keyof typeof T.user.sort;
@@ -182,12 +182,15 @@ export default function UserDashboard() {
             <kbd className="ukbd" aria-hidden>{T.user.searchKbd}</kbd>
           )}
         </label>
-        <label className="usort-wrap">
-          <ArrowUpDown size={18} aria-hidden />
-          <select className="input usort" aria-label={T.user.sortLabel} value={sort} onChange={(event) => setSort(event.target.value as SortKey)}>
-            {(Object.keys(T.user.sort) as SortKey[]).map((key) => <option key={key} value={key}>{T.user.sort[key]}</option>)}
-          </select>
-        </label>
+        <Dropdown<SortKey>
+          className="usort"
+          ariaLabel={T.user.sortLabel}
+          prefix={T.user.sortPrefix}
+          icon={<ArrowUpDown size={18} aria-hidden />}
+          value={sort}
+          onChange={setSort}
+          options={(Object.keys(T.user.sort) as SortKey[]).map((key) => ({ value: key, label: T.user.sort[key] }))}
+        />
       </div>
 
       <div className="ustats">

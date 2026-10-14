@@ -61,7 +61,8 @@ describe("UserDashboard", () => {
     renderApp(<UserDashboard />);
 
     await screen.findByText("Jasur Alimov");
-    fireEvent.change(screen.getByLabelText(T.user.sortLabel), { target: { value: "followers" } });
+    fireEvent.click(screen.getByRole("button", { name: new RegExp(T.user.sortLabel) }));
+    fireEvent.click(screen.getByRole("option", { name: T.user.sort.followers }));
     expect(await screen.findByText("Bobur Rahimov")).toBeTruthy();
   });
 

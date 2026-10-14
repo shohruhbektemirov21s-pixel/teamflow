@@ -19,6 +19,7 @@ import { avatarColor, ORDER_TONE, PRIORITY_TONE, STAGE_TONE, TASK_TONE, type Ton
 import { T } from "../text";
 import type { FileInfo, OrderStatus, Priority, ProjectStage, TaskStatus, UserBrief } from "../types";
 
+export { Dropdown, type DropdownOption } from "./Dropdown";
 export { Modal, useDialogBehavior } from "./Modal";
 
 /** Vazifa kodi (tasodifiy 9 xonali raqam) yoki loyiha raqami (qo'lda kiritilgan) — hamma joyda bir xil
