@@ -117,3 +117,14 @@ class ProfileMatchesPersonTests(TestCase):
         self.assertEqual(client_for(pm).get(f"/api/people/{boss.pk}/").status_code, 404)
         self.assertEqual(client_for(pm).get(f"/api/people/{dev.pk}/").status_code, 200)
         self.assertEqual(client_for(boss).get(f"/api/people/{pm.pk}/").status_code, 200)
+
+    def test_location_is_saved_trimmed_and_limited(self):
+        client = client_for(make_user(Role.USER))
+
+        ok = client.patch("/api/auth/profile/", {"location": " Toshkent "}, format="json")
+        self.assertEqual(ok.status_code, 200, ok.data)
+        self.assertEqual(ok.data["location"], "Toshkent")
+
+        too_long = client.patch("/api/auth/profile/", {"location": "x" * 121}, format="json")
+        self.assertEqual(too_long.status_code, 400)
+        self.assertIn("location", too_long.data["fields"])

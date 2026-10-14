@@ -158,6 +158,14 @@ class ViewTests(PortfolioTestCase):
         )
         self.assertNotEqual(first.pk, second.pk)
 
+    def test_developer_detail_exposes_saved_location_and_empty_by_default(self):
+        client = client_for(self.dept)
+        self.assertEqual(client.get(f"/api/portfolio/{self.dev.pk}/").data["location"], "")
+
+        client_for(self.dev).patch("/api/auth/profile/", {"location": "  Samarqand  "}, format="json")
+
+        self.assertEqual(client.get(f"/api/portfolio/{self.dev.pk}/").data["location"], "Samarqand")
+
 
 class EditTests(PortfolioTestCase):
     def test_developer_adds_and_edits_own_project(self):

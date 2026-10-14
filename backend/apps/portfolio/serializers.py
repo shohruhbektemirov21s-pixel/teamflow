@@ -42,7 +42,7 @@ def developer_row(user, rank=None, highlights=None):
         "technologies": highlights.get("technologies", []), "cover": highlights.get("cover"),
         "id": user.pk, "full_name": user.full_name, "role": user.role, "department_name": user.department_name,
         "avatar": avatar_url(user), "specialty": user.specialty.name if user.specialty else "",
-        "bio": user.bio, "email": user.email, "telegram_username": user.telegram_username,
+        "bio": user.bio, "location": user.location, "email": user.email, "telegram_username": user.telegram_username,
         "rating": round_rating(user.rating), "reviews_count": user.reviews_count,
         "followers_count": user.followers_count, "projects_count": user.projects_count,
         "tasks_done": user.tasks_done, "is_following": user.is_following, "rank": rank,
