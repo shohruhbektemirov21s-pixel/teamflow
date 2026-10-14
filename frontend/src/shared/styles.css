@@ -507,14 +507,21 @@ kbd { font-family: var(--mono); font-size: 11px; padding: 2px 6px; border-radius
 .total-icon { width: 42px; height: 42px; border-radius: 12px; display: grid; place-items: center; flex: none; }
 .total-icon svg { width: 20px; height: 20px; }
 .people { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(220px, 240px); gap: 12px; overflow-x: auto; padding-bottom: 4px; }
-.people-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
-.people-toolbar { display: grid; gap: 12px; }
+.people-toolbar { display: grid; gap: 16px; }
+.people-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+.people-bar-search { flex: 1 1 280px; width: auto; min-height: 48px; border-radius: 14px; }
+.people-bar .uchips { flex: 0 1 auto; }
+.people-bar .dd.people-sort { min-width: 220px; }
 .people-filters { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 16px; }
-.people-filter-search { flex: 1 1 280px; }
 .people-filter-range { flex: 0 1 320px; }
 .people-filter-role { flex: 0 1 200px; }
-.people-filter-free { min-height: var(--control); }
 .people-filter-clear { margin-left: auto; }
+.uchip { display: inline-flex; align-items: center; gap: 8px; }
+.uchip-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); flex: none; }
+.uchip-dot-info { background: var(--info); }
+.uchip-dot-success { background: var(--success); }
+.uchip-n { min-width: 22px; padding: 0 6px; border-radius: 99px; background: var(--primary-soft); color: var(--primary); font-size: var(--fs-sm); line-height: 22px; text-align: center; }
+.uchip[aria-pressed="true"] .uchip-n { background: rgba(255, 255, 255, .22); color: #fff; }
 .people-search { display: flex; align-items: center; gap: 10px; min-width: 0; width: 100%; padding: 0 12px; border: 1px solid var(--border-strong); border-radius: var(--radius-sm); background: var(--surface); }
 .people-search:focus-within { border-color: var(--primary); box-shadow: 0 0 0 2px var(--primary-soft); }
 .people-search input { width: 100%; min-width: 0; height: calc(var(--control) - 2px); border: 0; outline: 0; background: transparent; color: var(--text); font: inherit; }
@@ -529,12 +536,6 @@ kbd { font-family: var(--mono); font-size: 11px; padding: 2px 6px; border-radius
 .person-identity strong { overflow-wrap: anywhere; }
 .person-identity:hover strong { color: var(--primary); }
 .person-actions { display: flex; flex-wrap: wrap; gap: 8px; }
-.people-table .table tbody tr { cursor: default; }
-.people-table td { vertical-align: top; padding-top: 20px; padding-bottom: 20px; }
-.people-table td:first-child { width: 25%; }
-.people-table td:nth-child(2) { width: 16%; }
-.people-table td:nth-child(3) { width: 37%; }
-.people-table .person-actions { flex-direction: column; align-items: stretch; }
 .person-work { min-width: 0; }
 .person-responsibilities-text { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.6; }
 .person-work-item { display: flex; flex-direction: column; align-items: stretch; gap: 6px; width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface-2); color: var(--text); text-align: left; font: inherit; cursor: pointer; }
@@ -544,15 +545,75 @@ kbd { font-family: var(--mono); font-size: 11px; padding: 2px 6px; border-radius
 .person-work-more { align-self: flex-start; border: 0; background: transparent; color: var(--primary); padding: 4px 0; font: inherit; font-size: 12px; cursor: pointer; }
 .person-section-title { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0 0 6px; font-size: 14px; }
 .person-work-empty { padding: 12px 0; }
-.people-person-card { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
-.person-card-work { flex: 1; border-top: 1px solid var(--border); padding-top: 12px; }
-.people-person-card .person-actions { padding-top: 12px; border-top: 1px solid var(--border); }
-.people-person-card .person-actions .btn { flex: 1; }
-.people-mobile-grid { display: none; }
+/* Xodim kartochkasi: ro'yxatda 3 ustun (xodim · yuklama · vazifalar), kartalarda ustma-ust */
+.people-cards { display: grid; gap: 16px; }
+.people-cards.grid { grid-template-columns: repeat(auto-fill, minmax(420px, 1fr)); align-items: start; }
+.person-card { display: grid; grid-template-columns: 250px 170px minmax(0, 1fr); gap: 0 24px; align-items: start; padding: 20px 24px; min-width: 0; }
+.person-card.grid { grid-template-columns: minmax(0, 1fr); gap: 16px; }
+.people-colhead { display: grid; grid-template-columns: 250px 170px minmax(0, 1fr); gap: 0 24px; padding: 0 24px; font-size: var(--fs-xs, 11px); font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); }
+.people-colhead span + span { padding-left: 24px; }
+.pc-main, .pc-side, .pc-work { min-width: 0; }
+.pc-main { display: grid; gap: 16px; }
+.pc-head { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+.pc-head .badge { white-space: nowrap; }
+.pc-stats { display: flex; gap: 0; }
+.pc-stat { display: grid; gap: 2px; padding: 0 16px; border-left: 1px solid var(--border); }
+.pc-stat:first-child { padding-left: 0; border-left: 0; }
+.pc-stat strong { font-size: var(--fs-xl, 22px); line-height: 1.1; }
+.pc-stat span { font-size: var(--fs-sm); color: var(--muted); }
+.pc-stat-primary strong { color: var(--primary); }
+.pc-stat-danger strong { color: var(--danger); }
+.pc-stat-info strong { color: var(--info); }
+.pc-stat-muted strong { color: var(--muted); }
+.pc-side { display: grid; gap: 12px; align-content: start; padding-left: 24px; border-left: 1px solid var(--border); }
+.person-card.grid .pc-side { padding-left: 0; border-left: 0; }
+.pc-load { display: grid; gap: 4px; }
+.pc-meter { height: 8px; border-radius: 99px; background: var(--surface-2); overflow: hidden; }
+.pc-meter span { display: block; height: 100%; border-radius: 99px; background: var(--primary); }
+.pc-meter span.danger { background: var(--danger); }
+.pc-hint-danger { color: var(--danger); }
+.pc-side .person-actions { flex-direction: column; align-items: stretch; }
+.pc-work { padding-left: 24px; border-left: 1px solid var(--border); }
+.person-card.grid .pc-work { padding-left: 0; border-left: 0; padding-top: 16px; border-top: 1px solid var(--border); }
+.pc-work-head, .pc-task { display: grid; grid-template-columns: 84px minmax(150px, 1fr) 108px 88px 100px 28px; align-items: center; gap: 8px 10px; }
+.pc-work-head { padding: 0 0 8px; font-size: var(--fs-xs, 11px); font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); }
+.pc-tasks { margin: 0; padding: 0; list-style: none; }
+.pc-task { padding: 10px 0; border-top: 1px solid var(--border); }
+.pc-task-title { display: grid; gap: 2px; min-width: 0; padding: 0; border: 0; background: transparent; color: var(--text); text-align: left; font: inherit; cursor: pointer; }
+.pc-task-title strong { overflow-wrap: anywhere; }
+.pc-task-title:hover strong { color: var(--primary); }
+.pc-task-due { display: inline-flex; align-items: center; gap: 6px; }
+.pc-task-due.overdue { color: var(--danger); font-weight: 600; }
+.pc-task-open { width: 32px; height: 32px; }
+/* Tor joyda (kartalar ko'rinishi va telefon): ustunlar o'rniga qatorlar */
+.person-card.grid .pc-work-head, .person-card.grid .pc-task { grid-template-columns: minmax(0, 1fr) auto auto; }
+.person-card.grid .pc-work-head { display: none; }
+.person-card.grid .pc-task-code { display: none; }
+.person-card.grid .pc-task-title { grid-column: 1; grid-row: 1 / span 2; }
+.person-card.grid .pc-task-status { grid-column: 2; grid-row: 1; justify-self: end; }
+.person-card.grid .pc-task-priority { grid-column: 2; grid-row: 2; justify-self: end; }
+.person-card.grid .pc-task-due { grid-column: 3; grid-row: 1; }
+.person-card.grid .pc-task-open { grid-column: 3; grid-row: 2; justify-self: end; }
+@media (max-width: 1400px) {
+  .people-colhead { display: none; }
+  .person-card { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px 24px; }
+  .person-card .pc-work { grid-column: 1 / -1; padding: 16px 0 0; border-left: 0; border-top: 1px solid var(--border); }
+}
 @media (max-width: 760px) {
-  .people-table { display: none; }
-  .people-mobile-grid { display: grid; }
-  .people-grid { grid-template-columns: minmax(0, 1fr); }
+  .person-card, .person-card.grid { grid-template-columns: minmax(0, 1fr); padding: 16px; }
+  .person-card .pc-side { padding-left: 0; border-left: 0; }
+  .person-card .pc-work-head { display: none; }
+  .person-card .pc-task { grid-template-columns: minmax(0, 1fr) auto auto; }
+  .person-card .pc-task-code { display: none; }
+  .person-card .pc-task-title { grid-column: 1; grid-row: 1 / span 2; }
+  .person-card .pc-task-status { grid-column: 2; grid-row: 1; justify-self: end; }
+  .person-card .pc-task-priority { grid-column: 2; grid-row: 2; justify-self: end; }
+  .person-card .pc-task-due { grid-column: 3; grid-row: 1; }
+  .person-card .pc-task-open { grid-column: 3; grid-row: 2; justify-self: end; }
+  .people-cards.grid { grid-template-columns: minmax(0, 1fr); }
+  .people-bar > * { flex: 1 1 100%; }
+  .people-bar .uchips { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 4px; }
+  .people-bar .uview-toggle { display: none; }
   .people-filters > * { flex: 1 1 100%; }
   .people-filter-clear { margin-left: 0; }
   .person-responsibilities-line { max-width: none; }

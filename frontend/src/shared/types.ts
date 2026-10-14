@@ -207,6 +207,25 @@ export interface ProjectDetail extends Project {
   completion: { requested_at: string; pending: UserBrief[]; confirmed: UserBrief[] } | null;
 }
 
+/** Xodimlar ro'yxatidagi qisqa vazifa qatori. */
+export interface PersonTask {
+  id: number;
+  code?: string;
+  title: string;
+  status: TaskStatus;
+  priority?: Priority;
+  due_at: string | null;
+  is_overdue: boolean;
+  project: { id: number; name: string; code: string };
+}
+
+/** Xodimlar sahifasi chiplari: filtrlangan to'plamdagi sonlar (holat tanlovidan oldin). */
+export interface PeopleSummary {
+  all: number;
+  active: number;
+  free: number;
+}
+
 export interface Person {
   report?: { total: number; done: number; late: number };
   responsibilities?: string;
@@ -223,10 +242,14 @@ export interface Person {
   overdue_tasks: number;
   review_tasks: number;
   done_tasks: number;
+  /** Arxivlanmagan barcha vazifalar. */
+  total_tasks?: number;
+  /** Faol vazifalardan Yuqori va Shoshilinchlari. */
+  high_tasks?: number;
   /** Muddat oralig'i filtri tanlanganda — shu oraliqdagi vazifalar soni (aks holda null). */
   range_tasks?: number | null;
   doing: { id: number; title: string }[];
-  work?: { id: number; title: string; status: TaskStatus; due_at: string | null; is_overdue: boolean; project: { id: number; name: string; code: string } }[];
+  work?: PersonTask[];
   projects?: { id: number; name: string; code: string; stage: ProjectStage; end_date: string }[];
 }
 

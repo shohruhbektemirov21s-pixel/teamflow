@@ -6,7 +6,8 @@ import type { Dashboard, Developer, Me, Paged, Project } from "@/shared/types";
 
 import type { Counter } from "./nav";
 
-export function usePagedList<T>(baseKey: readonly unknown[], path: string,
+/** `Extra` — sahifalangan javobdagi qo'shimcha maydonlar (masalan, Xodimlar chiplari uchun `summary`). */
+export function usePagedList<T, Extra extends object = object>(baseKey: readonly unknown[], path: string,
   params: Record<string, string | number | undefined>, enabled = true) {
   const filterKey = JSON.stringify([baseKey, params]);
   const [position, setPosition] = useState({ filterKey, page: 1 });
@@ -16,8 +17,8 @@ export function usePagedList<T>(baseKey: readonly unknown[], path: string,
   const query = useQuery({
     queryKey,
     queryFn: async () => {
-      const result = await api.get<Paged<T> | T[]>(`${path}${qs({ ...params, page: page === 1 ? undefined : page })}`);
-      return Array.isArray(result) ? { count: result.length, next: null, previous: null, results: result } : result;
+      const result = await api.get<(Paged<T> & Extra) | T[]>(`${path}${qs({ ...params, page: page === 1 ? undefined : page })}`);
+      return Array.isArray(result) ? { count: result.length, next: null, previous: null, results: result } as Paged<T> & Partial<Extra> : result;
     },
     enabled,
   });
