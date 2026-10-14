@@ -18,7 +18,7 @@
 
 ## Muhim qoidalar
 - Muddat/boshlanish o'tgan sana bo'lmaydi (`core/dates.py`).
-- Qisman kod qidiruvi (1–2 raqam ham) `filters.py` da; regressiya testi: `DashboardTests.test_task_list_searches_one_or_two_digit_code_fragments`.
+- Qisman kod qidiruvi (1–2 raqam ham) `filters.py` da; regressiya testi: `tests/test_api.py` → `DashboardTests.test_task_list_searches_one_or_two_digit_code_fragments`.
 - Ijrochi jamoada bo'lmasa loyiha jamoasiga avtomatik qo'shiladi.
 - Yakunlangan/tasdiq kutayotgan loyihada vazifa qo'shish yopiq (`projects` modulidagi `ensure_open`).
 - Katta fayllar: `services.py` (~390 qator), `TaskModal.tsx` (frontend, ~710 qator) — butunlay o'qimang.

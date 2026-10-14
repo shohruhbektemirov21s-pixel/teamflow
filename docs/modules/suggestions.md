@@ -5,7 +5,7 @@
 **Fayllar:** `models.py`, `workflow.py`, `services.py`, `serializers.py`, `api.py`, `admin.py`.
 
 ## Modellar
-`Suggestion` (matn, anonim yoki ochiq, holat), `SuggestionVote`.
+`Suggestion` (`title`, `body`, `is_anonymous`, `author`, `status`, `boss_note`, `decided_by/at`), `SuggestionVote` (`suggestion`, `voter`, `kind`).
 
 ## Holat mashinasi (`workflow.py`)
 `pending → accepted` va `pending → rejected` — faqat Boshliq.

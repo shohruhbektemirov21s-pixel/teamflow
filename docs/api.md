@@ -29,8 +29,8 @@ Ruxsat belgilari: **Auth** = tizimga kirgan, **Manager** = PM yoki Boshliq (`IsM
 | `avatars/<id>/` | GET | Auth | rasm faylini beradi |
 | `specialties/` | GET | Ochiq | ro'yxatdan o'tish formasi uchun |
 | `developers/` | GET | Auth | dasturchilar ma'lumotnomasi |
-| `people/<id>/business-trip/` | PUT, DELETE | Auth (servisda tekshiriladi) | xizmat safari |
-| `people/<id>/responsibilities/` | PATCH | Auth (servisda tekshiriladi) | mas'uliyatlar matni |
+| `people/<id>/business-trip/` | PUT, DELETE | Faqat Boshliq (funksiya ichida) | xizmat safari; faqat faol PM va dasturchilar uchun |
+| `people/<id>/responsibilities/` | PATCH | Manager (funksiya ichida) | mas'uliyatlar matni; PM faqat dasturchilarni, Boshliq barcha faol xodimlarni |
 
 ## Panel (`panel`, modelsiz yig'uvchi qatlam)
 

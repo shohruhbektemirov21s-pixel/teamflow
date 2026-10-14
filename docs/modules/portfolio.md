@@ -15,7 +15,7 @@
 
 ## Muhim qoidalar
 - Standart reyting birinchi sahifasi 60 soniya keshlanadi; kesh tranzaksiya tasdiqlangach tozalanadi. Kuzatish holati (viewer'ga bog'liq) alohida olinadi.
-- Video: MP4/WebM/MOV, 100 MB, loyihaga 5 tagacha. Muqova rasmi validatsiyalanadi.
+- Video: MP4/WebM/MOV; chegaralar `config/settings.py` da: `PORTFOLIO_VIDEO_MAX_MB=100`, `PORTFOLIO_VIDEOS_PER_ITEM=5`. Muqova: `PORTFOLIO_COVER_MAX_MB=5`, `PORTFOLIO_COVER_MAX_PX=1600`, Pillow bilan tekshiriladi.
 - Foydalanuvchi (oddiy `user` roli) uchun bosh sahifa — shu API (`UserDashboard`); yangi flow/modal ochilmaydi.
 - Frontend: bitta "Portfolio" modali ichida ko'rinishlar almashadi (modal ustida modal yo'q).
 
