@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(powershell -File scripts/verify.ps1)",
+      "PowerShell(powershell -File scripts/verify.ps1 *)"
+    ],
+    "deny": [
+      "Read(backend/.env)",
+      "Read(backend/deploy/local.env)",
+      "Read(backend/db.sqlite3*)",
+      "Read(backend/media/**)",
+      "Read(backend/*.log)",
+      "Read(backend/loadtesting/artifacts/**)"
+    ]
+  }
+}
