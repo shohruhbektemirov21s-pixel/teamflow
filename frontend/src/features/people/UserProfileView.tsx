@@ -1,16 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Calendar,
-  Check,
   ChevronRight,
   Heart,
   ImagePlus,
-  Moon,
-  Palette,
   ShieldCheck,
   Sparkles,
   Star,
-  Sun,
   Trash2,
   User,
 } from "lucide-react";
@@ -18,7 +14,6 @@ import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 
 import { useAuth, useMe } from "@/app/auth";
-import { useTheme } from "@/app/Layout";
 import { useModal } from "@/app/modals";
 import { api, ApiError, formData } from "@/shared/api";
 import { fmtDate } from "@/shared/format";
@@ -30,13 +25,13 @@ const fieldError = (err: unknown, name: string) => (err instanceof ApiError ? er
 const generalError = (err: unknown) =>
   err instanceof ApiError ? (Object.keys(err.fields).length ? null : err.message) : T.common.errorGeneric;
 
-type ProfileTab = "info" | "security" | "appearance";
+type ProfileTab = "info" | "security";
 
 /**
  * Oddiy foydalanuvchi uchun zamonaviy SaaS profili:
  * - Cover va katta avatar, rasm yuklash/almashtirish/o'chirish
  * - Faollik kartalari (Baholangan loyihalar, Kuzatilayotgan dasturchilar)
- * - Tiniq va qulay tablar (Shaxsiy ma'lumotlar, Xavfsizlik, Ko'rinish/Tema)
+ * - Tiniq va qulay tablar (Shaxsiy ma'lumotlar, Xavfsizlik)
  * - Hech qanday chalg'ituvchi texnik inputlarsiz (login/sana inputlari yo'q)
  */
 export function UserProfileView() {
@@ -45,7 +40,6 @@ export function UserProfileView() {
   const { open } = useModal();
   const toast = useToast();
   const qc = useQueryClient();
-  const [theme, toggleTheme] = useTheme();
 
   const [activeTab, setActiveTab] = useState<ProfileTab>("info");
   const [first, setFirst] = useState("");
@@ -249,15 +243,6 @@ export function UserProfileView() {
         >
           <ShieldCheck size={16} aria-hidden /> {T.user.tabSecurity}
         </button>
-        <button
-          type="button"
-          role="tab"
-          aria-selected={activeTab === "appearance"}
-          className={`uprofile-tab ${activeTab === "appearance" ? "active" : ""}`}
-          onClick={() => setActiveTab("appearance")}
-        >
-          <Palette size={16} aria-hidden /> {T.user.tabAppearance}
-        </button>
       </div>
 
       {/* 4. Tab kontentlari */}
@@ -447,60 +432,6 @@ export function UserProfileView() {
         </section>
       )}
 
-      {activeTab === "appearance" && (
-        <section className="card card-pad stack" aria-label={T.user.tabAppearance}>
-          <div className="card-head" style={{ padding: 0 }}>
-            <div>
-              <h2 className="section-title" style={{ margin: 0 }}>{T.user.appearanceTitle}</h2>
-              <p className="muted small" style={{ margin: "4px 0 0" }}>{T.user.appearanceSubtitle}</p>
-            </div>
-          </div>
-
-          <div className="grid-2" style={{ gap: 16 }}>
-            <button
-              type="button"
-              className={`card uprofile-theme-card ${theme === "light" ? "active" : ""}`}
-              onClick={() => {
-                if (theme !== "light") toggleTheme();
-              }}
-            >
-              <div className="uprofile-theme-preview light-preview" aria-hidden>
-                <div className="preview-topbar" />
-                <div className="preview-body">
-                  <div className="preview-sidebar" />
-                  <div className="preview-card" />
-                </div>
-              </div>
-              <div className="uprofile-theme-label">
-                <Sun size={18} className="muted" aria-hidden />
-                <b>{T.user.themeLight}</b>
-                {theme === "light" && <span className="uprofile-theme-check"><Check size={14} /></span>}
-              </div>
-            </button>
-
-            <button
-              type="button"
-              className={`card uprofile-theme-card ${theme === "dark" ? "active" : ""}`}
-              onClick={() => {
-                if (theme !== "dark") toggleTheme();
-              }}
-            >
-              <div className="uprofile-theme-preview dark-preview" aria-hidden>
-                <div className="preview-topbar" />
-                <div className="preview-body">
-                  <div className="preview-sidebar" />
-                  <div className="preview-card" />
-                </div>
-              </div>
-              <div className="uprofile-theme-label">
-                <Moon size={18} className="muted" aria-hidden />
-                <b>{T.user.themeDark}</b>
-                {theme === "dark" && <span className="uprofile-theme-check"><Check size={14} /></span>}
-              </div>
-            </button>
-          </div>
-        </section>
-      )}
     </div>
   );
 }
