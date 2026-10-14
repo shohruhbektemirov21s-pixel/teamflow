@@ -188,6 +188,8 @@ Queryset darajasida ham filtr (`visible_orders(user)`, `visible_tasks(user)`), s
 
 ## 7. API (REST, `/api/`)
 
+> To'liq va kod bilan solishtirilgan marshrutlar ro'yxati — [`api.md`](api.md). Quyidagi blok — dastlabki loyiha (2026-09-28) xulosasi, eskirgan bo'lishi mumkin.
+
 ```
 POST   /api/auth/register/          ro'yxatdan o'tish (is_active=False)
 POST   /api/auth/login/  logout/    sessiya
