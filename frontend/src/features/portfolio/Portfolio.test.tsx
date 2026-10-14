@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { ModalHost } from "@/app/modals";
 import { api } from "@/shared/api";
+import { minDate } from "@/shared/format";
 import { T } from "@/shared/text";
 import type { PortfolioDetail, PortfolioDeveloper, PortfolioItemDetail } from "@/shared/types";
 import { JASUR, MALIKA, PM, testUser } from "@/test/fixtures";
@@ -228,6 +229,17 @@ describe("Portfolio oynasi", () => {
     await waitFor(() => expect(api.post).toHaveBeenCalledWith("/portfolio/items/11/cover/", expect.any(FormData)));
     const coverCall = vi.mocked(api.post).mock.calls.find(([url]) => url === "/portfolio/items/11/cover/");
     expect((coverCall?.[1] as FormData).get("cover")).toBe(cover);
+  });
+
+  it("loyiha sanasi maydonlarida o'tgan kunlar o'chirilgan", async () => {
+    renderApp(<PortfolioModal id={JASUR.id} add />);
+    const start = (await screen.findByLabelText(T.portfolio.fields.start)) as HTMLInputElement;
+    const end = screen.getByLabelText(T.portfolio.fields.end) as HTMLInputElement;
+    const today = minDate();
+    expect(start.min).toBe(today);
+    expect(end.min).toBe(today);
+    fireEvent.change(start, { target: { value: "2999-01-01" } });
+    expect(end.min).toBe("2999-01-01");
   });
 
   it("muqova sifatida rasm bo'lmagan faylni brauzerning o'zida rad etadi", async () => {

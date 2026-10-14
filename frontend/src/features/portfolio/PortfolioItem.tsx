@@ -5,7 +5,7 @@ import { type ReactNode, useEffect, useState } from "react";
 import { useModal } from "@/app/modals";
 import { usePagedList, useRefresh } from "@/app/queries";
 import { api, ApiError, formData } from "@/shared/api";
-import { fileSize, fmtDate, timeAgo } from "@/shared/format";
+import { fileSize, fmtDate, minDate, timeAgo } from "@/shared/format";
 import { T } from "@/shared/text";
 import type { PortfolioItemDetail, PortfolioReview } from "@/shared/types";
 import { Avatar, Badge, Button, Callout, CodeTag, ConfirmButton, Empty, ErrorBox, Field, FilePicker, Modal, Skeleton, SkeletonRows, useToast } from "@/shared/ui";
@@ -39,9 +39,11 @@ function payload(draft: Draft, auto: boolean) {
 }
 
 /** Loyiha maydonlari: qo'shish va tahrirlashda bir xil. TeamFlow loyihasida nomi va sanalari o'zgarmaydi. */
-function ItemFields({ draft, onChange, error, auto, cover, onCover, currentCover }: {
+function ItemFields({ draft, onChange, error, auto, cover, onCover, currentCover, saved }: {
   draft: Draft; onChange: (d: Draft) => void; error: unknown; auto: boolean;
   cover: File | null; onCover: (file: File | null) => void; currentCover?: string | null;
+  /** Tahrirda: saqlangan sanalar (o'tib ketgan bo'lsa ham o'zgartirmasdan qoldirish mumkin). */
+  saved?: { start_date: string; end_date: string };
 }) {
   const err = (name: string) => (error instanceof ApiError ? error.field(name) : undefined);
   const set = (k: keyof Draft) => (e: { target: { value: string } }) => onChange({ ...draft, [k]: e.target.value });
@@ -57,10 +59,10 @@ function ItemFields({ draft, onChange, error, auto, cover, onCover, currentCover
           </Field>
           <div className="grid-2">
             <Field label={T.portfolio.fields.start} error={err("start_date")}>
-              {(id, invalid) => <input id={id} type="date" className="input" aria-invalid={invalid} value={draft.start_date} onChange={set("start_date")} />}
+              {(id, invalid) => <input id={id} type="date" className="input" aria-invalid={invalid} min={minDate(saved?.start_date)} value={draft.start_date} onChange={set("start_date")} />}
             </Field>
             <Field label={T.portfolio.fields.end} error={err("end_date")}>
-              {(id, invalid) => <input id={id} type="date" className="input" aria-invalid={invalid} value={draft.end_date} min={draft.start_date || undefined} onChange={set("end_date")} />}
+              {(id, invalid) => <input id={id} type="date" className="input" aria-invalid={invalid} value={draft.end_date} min={minDate(saved?.end_date, draft.start_date)} onChange={set("end_date")} />}
             </Field>
           </div>
         </>
@@ -259,7 +261,8 @@ function ItemEdit({ item, draft, onDraft, onDone, subtitle }: { item: PortfolioI
       }
     >
       <ItemFields draft={draft} onChange={(d) => (onDraft(d), save.reset())} error={save.error} auto={item.is_auto}
-        cover={cover} onCover={(file) => { setCover(file); save.reset(); }} currentCover={item.cover} />
+        cover={cover} onCover={(file) => { setCover(file); save.reset(); }} currentCover={item.cover}
+        saved={{ start_date: item.manual.start_date ?? "", end_date: item.manual.end_date ?? "" }} />
     </Modal>
   );
 }
