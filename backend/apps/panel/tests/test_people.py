@@ -132,3 +132,64 @@ class PeopleDueRangeTests(TestCase):
         rows = self.ids(due_from=day, due_to=day)
         self.assertEqual([t["id"] for t in rows[self.other.pk]["work"]], [task.pk])
         self.assertFalse(rows[self.other.pk]["work"][0]["is_overdue"])
+
+
+class PeopleStateSortSummaryTests(TestCase):
+    """Xodimlar sahifasi: Barchasi / Faol / Bo'sh chiplari, saralash va yuklama sonlari."""
+
+    def setUp(self):
+        self.pm = make_user(Role.PM)
+        self.busy = make_user(Role.DEVELOPER, first_name="Bobur")
+        self.late = make_user(Role.DEVELOPER, first_name="Anvar")
+        self.idle = make_user(Role.DEVELOPER, first_name="Zafar")
+        self.away = make_user(Role.DEVELOPER, first_name="Karim")
+        self.away.business_trip_return_date = timezone.localdate() + timedelta(days=3)
+        self.away.save(update_fields=["business_trip_return_date"])
+        self.project = make_project(self.pm, self.busy, self.late, self.idle, self.away, name="Portal")
+        make_task(self.project, self.pm, self.busy, priority="high")
+        make_task(self.project, self.pm, self.busy, priority="urgent")
+        make_task(self.project, self.pm, self.busy, priority="low", status=Task.Status.DONE)
+        make_task(self.project, self.pm, self.busy, priority="urgent", archived_at=timezone.now())
+        make_task(self.project, self.pm, self.late, due_at=timezone.now() - timedelta(days=2))
+
+    def get(self, **params):
+        response = client_for(self.pm).get("/api/people/", {"paginated": 1, **params})
+        self.assertEqual(response.status_code, 200, response.data)
+        return response.data
+
+    def first_names(self, **params):
+        return [row["full_name"].split()[0] for row in self.get(**params)["results"]]
+
+    def test_rows_carry_total_and_high_priority_counts(self):
+        row = next(r for r in self.get()["results"] if r["id"] == self.busy.pk)
+        self.assertEqual(row["total_tasks"], 3)  # arxivlangani hisobga olinmaydi
+        self.assertEqual(row["active_tasks"], 2)
+        self.assertEqual(row["high_tasks"], 2)  # faqat faol, Yuqori va Shoshilinch
+        work = row["work"][0]
+        self.assertEqual(len(work["code"]), 9)
+        self.assertIn(work["priority"], {"high", "urgent"})
+
+    def test_summary_counts_ignore_the_state_filter(self):
+        expected = {"all": 4, "active": 2, "free": 1}  # Karim safarda: bo'sh emas
+        self.assertEqual(self.get()["summary"], expected)
+        self.assertEqual(self.get(state="active")["summary"], expected)
+        self.assertEqual(self.get(state="free")["summary"], expected)
+
+    def test_state_filter(self):
+        active = self.get(state="active")
+        self.assertEqual({r["id"] for r in active["results"]}, {self.busy.pk, self.late.pk})
+        self.assertEqual(active["count"], 2)
+        self.assertEqual({r["id"] for r in self.get(state="free")["results"]}, {self.idle.pk})
+
+    def test_summary_follows_search(self):
+        self.assertEqual(self.get(q="Bobur")["summary"], {"all": 1, "active": 1, "free": 0})
+
+    def test_sorting(self):
+        self.assertEqual(self.first_names(), ["Anvar", "Bobur", "Karim", "Zafar"])  # standart — ism bo'yicha
+        self.assertEqual(self.first_names(sort="overdue")[0], "Anvar")
+        self.assertIn(self.first_names(sort="free")[0], {"Karim", "Zafar"})
+        self.assertEqual(self.first_names(sort="nomalum"), self.first_names())
+
+    def test_unpaginated_list_has_no_summary_and_keeps_the_array_shape(self):
+        response = client_for(self.pm).get("/api/people/")
+        self.assertIsInstance(response.data, list)

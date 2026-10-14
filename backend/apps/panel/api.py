@@ -91,7 +91,27 @@ def _people_counts(qs):
         overdue_tasks=Count("assigned_tasks", filter=Q(assigned_tasks__status__in=ACTIVE, assigned_tasks__due_at__lt=now, assigned_tasks__archived_at__isnull=True), distinct=True),
         review_tasks=Count("assigned_tasks", filter=Q(assigned_tasks__status="in_review", assigned_tasks__archived_at__isnull=True), distinct=True),
         done_tasks=Count("assigned_tasks", filter=Q(assigned_tasks__status="done", assigned_tasks__archived_at__isnull=True), distinct=True),
+        total_tasks=Count("assigned_tasks", filter=Q(assigned_tasks__archived_at__isnull=True), distinct=True),
+        high_tasks=Count("assigned_tasks", filter=Q(assigned_tasks__status__in=ACTIVE, assigned_tasks__priority__in=HIGH_PRIORITIES,
+                                                    assigned_tasks__archived_at__isnull=True), distinct=True),
     )
+
+
+# "Yuqori ustuvorlikda" — Yuqori va Shoshilinch (Xodimlar sahifasidagi yuklama izohi)
+HIGH_PRIORITIES = (Priority.HIGH, Priority.URGENT)
+
+
+def _free_developers(qs):
+    """Bo'sh xodim: dasturchi, faol vazifasi yo'q va xizmat safarida emas (yagona qoida: `free` filtri va chip soni)."""
+    return qs.filter(role=Role.DEVELOPER, active_tasks=0).filter(
+        Q(business_trip_return_date__isnull=True) | Q(business_trip_return_date__lt=timezone.localdate()))
+
+
+PEOPLE_SORTS = {
+    "name": ("first_name", "last_name", "pk"),
+    "free": ("active_tasks", "first_name", "last_name", "pk"),
+    "overdue": ("-overdue_tasks", "first_name", "last_name", "pk"),
+}
 
 
 def _people_rows(qs, due_condition=None):
@@ -118,7 +138,7 @@ def _people_rows(qs, due_condition=None):
     for assignment in previews(shown):
         task = assignment.task
         work.setdefault(assignment.developer_id, []).append({
-                "id": task.pk, "title": task.title, "status": task.status,
+                "id": task.pk, "code": task.code, "title": task.title, "status": task.status, "priority": task.priority,
                 "due_at": task.due_at, "is_overdue": bool(task.status in ACTIVE and task.due_at and task.due_at < now),
                 "project": {"id": task.project_id, "name": task.project.name, "code": task.project.code},
             })
@@ -144,6 +164,7 @@ def _people_rows(qs, due_condition=None):
             "avatar": avatar_url(u), "active_tasks": u.active_tasks, "overdue_tasks": u.overdue_tasks,
             "business_trip_return_date": u.business_trip_return_date, "is_on_business_trip": u.is_on_business_trip,
             "review_tasks": u.review_tasks, "done_tasks": u.done_tasks,
+            "total_tasks": u.total_tasks, "high_tasks": u.high_tasks,
             "range_tasks": in_range.get(u.pk, 0) if due_condition is not None else None,
             "doing": doing.get(u.pk, [])[:3],
             "work": work.get(u.pk, [])[:3], "projects": projects.get(u.pk, []),
@@ -180,14 +201,23 @@ def people(request):
         qs = qs.filter(pk__in=TaskAssignment.objects.filter(due_condition, task__archived_at__isnull=True)
                        .values("developer_id"))
     qs = _people_counts(qs)
-    if request.query_params.get("free") == "1":
-        qs = qs.filter(role=Role.DEVELOPER, active_tasks=0).filter(
-            Q(business_trip_return_date__isnull=True) | Q(business_trip_return_date__lt=timezone.localdate()))
-    qs = qs.order_by("active_tasks", "first_name", "last_name", "pk")
+    # Chip sonlari qidiruv, rol va muddat bo'yicha filtrlangan to'plamdan (holat tanlovidan oldin)
+    summary = None
     if request.query_params.get("paginated") == "1":
+        summary = {"all": qs.count(), "active": qs.filter(active_tasks__gt=0).count(),
+                   "free": _free_developers(qs).count()}
+    state = request.query_params.get("state")
+    if state == "active":
+        qs = qs.filter(active_tasks__gt=0)
+    elif state == "free" or request.query_params.get("free") == "1":
+        qs = _free_developers(qs)
+    qs = qs.order_by(*PEOPLE_SORTS.get(request.query_params.get("sort"), PEOPLE_SORTS["name"]))
+    if summary is not None:
         paginator = BoundedPagination()
         page = paginator.paginate_queryset(qs, request)
-        return paginator.get_paginated_response(_people_rows(page, due_condition))
+        response = paginator.get_paginated_response(_people_rows(page, due_condition))
+        response.data["summary"] = summary
+        return response
     return Response(_people_rows(bounded_unpaged(qs), due_condition))
 
 

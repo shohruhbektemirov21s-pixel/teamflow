@@ -299,7 +299,7 @@ class DashboardTests(TestCase):
         self.assertEqual(pm.get("/api/tasks/?bucket=active&period=year").data["count"], 3)
 
     def test_people_idle_first(self):
-        r = client_for(self.pm).get("/api/people/")
+        r = client_for(self.pm).get("/api/people/?sort=free")
         self.assertEqual(r.data[0]["id"], self.idle.pk)
         dev_row = next(p for p in r.data if p["id"] == self.dev.pk)
         self.assertEqual(dev_row["active_tasks"], 3)
