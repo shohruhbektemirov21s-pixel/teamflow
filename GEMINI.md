@@ -1,15 +1,17 @@
 # TeamFlow — Agent qoidalari (CLAUDE.md)
 
-> Bu fayl Claude Code va Antigravity/Gemini uchun. `GEMINI.md` bilan mazmuni bir xil.
-> Loyiha tavsifi to'liq `README.md` da. Ishni boshlashdan oldin uni o'qi.
+> Bu fayl Claude Code va Antigravity/Gemini uchun. `GEMINI.md` bilan mazmuni bir xil (sinxronlash: `sync-agents-md` skill).
+> Loyiha tavsifi to'liq `README.md` da. Hujjatlar xaritasi — `docs/README.md`. Joriy ish — `tasks/CURRENT.md`.
+> Bu fayl qisqa bo'lishi shart: tarixiy talablar `docs/decisions/requirements-log.md` da, bu yerga ko'chirilmaydi.
 
 ## 0. ENG MUHIM QOIDALAR (foydalanuvchi talabi)
 
 1. **O'zboshimchalik qilma.** Faqat foydalanuvchi aytgan narsani qil. Aytilmagan funksiya, sahifa, maydon, kutubxona, papka, refaktoring qo'shma. Taklif bo'lsa — avval ayt, javobini kut, keyin qil.
-2. **Ishni boshlashdan oldin loyihani ko'rib chiq.** Har sessiya boshida: `README.md`, shu fayl, `docs/FLOWS_MODALS.md` ni o'qi va kod bo'lsa mavjud tuzilmani ko'r. Bor narsani qayta yaratma.
-3. **Foydalanuvchi yangi qoida yoki talab aytsa** — uni shu faylning **13-bo'limiga** (Foydalanuvchi qo'shimchalari) sana bilan yoz, `GEMINI.md` ga ham xuddi shuni ko'chir. Talab `README.md` dagi loyiha tavsifiga tegsa, u yerni ham yangila.
+2. **Ishni boshlashdan oldin loyihani ko'rib chiq.** Sessiya boshida 8-bo'limdagi tartib bo'yicha o'qi. Bor narsani qayta yaratma.
+3. **Foydalanuvchi yangi qoida yoki talab aytsa** — uni `docs/decisions/requirements-log.md` oxiriga sana bilan yoz (agar u doimiy muhim qoida bo'lsa, shu faylning tegishli bo'limiga ham qisqa qo'sh va `GEMINI.md` ni sinxronla). Talab `README.md` dagi loyiha tavsifiga tegsa, u yerni ham yangila.
 4. **Hech narsa qolib ketmasin.** Foydalanuvchi aytgan har bir talab `README.md` da bor bo'lishi kerak. Yangi talab kelsa, qo'sh. Bajarilmagan yoki noaniq narsa `README.md` "Ochiq savollar" bo'limida turadi.
 5. **Noaniq bo'lsa so'ra.** Taxmin bilan ish qilma. Bitta aniq savol ber.
+6. **Tekshirilmagan natijani muvaffaqiyatli deb ko'rsatma.** Testlar o'tmaguncha vazifa tugagan hisoblanmaydi; o'tmagan yoki ishga tushirilmagan narsani aniq ayt.
 
 ## 1. Rollarda ishlash
 
@@ -23,20 +25,20 @@ Loyihada sen quyidagi senior mutaxassislar sifatida fikr yuritasan:
 
 ## 2. Stack
 
-- Backend: **Python + Django + Django REST Framework**. Ma'lumotlar bazasi: Django standart **SQLite**.
+- Backend: **Python + Django + Django REST Framework**. Ma'lumotlar bazasi: mahalliy **SQLite**, production **PostgreSQL** (+ Redis).
 - Admin panel: **Django admin** (foydalanuvchini tasdiqlash, Boshliq yaratish). Alohida admin panel yozilmaydi.
-- Frontend: **React + TypeScript**.
+- Frontend: **React + TypeScript** (Vite, TanStack Query, oddiy CSS tokenlari).
 - Word (.docx) ko'rsatish: brauzerda, modal ichida (`docx-preview`).
 - Til: interfeys **o'zbek lotin**, sana `dd.mm.yyyy`.
 
 ## 3. Rollar (qisqa)
 
-Boshliq (faqat Django adminda yaratiladi) · Loyiha menejeri · Dasturchi · Boshqarma. Batafsil ruxsatlar jadvali — `README.md`.
+Boshliq (faqat Django adminda yaratiladi) · Loyiha menejeri · Dasturchi · Boshqarma · Oddiy foydalanuvchi. Batafsil ruxsatlar jadvali — `README.md`.
 Ro'yxatdan o'tganlar Django adminda faollashtirilmaguncha kira olmaydi. Ruxsatlar **serverda** tekshiriladi, frontendda yashirish yetarli emas.
 
 ## 4. UX/UI qoidalari
 
-- **Ko'rish, yaratish, tahrirlash — modalda.** Sahifa gavjum bo'lmasin. Ro'yxat uchun yon panel (drawer), qaror qabul qilish uchun modal.
+- **Ko'rish, yaratish, tahrirlash — modalda.** Sahifa gavjum bo'lmasin. Yon panellar (drawer) **ishlatilmaydi** (2026-09-28), faqat modal va sahifalar.
 - **Modal ustida modal ochilmaydi.** Istisno (foydalanuvchi talabi, 2026-10-06): vazifa oynasidagi "Tekshiruvga yuborish"/"Qaytarish" va buyurtma oynasidagi "Tasdiqlash"/"Rad etish" kabi amallar — asosiy oyna ustida qora fonli alohida modal (`Modal stacked`), asosiy oyna orqada `inert` bo'lib turadi. Ichki amal (rad etish sababi, sana kiritish) modal ichidagi pastki panelda. Word ko'rish — modal ichini almashtiradi va "← Orqaga" tugmasi bor.
 - Modal tuzilmasi: tepada sarlavha va ✕, o'rtada aylanuvchi tarkib, pastda doim ko'rinadigan tugmalar paneli (asosiy amal o'ngda, xavfli amal chapda).
 - Tugmalar rolga va holatga qarab chiqadi. Keraksiz tugma ko'rsatilmaydi.
@@ -45,53 +47,95 @@ Ro'yxatdan o'tganlar Django adminda faollashtirilmaguncha kira olmaydi. Ruxsatla
 - Yuklanganda skeleton, xato maydon yonida. 8px setka, bitta asosiy rang, tungi/kunduzgi rejim, telefonda ishlaydi.
 - **Sahifada katta sarlavha yo'q** (2026-10-06): sahifa nomi faqat tepadagi panelda. Sahifa asboblar qatori (`.page-toolbar`) bilan boshlanadi — chapda filtr/qidiruv, o'ngda amallar guruhi (`.page-actions`, asosiy tugma eng o'ngda, qator o'ralsa ham o'ngda qoladi). Filtr kartasi bo'lsa, amallar shu kartaning o'ng tomonida. Amal yo'q sahifada bo'sh qator qo'yilmaydi.
 - **Auditoriya: 18–40 yosh.** Interfeys birinchi qarashdayoq tushunarli bo'lsin, o'qitish kerak bo'lmasin: qisqa va oddiy so'zlar (texnik atama yo'q), har bir ekranda bitta asosiy amal, aniq ikonka + matn (ikonka yolg'iz emas), tanish naqshlar (doska, sudrab o'tkazish, qidiruv), bo'sh holatda "keyingi qadam" tushuntirishi, xatoda nima qilish kerakligi yoziladi. Zamonaviy, sodda ko'rinish; keraksiz bezak va uzun matn yo'q.
-- Dizayn foydalanuvchining oldingi loyiha skrinshotlaridan **nusxa ko'chirilmaydi**. Yon panel bo'limlari va sahifa tartibi faqat `README.md` dagi tavsifga muvofiq.
+- Dizayn foydalanuvchining oldingi loyiha skrinshotlaridan **nusxa ko'chirilmaydi**. Yon panel bo'limlari va sahifa tartibi faqat `README.md` dagi tavsifga muvofiq. Dizayn tokenlari — `docs/DESIGN_SYSTEM.md`.
 
 ## 5. Flow va modal cheklovi
 
 - Bitta bo'limda (modulda) **3–4 ta flow**. Istisno holatda **5 ta**. Undan oshsa — flow'larni birlashtir yoki bitta flow ichida bosqichma-bosqich UI holat qil (masalan, buyurtma holatiga qarab tugma almashadi).
-- Modal soni ham nazorat ostida (hozir reja: 8 ta). Yangi modal kerak bo'lsa, avval mavjudini kengaytirishni ko'rib chiq.
+- Modal soni nazorat ostida: joriy son va ro'yxat — `docs/FLOWS_MODALS.md` (raqam bu yerda yozilmaydi, eskirib qoladi). Yangi modal kerak bo'lsa, avval mavjudini kengaytirishni ko'rib chiq.
 - Har qanday yangi flow yoki modal `docs/FLOWS_MODALS.md` ga yoziladi va foydalanuvchiga cheklov haqida aytiladi.
 
-## 6. Majburiy jarayon (vault bilan, `shared-rules.md` xulosasi)
+## 6. Vault bilan jarayon (`shared-rules.md` xulosasi)
 
 Yagona manba: `D:\ObsidianVault\shared-rules.md` (nusxalanmaydi, faqat havola). Loyiha papkasi vaultda: `D:\ObsidianVault\01-Projects\TeamFlow\`.
-> **Diqqat:** foydalanuvchi buyrug'i bo'yicha (2026-09-28) vaultdagi `01-Projects\TeamFlow\` papkasining ichidagi **mavjud yozuvlarga e'tibor berilmaydi** — ular eski TeamFlow loyihasiga tegishli. Ularni shu loyihaning flow/modal ro'yxati deb hisoblama va o'zgartirma. Bu loyihaning flow va modal ro'yxati `docs/FLOWS_MODALS.md` da yuritiladi.
+> **Diqqat:** foydalanuvchi buyrug'i bo'yicha (2026-09-28) vaultdagi `01-Projects\TeamFlow\` ichidagi **mavjud yozuvlarga e'tibor berilmaydi** — ular eski loyihaga tegishli. Bu loyihaning flow va modal ro'yxati `docs/FLOWS_MODALS.md` da yuritiladi.
 
-1. Sessiya boshida `docs/FLOWS_MODALS.md` ni o'qi. Mavjud flow/modal bo'lsa, yangisini yaratish o'rniga mavjudidan foydalanishni taklif qil.
-2. Yangi flow qo'shishdan oldin `user-flow-check` skillini ishlat.
-3. Yangi modal kerak bo'lsa, ro'yxatni tekshir va mosini taklif qil.
-4. Muhim arxitektura yoki xavfsizlik qarori yoki katta o'zgarish oldidan `senior-review` skillini ishlat.
-5. Sessiya oxirida `obsidian-log` skillini ishlat (xulosa `00-Sessions\` ga).
-6. Har bir muhim qaror sababi bilan (**Nima uchun**) yoziladi.
+1. Yangi flow qo'shishdan oldin `user-flow-check` skillini ishlat; mavjud flow/modal bo'lsa, yangisi o'rniga mavjudini kengaytirishni taklif qil.
+2. Muhim arxitektura yoki xavfsizlik qarori yoki katta o'zgarish oldidan `senior-review` skillini ishlat.
+3. Sessiya oxirida `tasks/` yozuvlarini yangila (9-bo'lim) va `obsidian-log` skillini ishlat (xulosa vaultdagi `00-Sessions\` ga). Repo'dagi `tasks/` — keyingi sessiya uchun asosiy manba.
+4. Har bir muhim qaror sababi bilan (**Nima uchun**) yoziladi — texnik qarorlar `docs/decisions/NNNN-*.md` (ADR) da.
 
-## 7. Ish tartibi
+## 7. Ish jarayoni: ANALYZE → PLAN → IMPLEMENT → TEST → REVIEW → DOCUMENT
 
-Bosqichma-bosqich, har bosqich oxirida to'xtab foydalanuvchiga ko'rsat:
-1. Django loyiha skeleti, ma'lumotlar modellari (DB), Django admin.
-2. Ro'yxatdan o'tish, login, tasdiqlash va ruxsatlar.
-3. Frontend asosi: dizayn tokenlari, yon panel, sarlavha, modal komponenti.
-4. Sahifalar: Dasturchi → Loyiha menejeri → Boshqarma → Boshliq.
-5. Word ko'rish, fayllar, bildirishnomalar, testlar.
+Har bir topshiriqda (kichik tuzatishda qisqartirilgan holda):
+1. **ANALYZE** — faqat vazifaga tegishli fayllarni o'qi (8-bo'lim). Qaysi modullarga ta'sir qilishini aniqla: `docs/modules/<app>.md`, `docs/api.md`, bog'liq testlar. Mavjud flow/modal va ADR'larni tekshir.
+2. **PLAN** — qamrov, o'zgaradigan fayllar, ta'sir, test rejasi. Katta, arxitekturaviy yoki noaniq ish bo'lsa **rejani foydalanuvchiga ko'rsat va tasdiqni kut**. Reja `tasks/active/<id>-<slug>.md` da.
+3. **IMPLEMENT** — alohida branchda (git: 10-bo'lim), minimal o'zgarish, sababsiz qayta yozish yo'q.
+4. **TEST** — avval bog'liq testlar, so'ng `scripts/verify.ps1` (to'liq regressiya). Xato bo'lsa — tuzat; o'tmagan bo'lsa tugadi deb aytma. Yangi ruxsat qoidasi va holat o'tishi uchun test majburiy; xato tuzatilsa regressiya testi bilan.
+5. **REVIEW** — `senior-code-reviewer` yoki `code-review`; xavfsizlikka tegsa `security-engineer`; yirik ishda `senior-review` skill.
+6. **DOCUMENT** — kerak bo'lsa yangila: `docs/modules/<app>.md`, `docs/api.md`, `docs/FLOWS_MODALS.md`, `README.md`, yangi ADR; vazifa faylini `tasks/done/` ga ko'chir; `tasks/CURRENT.md` va `tasks/sessions/` ni yangila.
 
-## 8. Kod konvensiyalari
+### Subagentlar (global, `~/.claude/agents`; yangi agent yaratilmaydi)
 
-- UI matni kodga qattiq yozilmaydi: bitta joyda (`i18n`/matnlar fayli) turadi.
+| Vazifa | Agent |
+|---|---|
+| Talab/qabul mezoni | `product-analyst` |
+| Arxitektura, API shartnomasi, ADR | `solution-architect` |
+| Oyna/flow/UX | `ux-ui-designer` |
+| Backend kod | `backend-engineer` |
+| Frontend kod | `frontend-engineer` |
+| Testlar | `qa-test-engineer` |
+| Xavfsizlik tekshiruvi (faqat o'qiydi) | `security-engineer` |
+| Kod review (faqat o'qiydi) | `senior-code-reviewer` |
+| CI, migratsiya hujjati, deploy hujjati | `devops-release-engineer` |
+
+Katta qidiruvni `Explore` ga ber, asosiy kontekstni tejash uchun. Kod yozuvchi agentlarni foydalanuvchi kod yozishga ruxsat bergandan keyingina ishlat.
+
+### Ruxsat so'rab ish qilinadigan amallar
+
+Quyidagilarni **faqat foydalanuvchi aniq ruxsat bergandan keyin** qil: deploy yoki tashqi serverga tegish; `manage.py migrate` (amaldagi bazaga) va migratsiya yaratish; ommaviy o'chirish (fayl, branch, worktree, baza yozuvi); `git push`, force-operatsiyalar, `main` ga merge; amaldagi `db.sqlite3` yoki `media/` ga tegish; yangi kutubxona o'rnatish; GitHub Actions kabi tashqariga ta'sir qiluvchi sozlamalar. Ruxsat bir kontekstdan boshqasiga o'tmaydi.
+
+## 8. Kontekstni tejash va sessiya boshi
+
+Sessiya boshida shu tartibda o'qi (hammasi qisqa):
+1. Bu fayl → `tasks/CURRENT.md` (qayerda to'xtalgan) → `docs/README.md` (xarita).
+2. Vazifaga qarab: `docs/modules/<app>.md`, `docs/FLOWS_MODALS.md` (UI/flow), `docs/DESIGN_SYSTEM.md` (UI), `docs/ARCHITECTURE.md` (arxitektura), `docs/api.md` (API).
+3. `README.md` (52 KB) va `docs/decisions/requirements-log.md` ni **butunlay o'qima** — `Grep` bilan kerakli bo'limni top, `offset`/`limit` bilan faqat shu qismni o'qi.
+
+Qoidalar:
+- Avval `Grep`/`Glob`, keyin faqat kerakli qatorlar. Katta fayllarni butunlay o'qima: `frontend/src/shared/styles.css` (~1400 qator), `shared/text.ts` (~830), `features/tasks/TaskModal.tsx` (~710), `shared/ui/index.tsx` (~600), `features/portfolio/PortfolioItem.tsx` (~500), `backend/apps/panel/api.py` (~475).
+- Keng qidiruv kerak bo'lsa (ko'p fayl) — `Explore` subagenti, natijada faqat xulosa.
+- `.env`, `*.sqlite3*`, `*.dump`, `backend/media/`, `*.log` fayllarini o'qima (`.claude/settings.json` da bloklangan).
+
+## 9. Vazifalarni kuzatish (`tasks/`)
+
+- `tasks/CURRENT.md` — hozirgi ish, holat, keyingi qadam (sessiya boshida o'qiladi).
+- `tasks/backlog.md` — navbatdagi ishlar. `tasks/active/` — bajarilayotgan vazifalar, `tasks/done/` — tugaganlari. Shablon: `tasks/TEMPLATE.md`.
+- `tasks/sessions/YYYY-MM-DD.md` — sessiya yakuni: bajarilgan ish, qolgan ish, keyingi qadam.
+- Sessiya oxirida (yoki katta bosqichdan keyin) majburiy yangilanadi. Batafsil — `tasks/README.md`.
+
+## 10. Git va kod konvensiyalari
+
+- Har bir vazifa alohida branchda: `feat/…`, `fix/…`, `docs/…`, `chore/…`. `main` ga to'g'ridan-to'g'ri hech qachon push qilinmaydi.
+- Kichik, bir maqsadli commitlar (`feat:`, `fix:`, `docs:`, `test:`, `chore:` prefiksi). Commit — o'zing ochgan branchda mumkin; `push` va PR ochish — faqat ruxsat bilan. Mavjud branch/worktree'larni o'chirma.
+- Review: PR yoki branch `senior-code-reviewer` / `code-review` dan o'tadi (P0/P1 topilmalar tuzatilmaguncha merge yo'q).
+- UI matni kodga qattiq yozilmaydi: bitta joyda (`frontend/src/shared/text.ts`) turadi.
 - Ranglar, o'lchamlar, sanalar — bitta joyda (tokenlar, `formatDate`).
-- Holat o'tishlari bitta markaziy funksiyada (`transition` qoidalari), boshqa joyda takrorlanmaydi.
+- Holat o'tishlari bitta markaziy funksiyada (`apps/*/workflow.py`), boshqa joyda takrorlanmaydi.
 - Har bir ruxsat qoidasi va holat o'tishi uchun test yoziladi.
-- Commit qilinmaydi, foydalanuvchi so'ramaguncha. Git hozircha yo'q.
 
-## 9. Build va test buyruqlari
+## 11. Build va test buyruqlari
+
+To'liq regressiya (bitta buyruq): `powershell -File scripts/verify.ps1` — backend testlari, migratsiya mosligi, TypeScript, frontend testlari, build. Testlar sonini fayldan emas, shu buyruq natijasidan ol.
 
 Backend (`backend/` papkasida, virtual muhit `backend/.venv`):
 ```
 .venv/Scripts/python -m pip install -r requirements.txt   # bog'liqliklar
-.venv/Scripts/python manage.py migrate                    # baza
+.venv/Scripts/python manage.py migrate                    # baza (ruxsat bilan, 7-bo'lim)
 .venv/Scripts/python manage.py createsuperuser            # admin (Boshliqni adminda yaratish uchun)
 .venv/Scripts/python manage.py seed_demo                  # demo ma'lumotlar
 .venv/Scripts/python manage.py runserver 127.0.0.1:8020   # http://127.0.0.1:8020/ (8020-port)
-.venv/Scripts/python manage.py test                       # testlar (224 ta test)
+.venv/Scripts/python manage.py test                       # backend testlari
 .venv/Scripts/python manage.py runbot                     # Telegram bot (TELEGRAM_BOT_TOKEN muhit o'zgaruvchisi bilan)
 .venv/Scripts/python manage.py makemigrations --check --dry-run   # sxema mosligi
 ```
@@ -100,142 +144,30 @@ Frontend (`frontend/` papkasida):
 ```
 npm install               # bog'liqliklar
 npx vite                  # dev-server: http://127.0.0.1:5173/ (8020 ga proksi qiladi)
-npx tsc --noEmit -p .     # TypeScript tur tekshiruvi
-npx vitest run            # testlar (74 ta, jsdom + @testing-library/react)
-npx vite build            # prod build: dist/ (Django orqali beriladi)
+npm run typecheck         # TypeScript tur tekshiruvi
+npx vitest run            # testlar (jsdom + @testing-library/react)
+npm run build             # prod build: dist/ (Django orqali beriladi)
 ```
 
-## 10. Papka tuzilmasi
+## 12. Papka tuzilmasi
 
 ```
-backend/   Django: config/ (settings, urls), apps/ (core, accounts, orders, projects, tasks, notifications)
-frontend/  React + TS (4-bosqichda)
-docs/      ARCHITECTURE.md, FLOWS_MODALS.md
+backend/   Django: config/ (settings, urls), apps/ (accounts, ai, chat, core, notifications, orders, panel, portfolio, projects, suggestions, tasks), deploy/
+frontend/  React + TS: src/app, src/features/<modul>, src/shared, src/test
+docs/      README.md (xarita), ARCHITECTURE, DESIGN_SYSTEM, FLOWS_MODALS, api, modules/, decisions/ (ADR + requirements-log), testing/, performance/
+tasks/     CURRENT, backlog, active/, done/, sessions/
+scripts/   verify.ps1 (regressiya tekshiruvi)
 ```
-Har bir app ichidagi qatlamlar (`models`, `workflow`, `services`, `permissions`, `serializers`, `api`, `admin`, `tests`) va bog'liqlik yo'nalishi — `docs/ARCHITECTURE.md` 3-bo'lim. Holat o'tishlari faqat `apps/*/workflow.py` jadvallarida.
+Har bir app ichidagi qatlamlar (`models`, `workflow`, `services`, `permissions`, `serializers`, `api`, `admin`, `tests`) va bog'liqlik yo'nalishi — `docs/ARCHITECTURE.md` 3-bo'lim. Holat o'tishlari faqat `apps/*/workflow.py` jadvallarida. Ildizdagi `tests/test_e2e.py` — qo'lda ishlatiladigan Playwright skripti, CI/regressiya testi emas.
 
-## 11. Ma'lumot manbalari
-
-- `README.md` — loyihaning to'liq tavsifi (yagona haqiqat manbai).
-- `docs/FLOWS_MODALS.md` — flow va modal reestri.
-- `docs/ARCHITECTURE.md` — arxitektura, ma'lumotlar modeli, API, bosqichlar.
-
-## 12. Xavfsizlik
+## 13. Xavfsizlik
 
 - Parollar Django parol hesh mexanizmi bilan saqlanadi.
 - Fayl yuklashda tur va hajm tekshiriladi (.docx, rasm, PDF).
 - Har bir API so'rovda rol va egalik serverda tekshiriladi (boshqarma faqat o'z buyurtmasini ko'radi, dasturchi faqat o'z vazifasini).
 - Buyurtma yuborilgach boshqarma uni tahrirlay ham, o'chira ham olmaydi.
+- **Maxfiy ma'lumotlar** (`.env`, API kalit, bot tokeni, parol, baza fayllari) loglarga, hujjatlarga, commit va chatga yozilmaydi; faqat nomi (`TINYFISH_API_KEY`) aytiladi, qiymati emas. Repo ommaviy (public).
 
-## 13. Foydalanuvchi qo'shimchalari
+## 14. Foydalanuvchi talablari logi
 
-- **2026-10-14:** Xodimlar sahifasi (/xodimlar) zamonaviy SaaS darajasida to'liq redesign qilindi: sahifa tepasida 4 ta ixcham real statistik karta (Jami xodimlar, Jarayondagi vazifalar, Kechikkan vazifalar, Bo'sh xodimlar — backend `/api/people/stats/` API orqali), gorizontal toolbar (qidiruv, mutaxassislik/lavozim, vazifa holati, muddat oralig'i, yangi xodim qo'shish modaliga tugma). Xodim kartalari va jadvali: dumaloq avatar, online/safar indikatori, lavozim va bo'lim, faol va kechikkan vazifalar ko'rsatkichlari, circular progress bandlik indikatori, 36–42px ixcham vazifalar ro'yxati (bajarilgan vazifalar sahifada ko'rsatilmaydi, dastlab 3 ta faol vazifa, ko'prog'i uchun "Yana N ta" havolasi), profil, vazifa berish va qo'shimcha menyu (uch nuqta). PM/Boss uchun yangi xodim yaratish modal va API (`POST /api/people/create/`).
-
-- **2026-10-14:** UX/UI tipografiyasi va rang palitrasi tartibga keltirildi: yozuvlar (sarlavhalar, raqamlar, kartochka nomlari) haddan tashqari katta bo'lmagan, ixcham SaaS o'lchamlariga keltirildi (--fs-2xl: 24px, --fs-xl: 20px, --fs-lg: 17px); oddiy foydalanuvchi (UserLayout, UserDashboard, Portfolio, UserProfile) ranglari, kartalari, cover gradientlari va tugmalari boshqa rollar (Boshliq, PM, Dasturchi, Boshqarma) bilan yagona design system tokenlariga (--primary, --warning, --info, --slate, --danger, --success, --auth-panel) birlashtirildi.
-
-- **2026-10-14:** Taqvim kuni modali (DayModal) va boshqa ro'yxatlardagi jamoa a'zolari avatarlari (People) bosilganda xodimning profili modali (PersonModal) ochiladi; avatar ustiga sichqoncha borganda chiquvchi hover-kartochka ham interaktiv va bosiladigan qilindi. Backend person_profile API'sidan require_manager cheklovi olib tashlanib, dasturchilarga ham o'zaro xodim profilini ko'rishga ruxsat berildi.
-
-- **2026-10-06:** PM loyihani yakunlashda izoh (1000 belgigacha) va fayllarni alohida modal orqali yuboradi. Loyiha oynasi orqada ko'rinib turadi va inert bo'ladi; umumiy Modal stacked uslubi ishlatiladi. Dasturchilar tasdig'idan keyin boshqarma buyurtma oynasida yakunlash hisoboti va fayllarini ko'radi. Fayllar faqat tegishli boshqarma uchun ochiladi.
-
-- 2026-10-06: Bosh panel va Vazifalar jadvalidagi qidiruv vazifa yoki loyiha kodining bir qismi, hatto 1–2 raqam kiritilganda ham mos vazifalarni topishi kerak. `tasks/filters.py` da kodlar uchun qisman qidiruv qo'shildi; to'liq kod uchun aniq moslik saqlandi. Regression testi: `DashboardTests.test_task_list_searches_one_or_two_digit_code_fragments`.
-
-> Foydalanuvchi aytgan yangi qoidalar shu yerga sana bilan qo'shiladi.
-
-- 2026-09-28: Flow'lar bitta bo'limda 3–4 ta, istisnoda 5 ta.
-- 2026-09-28: Word fayllar loyihaning o'zida modal shaklida ochiladi.
-- 2026-09-28: Vaultdagi `01-Projects\TeamFlow\` papkasidagi eski yozuvlarga e'tibor berilmaydi.
-- 2026-09-28: UX 18–40 yoshdagilar uchun; ko'rgan zahoti tushunarli bo'lishi kerak (4-bo'lim).
-- 2026-09-28: Backend Python/Django. Frontend React + TypeScript, Node faqat ishlab chiqishda kerak.
-- 2026-09-28: "Boshla" deyildi — ish `docs/ARCHITECTURE.md` bo'yicha, 1-bosqichdan boshlandi.
-- 2026-09-28: UI ni yaratishdan oldin Design System belgilanadi va barcha sahifalarda aynan shu Design System ishlatiladi (rang, spacing, radius, button, card uslublari bir xil saqlanadi). Har doim avvalgi holatga qaytarish imkoniyati (git tag/checkpoint) saqlanadi. Barcha ma'lumotlar to'liq databasedan olinadi.
-- 2026-09-28: Xodimlar ro'yxati alohida "/xodimlar" sahifasiga ko'chirildi. Bosh panelda haftalik jami ishlar va asosiy ko'rsatkichlar yaqqol ko'rinib turadi.
-- 2026-09-28: Vazifalar filtridan "Oy yarmi" olib tashlandi, uning o'rniga "Sanadan" va "Sanagacha" sana oralig'i (due_from / due_to) qo'yildi.
-- 2026-09-28: Xodimlar sahifasida (/xodimlar) bo'sh xodimga (vazifasi yo'q / ish yuklamasi kam bo'lgan xodimga) to'g'ridan-to'g'ri vazifa berish va vazifani sub-tasklarga ajratib boshqa xodimlarga biriktirish imkoniyati.
-- 2026-09-28: Yon panellar (drawer) butunlay olib tashlandi, foydalanuvchini chalg'itmasligi uchun faqat Modallardan foydalaniladi. Yangi sahifalar: Profil, Takliflar, Qilingan ishlar.
-- 2026-09-28: Interfeys SaaS darajasida bo'lsin: vazifa tafsilotlari bitta katta modalda, mobilga mos yig'iladigan bo'limlarda ochilsin; xodimga vazifalarni shu modalda taqsimlash, ish jurnalini yuritish va loyiha faoliyatini ko'rish mumkin bo'lsin.
-- 2026-09-30: Ildizdagi vaqtinchalik skriptlar `backend/scratch/`, `frontend/scratch/`, `docs/scratch/` ga ko'chirildi (ildizda faqat backend, frontend, docs va hujjatlar).
-- 2026-09-30: UI 18–40 yoshdagilar uchun soddalashtirildi: telefonda filtrlar "Filtrlar" tugmasi ortida, jadvalda holat/muddat sarlavha ostida; bosh panel kartalari aniq nomlar bilan ("Faol", "Kechikib bajarilgan", "Tekshiruv kutilmoqda"); soxta ochiladigan belgilar olib tashlandi.
-- 2026-09-30: Loyiha kompyuter yonganda (Windows'ga kirilganda) avtomatik ishga tushadi: `Startup\TeamFlow.vbs` → `backend/start_server.bat` → `http://127.0.0.1:8020/` (log: `backend/server.log`).
-- 2026-09-30: Review kamchiliklari tuzatildi: chat qidiruvi, `requests` talablarda, Telegram faqat tranzaksiyadan keyin + timeout, `runbot` `notifications` ga ko'chirilib `requests` bilan qayta yozildi, sub-vazifa yaratish serializer orqali, Boshqarma menyusiga "Xabarlar", `Drawer` va eski fayllar o'chirildi, README/CLAUDE/GEMINI gitga qaytarildi.
-- 2026-09-30: Vazifalar filtridan "Loyiha" maydoni olib tashlandi — bosh panelda ham, Vazifalar sahifasida ham ("Mening ishim" doskasidagi loyiha tanlovi qoladi).
-- 2026-09-30: Frontend komponent testlari uchun `jsdom` va `@testing-library/react` qo'shildi (foydalanuvchi ruxsati bilan). Umumiy sozlama: `frontend/src/test/` (API va joriy foydalanuvchi soxtalashtiriladi).
-- 2026-09-30: Loyiha GitHub'ga push qilindi (foydalanuvchi so'rovi bilan).
-- 2026-09-30: "Barcha kamchiliklarni tuzat" bo'yicha qo'shimcha tuzatildi: Takliflar bo'limi (`/api/api/` 404 va sahifalash), xodim oynasi (hamma vazifalar chiqardi, "undefined" soni), profilda Telegram saqlanmasdi, chatda o'z xabarlari ko'rinmasdi va telefonga moslanmagan edi, aniqlanmagan CSS tokenlari, qattiq yozilgan matnlar `text.ts` ga ko'chirildi.
-- 2026-09-30: Loyiha oynasi "Jamoa" bo'limida ro'yxatda faqat loyiha a'zolari ko'rinadi; boshqa dasturchilar qidiruv orqali topilib qo'shiladi. Har bir a'zo qatorida "Vazifa berish" tugmasi (shu xodimga alohida vazifa, loyiha va ijrochi oldindan tanlangan).
-- 2026-09-30: Bosh panelga kirganda "Hafta boshidan — Faol" vazifalar jadvali darrov ochiq turadi (yopish mumkin).
-- 2026-09-30: Loyiha va vazifalar kodlari (`TSK-12`, `PRJ-3`) ro'yxatlarda, doskada, modallarda va qidiruvda ko'rinadi; Ctrl K yoki Vazifalar qidiruvida kod yozilsa aynan o'sha yozuv darrov chiqadi. Kod qoidasi bitta joyda: `backend/apps/core/codes.py`.
-- 2026-09-30: Ko'rib chiqishda topilgan kamchiliklar tuzatildi: `PRJ-n` qidiruvi, profildagi "Muddati o'tgan" soni, `Button` yuklanishda o'chmasligi, jamoadan chiqarilgan dasturchi vazifalari, Takliflar `workflow.py`/`services.py` ga ko'chirildi, `half` filtri olib tashlandi, `chat`/`suggestions` app fayllari, chatda rolsiz akkaunt chiqmaydi va oxirgi 200 xabar, Telegram username takrorlanmaydi.
-- 2026-09-30: Loyiha yaratish oynasining 3-qadamida har bir tanlangan xodimga alohida vazifalar beriladi: nomi, boshlanish va tugash vaqti, vazifa fayllari (loyiha fayllari alohida). Loyiha, jamoa va vazifalar bitta so'rovda (`POST /api/projects/setup/`) bitta tranzaksiyada yaratiladi — biror vazifada xato bo'lsa, loyiha ham yaratilmaydi.
-- 2026-09-30: Bildirishnomalar sahifasi qayta bezaldi: kun bo'yicha guruhlar (Bugun / Kecha / sana), tur bo'yicha rangli ikonka, o'qilmaganlar ajratib ko'rsatiladi, sarlavha ostida o'qilmaganlar soni; mavjud dizayn tokenlari bilan (boshqa sahifalardan ajralmaydi).
-- 2026-09-30: Modal ochilganda manzilga `?task=4` kabi parametr qo'shilmaydi — manzil `/qilingan-ishlar` shaklida qoladi. Eski havolalar ishlaydi va darrov tozalanadi (`frontend/src/app/modals.tsx`).
-- 2026-09-30: Dasturchi profilida (`/profil`) "Mening vazifalarim" jadvali — faqat o'ziga biriktirilgan vazifalar.
-- 2026-09-30: Barcha profillar bir xil ko'rinishda: o'z profilim (`/profil`) va xodim oynasi umumiy `ProfileHeader` (avatar, ism, lavozim, 4 ko'rsatkich) va umumiy vazifalar jadvalidan (`TaskTable`) foydalanadi; "Faol" soni hamma joyda bir xil qoida bilan.
-- 2026-09-30: Boshqarma uchun Bosh panel (`/`): salomlashish, "Yangi buyurtma", holat kartalari (bosilsa filtr) va o'z buyurtmalari jadvali. Menyuda "Bosh panel · Buyurtmalarim".
-- 2026-09-30: Buyurtmalar (TZ) sahifasida "Hammasi" filtri birinchi o'rinda va standart tanlangan.
-- 2026-09-30: Boshqarma bosh panelidagi "N ta buyurtmangiz rad etilgan…" eslatmasi olib tashlandi — bunday izoh kerak emas.
-- 2026-09-30: Boshqarma bosh panelida "Yil boshidan / Oy boshidan / Hafta boshidan" kartalari — har birida Yuborilgan, Rad etilgan, Tasdiqlangan; ko'rinishi boshqa bosh panellar bilan bir xil (umumiy `PeriodCards`). Raqam bosilsa ro'yxat shu davr va toifa bo'yicha filtrlanadi (son va ro'yxat bitta qoidadan: `orders/filters.py`). Davr boshlanishi bitta joyda: `core/periods.py`.
-- 2026-09-30: UI vizual uslubi yangilandi (faqat ko'rinish, tuzilma/flow/matnlar o'zgarmadi): tokenlarga shrift o'lchamlari, `--control` balandliklari (32/40/48, 8px setka), `--primary-solid` (tungi rejimda oq matn kontrasti), `--placeholder`; `--muted` AA kontrastga ko'tarildi; focus — `outline`; select inputlar bilan bir xil; tungi rejimda `color-scheme`; bosh panellardagi ikki marta qo'shilgan oraliqlar olib tashlandi; telefonda maydonlar 16px, menyu bandlari 44px. Qaytarish nuqtasi: git tag `ui-before-restyle`.
-- 2026-09-30: Taqvimda kun bosilsa "Taqvim kuni" modali ochiladi (shu kungi vazifalar va shu kuni tugaydigan loyihalar); ro'yxatdagi vazifa/loyiha bosilsa modal o'rniga uning modali ochiladi, "Orqaga" kun ro'yxatiga qaytaradi. Taqvimda loyiha tugash sanalari ko'rinadi. Modallar soni 10 ta (`docs/FLOWS_MODALS.md`).
-- 2026-09-30: Telegram bot ulandi (@taskbildirishnomasi_bot). Token va bot nomi `backend/.env` da (gitga tushmaydi, hech qachon commit qilinmaydi); bot `start_server.bat` bilan avtomatik ishga tushadi (log: `backend/bot.log`, tokensiz). Profildagi Telegram izohida botga havola.
-- 2026-09-30: Dasturchi hisobida faqat o'z vazifalari: Vazifalar sahifasi va Ctrl K qidiruvida dasturchiga faqat o'ziga biriktirilgan vazifalar chiqadi (faqat sub-vazifasi biriktirilgan boshqa vazifa ro'yxatda chiqmaydi, lekin ochiladi). Qoida bitta joyda: `tasks/permissions.py` → `listed_tasks` (bosh panel ham shundan).
-- 2026-09-30: Vazifa oynasida ijrochilar: bitta vazifaga bir nechta dasturchi ("O'zgartirish" — PM/Boshliq har qanday vazifaga, dasturchi faqat o'zi yaratgan vazifaga; o'zini olib tashlay olmaydi). Sub-vazifaga bir nechta dasturchi, mavjud sub-vazifaga ham qo'shish/olib tashlash (PM/Boshliq yoki vazifa ijrochisi). Ro'yxatda hamma faol dasturchilar (qidiruv), jamoada bo'lmasa loyiha jamoasiga avtomatik qo'shiladi. Baza: `SubTask.assignees` (M2M, migratsiya `0003`). Qaytarish nuqtasi: git tag `before-multi-assignee`.
-- 2026-09-30: Profil rasmi: Profilda "Rasm yuklash / almashtirish / o'chirish" (JPG, PNG, WEBP, 5 MB gacha; server Pillow bilan tekshiradi, 1024px gacha kichraytirib JPEG qiladi, EXIF o'chadi). Rasm faqat tizimga kirganlarga beriladi: `GET /api/avatars/<id>/`. Hamma joyda avatar ustiga sichqoncha olib borilganda kichik profil kartochkasi chiqadi: rasm, ism familiya, rol (va boshqarma). Kartochka modal emas (`Avatar`, `shared/ui`).
-- 2026-09-30: Profil sarlavhasidagi rasm (o'z profilim va xodim oynasi) bosilsa, Telegram kabi to'liq ekranda ochiladi: to'q fon, tepada ism va ✕; Esc, fon yoki "Orqaga" yopadi. Xodim oynasidan ochilsa uning o'rnini egallaydi (modal ustida modal yo'q). Yangi modal: "Rasm ko'rish" — modallar 11 ta. Rasm endi 1024px gacha saqlanadi (katta ko'rinishda tiniq).
-- 2026-09-30: Loyihalar va Takliflar ro'yxatiga aniq tartib qo'shildi (`order_by("-created_at", "-id")`): `Count` annotatsiyasi bilan Meta.ordering qo'llanmasdi va sahifalashda yozuvlar takrorlanishi/tushib qolishi mumkin edi. Testlar: `ProjectListOrderTests`, `SuggestionListOrderTests`.
-- 2026-09-30: README.md loyiha kodi bilan solishtirilib qayta yozildi: mundarija, hamma sahifalar tavsifi (Loyihalar, Tekshiruv navbati, Xabarlar, Takliflar, Umumiy tarix, Qilingan ishlar, Izohlar), xavfsizlik, papka tuzilmasi, qaytarish nuqtalari (git tag). Kodga mos kelmagan joylar tuzatildi (mutaxassisliklar ro'yxati, taklif holatlari, admin akkaunti `seed_demo` da yaratilmasligi).
-- 2026-10-02: Buyurtmadan yaratilgan loyihada PM/Boshliq endi nomi va izohini ham tahrirlay oladi (avval faqat sanalar o'zgarardi). O'zgarish bog'liq buyurtmaga ham ko'chadi (sanalar kabi ikki tomonlama sinxron) — ikkalasi bitta TZ ma'lumotini ko'rsatadi. TZ fayli o'zgarmaydi. Backend: `projects/services.py:update_project`, `projects/serializers.py:edit_info`.
-- 2026-10-02: Loyihani yakunlash endi buyurtma beruvchi boshqarma tasdig'iga bog'liq: PM/Boshliq buyurtmasiz loyihani to'g'ridan-to'g'ri Yakunlaydi; buyurtmadan yaratilgan loyiha avval "Tasdiqlash kutilmoqda" holatiga o'tadi (yangi Project.Stage), buyurtmani yuborgan boshqarma Buyurtma oynasidan (OrderModal) Tasdiqlaydi (Yakunlangan) yoki sabab bilan Rad etadi (Tuzatish kerak'ga qaytadi, PM sababni ko'rib qayta so'raydi). Yangi modal yaratilmadi — mavjud ProjectModal va OrderModal kengaytirildi; projects bo'limida flow soni 1 dan 2 ga oshdi (cheklov ichida). Backend: `projects/workflow.py` (yangi), `projects/services.py: _apply_stage/confirm_completion/reject_completion`, `projects/api.py` (confirm-completion/reject-completion), `orders/serializers.py` (`project` maydoni, `decide_completion`/`view_project` actions), 3 ta yangi bildirishnoma turi.
-- 2026-10-02: Atama almashtirildi: "Sub-vazifa" → "Topshiriq" (frontend matnlari, xatolik/bildirishnoma xabarlari, Django admin `verbose_name`). Model va API maydon nomlari (`SubTask`, `subtasks`, `assignee_ids`) o'zgarmadi — faqat foydalanuvchiga ko'rinadigan matn.
-- 2026-10-02: Bildirishnoma (toast, masalan "Vazifa o'chirildi") endi ekranning pastki o'ng burchagida emas, yuqori o'ng burchagida chiqadi (kompyuterda qidiruv/qo'ng'iroq ikonkalari ostida). Telefonda topbar (56px) ostiga chiqadi, ustiga tushmaydi. `frontend/src/shared/styles.css`: `.toasts`.
-- 2026-10-02: Buyurtmalar (TZ) sahifasidagi PM/Boshliq filtridan "Loyiha bo'lgan" tugmasi olib tashlandi — endi Hammasi · Yangi · Tasdiqlangan · Rad etilgan. Loyiha yaratilgan buyurtmalar "Hammasi" ichida ko'rinadi. `frontend/src/features/orders/OrdersPage.tsx`: `TABS`.
-- 2026-10-02: Senior-review natijasida `TaskModal.tsx` dagi bloklovchi regressiya tuzatildi: PM "Tekshiruv navbati"dan vazifani ochganda butun modal (tavsif, topshiriqlar, ish jurnali, izohlar, fayllar, ijrochilar) "Topshirilgan ish" ro'yxati bilan noto'g'ri almashtirilib qolgan edi — endi hammasi doim birga ko'rinadi, faqat `README.md`/`docs/FLOWS_MODALS.md` dagi modal tavsifiga mos.
-- 2026-10-02: "Umumiy tarix" alohida sahifa va menyu bandi (`/tarix`, `HistoryPage.tsx`) butunlay olib tashlandi — natijada Dasturchi va Boshqarma menyusida "Kuzatuv" guruhi qolmadi, PM/Boshliqda faqat "Qilingan ishlar" qoldi. Backend `/history/` endpoint va `ActivityLog` o'zgarmadi — loyiha/vazifa/buyurtma oynalaridagi "Tarix" tabi va "Qilingan ishlar"ning "Tarix" tabi shundan foydalanishda davom etadi.
-- 2026-10-02: "Qilingan ishlar"ga "Faqat men" filtri qo'shildi — PM/Boshliq vazifaga ijrochi bo'la olmagani uchun (faqat dasturchilar ijrochi bo'ladi), bu filtr yoqilganda: Vazifalar tabida o'zi yaratgan va yakunlangan vazifalar, Tekshiruvlar tabida o'zi tekshirib qabul/rad etgan ishlar, Tarix tabida faqat o'z amallari ko'rinadi. Backend: `panel/reports.py` (`ReportFilters.mine`, `work_report`, `activity_queryset`).
-- 2026-10-02: Vazifa va loyiha kodlari `TSK-12`/`PRJ-3` (bazadagi id'dan hisoblangan) o'rniga **tasodifiy 9 xonali kod** bo'ldi (masalan `483920157`) — bazada saqlanadi (`Task.code`/`Project.code`, `unique=True`), yaratilganda avtomatik beriladi, vazifa va loyiha orasida ham takrorlanmaydi. Qidiruv (`Ctrl K`, Vazifalar/Loyihalar ro'yxati) shu kod bo'yicha ishlaydi. Mavjud yozuvlarga migratsiya bilan orqaga to'ldirildi (`tasks/migrations/0006`, `projects/migrations/0004`). `core/codes.py` — `generate_unique_code`/`resolve_code`, `core` qatlami `tasks`/`projects` modellarini statik import qilmaydi (`django.apps.apps.get_model` orqali, ARCHITECTURE 3-bo'lim buzilmasin deb).
-- 2026-10-02: 4 nafar senior-agent bilan to'liq loyiha review o'tkazildi (xavfsizlik, backend arxitektura, frontend arxitektura). Natija: `D:\ObsidianVault\01-Projects\TeamFlow\reviews\2026-10-02-xavfsizlik-va-toliq-kod-review.md`. **CRITICAL** (foydalanuvchi hal qilishi kerak, kod emas, konfiguratsiya): amaldagi ishlayotgan server (`start_server.bat`, LAN'ga ochiq) `DEBUG=True` (`.env`da `DJANGO_DEBUG` yo'q) va standart `SECRET_KEY` bilan ishlayapti; demo akkauntlar (`boshliq`/`pm`/`jasur`/`malika`/`bobur`/`it_boshqarma`, parol `Demo-parol-2026`) amaldagi bazada hali ham faol. Boshqa topilmalar (P2/P3): BoardPage'da klaviatura bilan karta ochilmasligi, SearchPalette'da fokus-tuzoq yo'qligi, N+1 regressiya testlarining yo'qligi — hammasi vault faylida.
-- 2026-10-02: **Loyiha yaratishda endi avtomatik 9 xonali kod ishlatilmaydi** — PM/Boshliq loyiha yaratish oynasining 1-qadamida (Asosiy) **loyiha raqamini qo'lda kiritadi**: majburiy maydon, erkin matn/kod (masalan `PRJ-12`), takrorlanmaydi (band bo'lsa saqlashda xatolik chiqadi). Vazifa (`Task.code`) avvalgidek avtomatik 9 xonali kod bilan qoladi — bu o'zgarish faqat loyihaga tegishli. Amalga oshirildi: `Project.code` endi `editable`, auto-generatsiya olib tashlandi (`projects/models.py`, migratsiya `0006`), `create_project` servisi `code`ni talab qiladi va takrorlanishni tekshiradi (`projects/services.py`), `ProjectCreateSerializer`ga `code` qo'shildi (`projects/serializers.py`, `ProjectSetupSerializer` ham meros oladi), `core/codes.py` loyiha uchun avtomatik generatsiyani olib tashladi va `resolve_code` loyiha raqamini aniq (exact) moslik bilan topadi. Frontend: `ProjectWizard.tsx` 1-qadamiga "Loyiha raqami" maydoni qo'shildi (`T.projects.code`). Backend 171 test, frontend tegishli testlar o'tdi.
-- 2026-10-02: Amaldagi (jonli) bazadagi barcha test/demo ma'lumotlar (`seed_demo` va qo'lda qo'shilgan sinov loyiha/buyurtma/vazifalar — "TeamFlow ichki portal", "jsfjkfjkhsddf" va h.k.) o'chirildi: foydalanuvchi so'rovi bilan. Demo akkauntlarga (`boshliq`/`pm`/`jasur`/`malika`/`bobur`/`it_boshqarma`) tegilmadi — foydalanuvchi "hozircha tegmang" dedi (avvalgi CRITICAL xavfsizlik topilmasi hali ochiq: parol GitHub'da ochiq). Shu jarayonda aniqlandi: jonli bazada 2 ta migratsiya qo'llanilmagan edi (`tasks.0008_task_archived_at`, `projects.0006_alter_project_code`) — ikkalasi ham qo'llanildi (xavfsiz, qo'shimcha ustun).
-- 2026-10-02: Vazifa oynasida topshiriq (sub-vazifa) qatoriga (checkbox/o'chirishdan tashqari joyga) bosilsa, ijrochi tahrirlash paneli o'sha qatorning ostida ochiladi/yopiladi (avval alohida ikonka kerak edi). Checkbox mustaqil elementga aylandi (bajarildi belgilash va panelni ochish endi bir-biriga aralashmaydi). Ruxsati yo'q foydalanuvchi uchun qator bosilmaydi. Yangi modal/flow yo'q — faqat `frontend/src/features/tasks/TaskModal.tsx` ichidagi mavjud ijrochi-tahrirlash paneli endi qator bosilganda ham ochiladi.
-- 2026-10-05: **Loyihani yakunlashdan oldin dasturchilar tasdig'i** qo'shildi va **amalga oshirildi**. Qoida **barcha loyihaga** (buyurtmali va buyurtmasiz) tegishli: PM/Boshliq loyihani "Yakunlangan" qilmoqchi bo'lganda, loyihadagi **barcha faol dasturchilarga** bildirishnoma boradi ("Loyiha yakunlanishi kerak, tasdiqlaysizmi?"), tasdiq/rad bildirishnoma ichidagi tugma bilan beriladi (yangi modal yo'q). **Barchasi "Ha" desa** — avvalgi qoida ishlaydi: buyurtmasiz loyiha to'g'ridan-to'g'ri Yakunlanadi, buyurtmali loyiha "Tasdiqlash kutilmoqda"ga o'tadi (boshqarma tasdig'i o'zgarmaydi — dasturchi tasdig'i undan **oldin** turadi, ikki bosqich: dasturchi → boshqarma). **Birortasi sababli rad etsa** — yakunlanmaydi, loyiha hozirgi holatida davom etadi, PM/Boshliq sababni ko'radi; qayta so'ralganda hammadan yangidan so'raladi. Loyihada faol dasturchi bo'lmasa, eski tartib (so'rovsiz) davom etadi. Jamoa o'zgartirilsa (yangi a'zo qo'shilsa/chiqarilsa) faol so'rov davri bekor qilinadi, qayta so'ralganda hammadan yangidan so'raladi. Yangi flow/modal ochilmadi — mavjud "Loyihani yakunlashni tasdiqlash" flow'i kengaydi. Backend: `Project.completion_requested_at`, yangi `ProjectCompletionAck` modeli (`projects/migrations/0007`), `projects/services.py` (`_request_completion_acks`, `ack_completion`, `_apply_stage` kengaytirildi), `POST /api/projects/{id}/completion-ack/`, 3 ta yangi bildirishnoma turi (`notifications/migrations/0003`). Frontend: bildirishnoma ichidagi "Ha, tayyor"/"Yo'q" tugmasi (`needs_ack`), `ProjectModal.tsx`da kutilayotganlar ro'yxati. Backend 181 test, frontend tegishli testlar o'tdi.
-- 2026-10-05: Yuqoridagi feature ustida 4 nafar senior-agent nuqtai nazaridan review o'tkazildi (natija: `D:\ObsidianVault\01-Projects\TeamFlow\reviews\2026-10-05-loyihani-yakunlash-dasturchi-tasdigi.md`). **BLOKLOVCHI topildi va shu sessiyada tuzatildi**: `ProjectDetailSerializer.get_stage_targets` barcha dasturchi tasdiqlagandan keyin ham "Yakunlangan"ni yashirib qolardi (shart faqat so'rov davri borligini, hali kutilayotgan tasdiq bor-yo'qligini emas tekshirardi) — natijada PM/Boshliq loyihani hech qachon haqiqiy yakunlay olmas edi, backend servis to'g'ri ishlasa ham. Bu **brauzerda to'liq oqimni real HTTP bilan sinab ko'rishda** (throwaway backend+vite, jonli serverlarga tegmasdan) topildi — avtomatik testlar buni tutmagan edi. Tuzatildi (`get_stage_targets`/`get_completion` endi "hali kimdir javob bermaganmi"ni aniq tekshiradi) va regression test bilan mahkamlandi (`test_all_confirm_then_pm_finishes`), keyin vizual tarzda qayta tasdiqlandi. Backend endi 182 test. Qolgan 3 ta tavsiya (past prioritet, vault faylida): eski bildirishnomada tugma takrorlanishi, rad etilganda boshqa kutayotgan dasturchilarga xabar yo'qligi, `ack_completion`dagi kichik DRY nomuvofiqligi.
-- 2026-10-05: Chap menyudan **"Bildirishnomalar" bandi barcha rol uchun olib tashlandi** — tepadagi qo'ng'iroq ikonkasi xuddi shu bildirishnomalarga olib boradi va o'z soni (badge)ni alohida ko'rsatadi, shuning uchun ikkalasi bir xil narsaga ikki marta havola edi. `frontend/src/app/nav.ts`: uchala rol guruhidan (`developer`, `department`, default/pm-boss) `notifications` band olib tashlandi.
-- 2026-10-05: Shundan keyin **"Bildirishnomalar" sahifa emas, modal bo'ldi** (foydalanuvchi so'rovi bilan — qo'ng'iroq bosilganda sahifaga o'tish o'rniga modal ochilsin). `/bildirishnomalar` marshruti va `NotificationsPage.tsx` olib tashlandi, o'rniga `features/notifications/NotificationsModal.tsx` (mavjud `Modal` komponenti, `useModal`ga `{ notifications: true }` kalit bilan qo'shildi: `app/modals.tsx`). Qo'ng'iroq ikonkasi (`Layout.tsx`) endi `<Link>` emas, `open({ notifications: true })` chaqiradigan tugma. Ichidagi funksiya (kun bo'yicha guruhlash, Hammasi/O'qilmagan filtri, Hammasini o'qildi, sahifalash, bosilganda tegishli modalga o'tish, "Ha, tayyor"/"Yo'q" tasdiq tugmasi) o'zgarmadi — `NotificationsModal.tsx` ichida birlashtirildi. Modallar soni 11 dan **12** ga oshdi — `docs/FLOWS_MODALS.md`ga qayd etildi, yangi flow ochilmadi.
-- 2026-10-05: TinyFish AI TeamFlow'ga xavfsiz asinxron web-agent sifatida ulandi: PM/Boshliq `POST /api/ai/web-agent/` bilan URL avtomatizatsiyasi yoki URLsiz web tadqiqot boshlaydi, `GET /api/ai/web-agent/<id>/` holat/natijani yangilaydi. API kalit faqat `backend/.env`dagi `TINYFISH_API_KEY`da; private/internal URL'lar serverda bloklanadi, polling retry qilinadi, async start esa ikki marta xarajat bo'lmasligi uchun retry qilinmaydi. Yangi UI flow/modal yo'q.
-- 2026-10-06: "Tekshiruvga yuborish" (va PM'ning "Qaytarish") oynasi qayta ishlandi: endi vazifa oynasining pastki kichik paneli emas, butun modal ichini egallaydigan alohida ekran (Word ko'rish kabi — modal ustida modal yo'q, modallar soni o'zgarmadi, 12 ta). Sarlavhada ikonka + "Tekshiruvga yuborish" + izoh, katta matn maydoni va `0/1000` hisoblagich, katta drag&drop fayl zonasi ("Fayl tanlash" tugmasi bilan) va "Biriktirilgan fayllar (N)", pastda "Bekor qilish" + "Tekshiruvga yuborish". Matn bo'sh bo'lsa serverga so'rov ketmaydi, maydon yonida xato chiqadi. Bekor qilish / ✕ / Esc vazifa oynasiga qaytaradi. Backend/API o'zgarmadi. Brif qayta yuborilgach (foydalanuvchi aniq talabi): sarlavhada document ikonkasi, cheklov matni yonida info belgisi, asosiy tugma binafsha→indigo gradient (`.btn-gradient`, faqat shu oynada, mavjud `--violet`/`--primary-solid` tokenlaridan), fayl turi va 20 MB chegarasi brauzerda ham tekshiriladi (drag&drop ham), doskadan ochilgan bo'lsa yuborilgach oyna to'liq yopiladi. Barcha modallar orqa foniga yengil blur qo'shildi. Fayllar: `features/tasks/TaskModal.tsx` (`TaskActionScreen`), `shared/ui` (`FilePicker size="lg"`), `styles.css`, `text.ts`.
-- 2026-10-06: To'liq senior-review (`D:\ObsidianVault\01-Projects\TeamFlow\reviews\2026-10-06-toliq-4-rolli-review.md`) topilmalari foydalanuvchi so'rovi bilan tuzatildi: (1) `apps/ai/api.py` yupqalashtirildi — biznes mantiq `apps/ai/services/web_agent.py` (`start_web_agent`, `refresh_run`) ga ko'chdi; (2) frontend testlari beqarorligi (sahifalash testlari to'liq svitda vaqti tugardi) — `src/test/setup.ts`da `asyncUtilTimeout: 5000`; (3) `apps/core/tests/` yozildi (workflow, kod kolliziyasida qayta urinish, fayl validatsiyasi chegaralari, `UploadTo`, davrlar) — backend 205 → 224 test; (4) `docs/ARCHITECTURE.md`: `notifications` faqat `accounts.Role`ni import qilishi va `ai` app'i yozildi. `panel/api.py` va katta `services.py`larni bo'lish — faqat kuzatish tavsiyasi, qilinmadi.
-- 2026-10-06: Foydalanuvchi talabi bilan **"modal ustida modal yo'q" qoidasidan istisno**: vazifa oynasidagi "Tekshiruvga yuborish" / "Qaytarish" va buyurtma oynasidagi "Tasdiqlash" / "Rad etish" (shuningdek "Sanani o'zgartirish", "Yangi TZ", "Kamchilik bor") — asosiy oyna ichini almashtirmaydi, uning **ustida alohida, qora fonli modal** bo'lib ochiladi ("Tekshiruvga yuborish" oynasi uslubida: ikonkali sarlavha, izoh, pastda Bekor qilish + asosiy tugma). Asosiy oyna orqada ko'rinib turadi, lekin bosilmaydi (`inert`). `Esc`/✕/fon/Bekor qilish faqat ustdagi oynani yopadi. Yuborish oynasi ixchamlashtirildi (720px, pastroq matn maydoni va fayl zonasi). Kod: `shared/ui/Modal.tsx` (`stacked`, `covered`, ochiq oynalar steki — Esc/Tab faqat ustdagisiga), `styles.css` (`--overlay-strong`, `.overlay-stacked`), `TaskModal.tsx`, `OrderModal.tsx`. Modallar soni 12 → **14** (`docs/FLOWS_MODALS.md`).
-- 2026-10-06: Buyurtmalar ro'yxatida (Buyurtmalar (TZ) / Buyurtmalarim sahifasi va Boshqarma bosh sahifasidagi jadval — umumiy `OrdersTable`) buyurtma nomi ostidagi kulrang izoh qatori olib tashlandi (foydalanuvchi: "pastidagi izohlar kerak emas"). Izoh buyurtma oynasida (Umumiy tab) ko'rinishda qoladi.
-- 2026-10-06: Foydalanuvchi talabi bilan **"'Boshla' degunicha kod yozilmaydi" qoidasi olib tashlandi** (0-bo'limdagi 1-qoida, 7-bo'lim sarlavhasi va 2026-09-28 dagi yozuv). Endi kod yozish uchun alohida "boshla" so'zi kutilmaydi; "o'zboshimchalik qilma" va "noaniq bo'lsa so'ra" qoidalari o'z kuchida.
-- 2026-10-06: "Mening ishim" doskasidagi vazifa kartalari va Loyihalar ro'yxatida ham nom ostidagi izoh qatori olib tashlandi (buyurtmalar ro'yxatidagi kabi). Izoh vazifa va loyiha oynasida qoladi.
-- 2026-10-06: Barcha sahifalardan katta sarlavha va uning ostidagi izoh (masalan "Buyurtmalarim" + boshqarma nomi, "Mening ishim" + sudrash izohi, "Loyihalar" + soni) hamda Bosh panellardagi "Salom, …!" salomlashish olib tashlandi — sahifa nomi tepadagi panelda bor (foydalanuvchi talabi). Tugmalar senior UX qoidasi bo'yicha qayta joylashtirildi: sahifa asboblar qatori bilan boshlanadi, filtrlar chapda, amallar o'ngda (asosiy tugma eng o'ngda); Doskada tugmalar filtr kartasiga, Loyihalarda qidiruv yoniga, Takliflarda tablar qatoriga ko'chdi; Taqvimda oy nomi ←/Bugun/→ bilan bitta qatorda; Tekshiruv navbati va PM Buyurtmalar sahifasi darrov ro'yxatdan boshlanadi. Telefonda asosiy tugma qatorni to'liq egallaydi. Ishlatilmay qolgan matnlar `text.ts`dan olib tashlandi. Backend o'zgarmadi.
-
-- 2026-10-06: Boshliq va PM uchun Xodimlar bo'limida biriktirilgan faol ishlar (3 tagacha qisqa ko'rinish, qolganlari profilda), loyiha nomi/raqami, holat va muddat ko'rsatiladi. Xodim ismi yoki alohida 'Profilni ko'rish' tugmasi profilni ochadi; profil barcha vazifalar, hisobot va biriktirilgan loyihalarni ko'rsatadi. Ish/loyiha tugmalari mavjud oynalarni ochadi. Mobil ko'rinish kartalarga moslandi, ichma-ich tugmalar olib tashlandi. PM faqat dasturchilarni, Boshliq barcha faol xodimlarni ko'rishi serverda saqlangan. Yangi flow yoki modal qo'shilmadi.
-
-- 2026-10-06: Xodimning qaysi ishlarga mas'ulligini Boshliq va PM o'zlari kiritadi/tahrirlaydi: xodim profilidagi 'Mas'uliyatlar' maydoni (2000 belgigacha, tozalash mumkin), matn Xodimlar ro'yxatida ham ko'rinadi va qidiriladi. Server ruxsatlari profil bilan bir xil: PM faqat faol dasturchilarni, Boshliq barcha faol xodimlarni tahrirlaydi. Saqlash PATCH /api/people/<id>/responsibilities/ orqali; yangi modal yo'q.
-
-- **2026-10-06 (foydalanuvchi talabi):** Buyurtmaga TZ v2 kiritish ishlasin. PM yakunlashni so'ragach, barcha dasturchilar rozi bo'lsa avtomatik boshqarma tasdig'iga o'tsin; boshqarma tasdiqlasa to'liq yakunlansin, rad etsa "Rad etildi" ko'rinsin. Yakunlangan va yakunlash tasdig'i kutilayotgan loyihada vazifa qo'shish/berish yashirilsin va serverda ham cheklansin.
-
-- **2026-10-06 (foydalanuvchi talabi):** Tizim UX/UI to'liq ko'rib chiqilsin, tugmalar o'z joyida bo'lsin. Boshqarma buyurtmalar sahifasida yakunlash tasdig'i kutilayotganlar birinchi, yangi buyurtmalar teparoqda, to'liq yakunlanganlar pastda tursin.
-- **2026-10-06 (yakunlash tartibi yangilandi):** Dasturchilarga "Loyihani yakunlashga rozimisiz?" savoli, "Ha, roziman" va "Yo'q" tugmalari chiqadi. Hamma rozi bo'lgach PMga xabar keladi va "Yakunlash" ochiladi; loyiha avtomatik yakunlanmaydi. PM yakunlaydi, buyurtmali loyiha keyin boshqarma tasdig'iga yuboriladi. Oldingi yakunlash izohi va fayllari saqlanadi.
-- **2026-10-06 (tezlik va resurs sarfi):** Bosh panel hisoblari bitta agregat SQL orqali olinadi; loyiha vazifalari va dasturchilar faqat tegishli tab ochilganda yuklanadi. Bildirishnomani o'qish va izoh yozish barcha ro'yxatlarni qayta yuklamaydi. Kesh 60 soniya, dasturchilar ma'lumotnomasi 5 daqiqa; mutatsiyadan keyin tegishli kesh yangilanadi. Chat so'rovlari xabarlar uchun 5 soniya, suhbatlar uchun 15 soniya; yashirin tabda polling o'chirilgan. Fon blur effektlari olib tashlangan, modal orqasidagi loyiha ko'rinib turadi.
-
-- **2026-10-06 (qo'shimcha optimallashtirish):** Chat polling faqat oxirgi xabardan keyingi yangi xabarlarni oladi; yangi xabar bo'lmasa javob `[]` va bazaga UPDATE yo'q. Brauzer oxirgi 200 xabarni saqlaydi. Vazifa ruxsatlari yuklangan ijrochilar ro'yxatidan tekshiriladi; ijrochilar o'zgarsa kesh tozalanadi. Mahalliy dasturchi vazifa tafsilotida SQL 9 dan 6 ga tushdi. Vazifa amallari chat, takliflar va metama'lumotlarni qayta yuklamaydi. Mahalliy server `--noreload` bilan ishga tushirildi (4 jarayondan 2 ga); Startup skripti ham avvaldan shu rejimda. Umumiy CPU/RAM yoki foydalanuvchi sezadigan tezlik foizi o'lchanmagan.
-
-Tekshiruv: 247 backend, 103 frontend testi (bitta worker), TypeScript va production build o'tdi. O'lchov va tekshiruv qaydi: `docs/scratch/performance-verification-2026-10-06.md`.
-
-- **2026-10-06 (10 000+ foydalanuvchi):** Foydalanuvchi bir vaqtda faol 10 000+ foydalanuvchini aniqlashtirdi; server hali tanlanmagan. Production PostgreSQL/Redis, Gunicorn/Nginx, sahifalash va Telegram outbox tayyorlandi. 4 jarayonli Locust bilan 10 000 alohida sessiya, 250 soniya peak, 501,96 so'rov/soniya, 135 349 so'rov, 0 xato, p95 110 ms; aniq profil va chegaralar docs/performance/2026-10-06/REPORT.md da. 269 PostgreSQL backend, 104 frontend testi hamda 60 haqiqiy brauzer holati o'tdi.
-- **2026-10-06 (tozalash va GitHub):** Foydalanuvchi testdan keyin kiritilgan ma'lumotlarni tozalashni va oxirida GitHub'ga yuklashni aniq buyurdi. Ushbu ish uchun commit/push ruxsati mavjud. Testlar alohida teamflow-scale-test Docker loyihasi va teamflow_scale PostgreSQL bazasida; haqiqiy SQLite biznes ma'lumotlari saqlanadi. Test konteyner/baza/volume va maxfiy fixturelar yakunda olib tashlanadi. Deployment qo'llanmasi backend/deploy/README.md da; haqiqiy server/TLS va SQLite data cutover hali bajarilmagan.
-- **2026-10-08 (dasturchi portfoliosi):** Foydalanuvchi talabi: dasturchilar uchun portfolio — necha yildan beri va qanday ish qilgani, bajargan vazifalari va loyihalari avtomatik paydo bo'lsin; o'zi ham loyiha qo'sha olsin; boshqa foydalanuvchilar bemalol ko'ra olsin; loyihaga video yuklash va ko'rish, loyiha havolasini joylash; har bir loyihaga alohida 5 yulduzli baho va sharh; dasturchi reytingi; barcha dasturchilar ko'rinib tursin — kuzatuvchilar, sharhlar va loyihalar soni bilan, reytingi balandlari tepada. Qo'shimcha talab: UX/UIga e'tibor, flow'lar 3–5 tadan oshmasin. Amalga oshirildi: `backend/apps/portfolio` (PortfolioItem, PortfolioVideo, PortfolioReview, Follow), `/portfolio` sahifasi (hamma rol, menyuda), bitta "Portfolio" modali (dasturchi sahifasi → loyiha → yangi loyiha, ichida almashadi). Flow'lar 3 ta (ko'rish va kuzatish · to'ldirish · baholash), modallar 15 → 16. Taxmin bilan qilinganlar README "Ochiq savollar"da (vazifa nomlari hammaga ochiq, baholash hamma rolga, video 100 MB/5 ta, oddiy o'rtacha reyting). Review: `D:\ObsidianVault\01-Projects\TeamFlow\reviews\2026-10-08-dasturchi-portfoliosi.md`.
-- **2026-10-08 (10k arxitekturasi):** Foydalanuvchi bir vaqtda 10 000 userni kam resurs bilan kutarish uchun DB va arxitekturani qayta ko'rishni so'radi. Amalga oshirildi: portfolio default ranking va notification unread cache + invalidatsiya, `ProjectMember` signal/backfill orqali portfolio materializatsiyasi, portfolio feed indekslari, adaptive chat polling, Compose 12×2 measured profil va readiness healthcheck. Eski synthetic 10k hisobot joriy portfolio/login/upload/browser polling/soak sig'imini tasdiqlamaydi; tanlangan serverda qayta capacity test kerak.
-- **2026-10-09 (Xodimlar sahifasi):** Foydalanuvchi talabi: Xodimlar sahifasi UX/UI qayta ishlansin, muddat filtri qo'shilsin, sodda va chalkashmaydigan bo'lsin. Foydalanuvchi tanlovi: filtr — sana oralig'i ("Sanadan" / "Sanagacha"); oraliq tanlansa, shu oraliqda muddati bo'lgan **har qanday holatdagi** (bajarilgan ham) vazifasi bor xodimlar chiqadi. Amalga oshirildi: `GET /api/people/?due_from=&due_to=` (teskari oraliq — 400; arxivlangan vazifa hisobga olinmaydi; qatorda shu muddatdagi ishlar va `range_tasks` soni; bajarilgan ish "kechikkan" deb belgilanmaydi), muddat qoidasi Vazifalar filtri bilan bitta joyda (`tasks/filters.py` → `due_range`, `due_range_condition`). Frontend: bitta filtr qatori (qidiruv, vazifa muddati, rol — Boshliqda, "Faqat bo'sh xodimlar" katakchasi, "Filtrni tozalash"), jadval/kartochka almashtirgich olib tashlandi (telefonda kartochka avtomatik), qatorda bitta asosiy belgi + "kechikkan", 1 ta ish va "Yana N ta". Yangi sahifa/modal/flow yo'q. Backend 305, frontend 118 test.
-- **2026-10-09 (o'tgan sana kiritilmaydi):** Foydalanuvchi talabi: muddat kiritiladigan barcha joylarda bugungi kundan oldingi sanani qo'yib bo'lmasin (bugun va keyingi kunlar mumkin); filtrlarga tegilmasin. Amalga oshirildi: qoida bitta joyda — `backend/apps/core/dates.py` (`ensure_not_past`), servislar chaqiradi: vazifa (`starts_at`, `due_at` — yaratish, tahrirlash, ko'p vazifa, loyiha yaratish oynasidagi vazifalar), loyiha (`start_date`, `end_date` — yaratish, tahrirlash), buyurtma (`requested_due_date`, tasdiqlash va "Sanani o'zgartirish"dagi sanalar). Faqat yangi kiritilgan yoki o'zgargan qiymat tekshiriladi — eski yozuvdagi o'tib ketgan sana o'zgarmasa, nom/izohni saqlashga xalaqit bermaydi; buyurtmada tasdiqlangan sana keyin o'tib ketsa ham undan loyiha yaratiladi. Frontend: sana tanlagichda o'tgan kunlar o'chirilgan (`shared/format.ts` → `minDate`, `minDateTime`). Qoidaga kirmaydi: filtrlar, portfolio loyiha sanalari (o'tgan ish tarixi), ish jurnali sanasi; xizmat safari sanasi avvaldan ertangi kundan. `seed_demo` kechikkan demo vazifani yaratgandan keyin sanasini orqaga suradi. Backend 314, frontend 121 test.
-- **2026-10-09 (review tuzatishlari):** Foydalanuvchi "davom et" dedi — 2026-10-09 backend review topilmalari tuzatildi: (1) yakunlangan, boshqarma tasdig'ini kutayotgan yoki dasturchilar tasdig'i so'ralgan loyihada ish biriktirish (ijrochi o'zgartirish, topshiriq qo'shish/ijrochisi, vazifa tahririda ijrochi/topshiriq) serverda ham yopildi, yangi a'zo yakunlash davriga so'rovsiz qo'shilmaydi; qoida bitta joyda — `projects/workflow.py: completion_locked`, servis `projects/services.py: ensure_open`; vazifa oynasida tegishli tugmalar yashiriladi. (2) Loyihani "Yakunlangan" holatida yaratish endi ham `_apply_stage` orqali: jamoa bo'lsa dasturchilardan tasdiq so'raladi. (3) "Hamma dasturchi rozimi?" qoidasi 4 joyda turlicha edi — endi bitta `projects/workflow.py: pending_acks` (faqat hozirgi jamoadagi faol dasturchilar): bloklangan dasturchi yakunlashni to'xtatib qo'ymaydi. (4) Jamoa o'zgarmasa, yig'ilgan tasdiqlar o'chmaydi; jamoani saqlash qatorni qulflaydi. (5) Portfolio reyting keshi tranzaksiya tasdiqlangach tozalanadi. Qolgan past ustuvorlikdagi tavsiyalar (tasdiq xabari so'ragan odamga, kesh poygasi, `_people_rows` hajmi, izoh servisi) qilinmadi. Backend 323 test.
-
-- 2026-10-09: 'Oddiy foydalanuvchi' (user) roli qo'shildi. Ularning dashbordi (Bosh panel) SaaS emas, balki Instagram uslubidagi feed qilib yaratildi (UserDashboard). Ular faqat dasturchilarni ko'radi va ularning loyihalarini baholay oladi. Ma'lumotlar to'liq backenddan (portfolio API) keladi. Ranglar mavjud tizim o'zgaruvchilariga moslandi.
-
-- **2026-10-12 (Oddiy foydalanuvchi UX/UI):** Foydalanuvchi talabi: oddiy foydalanuvchi (18-40 yosh) uchun sodda, flow'lari 3-4 tadan oshmaydigan tizim. Instagram nusxasi (InstagramLayout) olib tashlandi, o'rniga UserLayout: tepada nom, rejim va 'Chiqish', pastda matnli ikki bo'lim - Dasturchilar va Profil. Bosh sahifa: bir martalik 'Qanday ishlaydi?' (3 qadam), qidiruv, 'Hammasi / Kuzatayotganlarim' filtri va dasturchi kartalari ('Ko'rish va baholash' asosiy, 'Kuzatish' ikkinchi tugma). Flow'lar yangi ochilmadi: mavjud portfolio flow'lari (ko'rish va kuzatish, baholash) ishlatiladi; yangi modal yo'q. Backend: `GET /api/portfolio/?following=1`.
-
-- **2026-10-12 (Oddiy foydalanuvchi, SaaS dizayn):** Foydalanuvchi bergan dizayn (SaaS karta - Ro'yxat) bo'yicha oddiy foydalanuvchi bosh sahifasi qayta qilindi: sarlavha 'Dasturchilar portfoliosi' (shu sahifada dizayn bo'yicha sarlavha bor), qidiruv, 'Saralash' (reyting, kuzatuvchi, loyiha, sharh), 3 ta ko'rsatkich kartasi (Jami dasturchilar, O'rtacha reyting, Baholangan loyihalar), chiplar (Hammasi, Kuzatayotganlarim va mutaxassisliklar), 2 ustunli kartalar ('Profilni ko'rish'). Rang va shrift mavjud dizayn tokenlaridan (yashil), dizayndagi binafsha emas. Kartada texnologiya chiplari yo'q (bazada ular saqlanmaydi). Kuzatish dasturchi profili oynasida. Profilda 'Mening baholarim' va faollik soni. Backend: `GET /api/portfolio/?following=1&specialty=<id>&sort=followers|projects|reviews`, `GET /api/portfolio/summary/`, `GET /api/portfolio/my-reviews/`, profilda `activity`. Yangi flow va modal yo'q.
-
-- **2026-10-12 (Oddiy foydalanuvchi, 'Portfolio dasturchilar' dizayni):** Foydalanuvchi bergan yangi dizayn bo'yicha: tepa panel (nom, rejim, profil, chiqish), kompyuterda chap menyu, telefonda pastki menyu (Dasturchilar, Mening baholarim, Profil); sarlavha va izoh, qidiruv (Ctrl K), saralash, 4 ta ko'rsatkich (Jami dasturchilar + 30 kunlik o'sish, O'rtacha reyting, Baholangan loyihalar, Faol loyihalar), sonli chiplar (Hammasi, Kuzatayotganlarim, mutaxassisliklar), to'r va ro'yxat ko'rinishi, muqovali kartalar (yurak = kuzatish). Barcha ma'lumot backenddan: `GET /api/portfolio/summary/` (+`following`, `active_projects`, `developers_growth`), ro'yxat qatorida `projects`, `projects_extra`, `experience_months`. Dizayndagi ma'lumoti yo'q narsalar qilinmadi: texnologiya belgilari o'rniga dasturchining loyiha nomlari, 'hududlar' va 'darajalar' filtri, 'online' belgisi, 'Dasturchi qo'shish', bildirishnoma qo'ng'irog'i, Loyihalar/Vazifalar/Xabarlar menyusi (oddiy foydalanuvchiga tegishli emas). Muqova rasmlari — bezak (gradient). 'Mening baholarim' endi alohida sahifa (`/baholarim`). Yangi flow va modal yo'q.
-- **2026-10-12 (professional UX/UI master talabi):** Ikki reference kollaj barcha mavjud TeamFlow sahifalari uchun vizual yo'nalish bo'ladi; route, mavjud flow va server permissionlari o'zgarmaydi. Oddiy foydalanuvchida Dasturchilar, Mening baholarim va Profil qoladi, chat tugmasi/flow'i qo'shilmaydi. Portfolio modali yangi route ochmasdan `Umumiy / Loyihalar / Baholar` ko'rinishiga o'tadi, ichida boshqa modal ochilmaydi. Portfolio loyihalariga 10 tagacha texnologiya va validatsiyalangan cover rasmi non-destructive migration orqali qo'shiladi; eski data saqlanadi. Fake data yo'q, responsive/dark/a11y va real backend integratsiyasi majburiy. Production migratsiya alohida tasdiqsiz bajarilmaydi.
+Barcha tarixiy talablar va qarorlar (2026-09-28 dan) — `docs/decisions/requirements-log.md`. Qoida o'zgarishi/yangi talab kelsa shu yerga oxiriga sana bilan qo'shiladi (0-bo'lim, 3-band).
