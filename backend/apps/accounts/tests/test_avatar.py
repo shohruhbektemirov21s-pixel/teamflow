@@ -32,7 +32,7 @@ class AvatarTests(TestCase):
         self.dev.refresh_from_db()
         with Image.open(self.dev.avatar.path) as saved:
             self.assertEqual(saved.format, "JPEG")
-            self.assertEqual(max(saved.size), 1024)
+            self.assertEqual(max(saved.size), 1280)
         # joriy foydalanuvchi va vazifa ijrochilari (user_brief) orqali ham keladi
         self.assertEqual(self.client_dev.get("/api/auth/me/").data["avatar"], url)
         pm = make_user(Role.PM)

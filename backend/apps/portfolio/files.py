@@ -1,5 +1,4 @@
 """Portfolio videolari: tur, hajm va fayl boshidagi belgi (magic bytes) tekshiruvi; qismlab berish (Range)."""
-import io
 import os
 import re
 
@@ -8,7 +7,9 @@ from django.core.exceptions import ValidationError
 from django.core.files.base import ContentFile
 from django.http import FileResponse, HttpResponse, StreamingHttpResponse
 from django.utils.http import content_disposition_header
-from PIL import Image, ImageOps, UnidentifiedImageError
+from PIL import Image, UnidentifiedImageError
+
+from apps.core.images import to_sharp_jpeg
 
 _RANGE = re.compile(r"^bytes=(\d*)-(\d*)$")
 _CHUNK = 256 * 1024
@@ -34,17 +35,10 @@ def normalized_cover(upload):
         image = Image.open(upload)
         if image.format not in ("JPEG", "PNG", "WEBP"):
             raise ValidationError("Faqat JPG, PNG yoki WEBP rasm yuklang.")
-        image = ImageOps.exif_transpose(image)
-        image.thumbnail((settings.PORTFOLIO_COVER_MAX_PX, settings.PORTFOLIO_COVER_MAX_PX))
-        if image.mode != "RGB":
-            background = Image.new("RGB", image.size, "white")
-            background.paste(image, mask=image.convert("RGBA").split()[-1])
-            image = background
-        buffer = io.BytesIO()
-        image.save(buffer, "JPEG", quality=85)
+        data = to_sharp_jpeg(image, settings.PORTFOLIO_COVER_MAX_PX)
     except (UnidentifiedImageError, OSError, Image.DecompressionBombError) as exc:
         raise ValidationError("Bu fayl rasm emas yoki buzilgan. Boshqa rasm tanlang.") from exc
-    return ContentFile(buffer.getvalue(), name="cover.jpg")
+    return ContentFile(data, name="cover.jpg")
 
 
 def video_content_type(name):
