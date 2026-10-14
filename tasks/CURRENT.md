@@ -7,7 +7,8 @@
 - Branch: `docs/ai-dev-workflow` (`feat/developer-portfolio` uchidan, 3715c73). Holat: **commit qilingan, push qilinmagan**; foydalanuvchi ko'rib chiqishi kutilmoqda.
 - Qilingan: `CLAUDE.md` qisqartirildi, `docs/decisions/requirements-log.md`, `docs/README.md`, `docs/api.md`, `docs/modules/*` (11 ta), ADR 0001–0008, `tasks/`, `scripts/verify.ps1`, `.claude/settings.json`, `GEMINI.md` sinxronlandi, `.github/pull_request_template.md`.
 - Tekshiruv: `scripts/verify.ps1` 2026-10-14 da to'liq o'tdi — backend 341 test (2 skipped), migratsiya mosligi toza, TypeScript, frontend 31 fayl / 134 test, build.
-- Tekshirilmagan: `.claude/settings.json` deny qoidalari amalda bloklashi (sessiya qayta ochilgandan keyin tekshiriladi); `modules/*` va `api.md` ning "servisda tekshiriladi" izohlari kodni to'liq o'qib emas, `api.py`/`workflow.py`/`permissions.py` bo'yicha yozilgan.
+- Qo'shimcha tekshiruv: `verify.ps1` yiqilish yo'li sinaldi (soxta interpretator → `FAIL`, chiqish kodi 1). Hujjatlardagi funksiya/maydon/chegara nomlari kodga qarshi tekshirildi, 2 ta noto'g'ri ruxsat (xizmat safari, mas'uliyatlar) tuzatildi.
+- Tekshirilmagan: `.claude/settings.json` deny qoidalari amalda bloklashi (sessiya qayta ochilgandan keyin sinab ko'riladi); `api.md` dagi ayrim "servisda tekshiriladi" izohlari (tasks/orders servis qoidalari) servis kodini to'liq o'qib emas yozilgan; frontend modul hujjatlari yozilmagan (rejaga kirmagan).
 
 ## Keyingi qadam
 
