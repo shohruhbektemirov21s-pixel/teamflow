@@ -1,5 +1,5 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { ChevronRight, FolderKanban, Heart, Search, Star, TrendingUp, UserCheck, Users, X } from "lucide-react";
+import { ArrowUpDown, ChevronRight, FolderKanban, Heart, Search, Star, TrendingUp, UserCheck, Users, X } from "lucide-react";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 
 import { useModal } from "@/app/modals";
@@ -91,7 +91,6 @@ function DeveloperCard({ d }: { d: PortfolioDeveloper }) {
       <div className="ucard-main">
         <span className="ucard-avatar">
           <Avatar user={d} size="xl" card={false} />
-          <span className="uonline-dot" aria-hidden />
         </span>
         <div className="ucard-head">
           <div className="ucard-id">
@@ -183,9 +182,12 @@ export default function UserDashboard() {
             <kbd className="ukbd" aria-hidden>{T.user.searchKbd}</kbd>
           )}
         </label>
-        <select className="input usort" aria-label={T.user.sortLabel} value={sort} onChange={(event) => setSort(event.target.value as SortKey)}>
-          {(Object.keys(T.user.sort) as SortKey[]).map((key) => <option key={key} value={key}>{T.user.sort[key]}</option>)}
-        </select>
+        <label className="usort-wrap">
+          <ArrowUpDown size={18} aria-hidden />
+          <select className="input usort" aria-label={T.user.sortLabel} value={sort} onChange={(event) => setSort(event.target.value as SortKey)}>
+            {(Object.keys(T.user.sort) as SortKey[]).map((key) => <option key={key} value={key}>{T.user.sort[key]}</option>)}
+          </select>
+        </label>
       </div>
 
       <div className="ustats">

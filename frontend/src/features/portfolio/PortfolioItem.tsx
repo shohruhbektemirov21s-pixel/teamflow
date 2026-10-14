@@ -168,7 +168,7 @@ export function PortfolioItemForm({ ownerId }: { ownerId: number }) {
           <span className="spacer" />
           <Button onClick={close}>{T.common.cancel}</Button>
           <Button variant="primary" icon={<Save size={16} />} loading={save.isPending} disabled={!draft.title.trim() || tooManyTechnologies} onClick={() => save.mutate()}>
-            {T.common.save}
+            {T.portfolio.addSubmit}
           </Button>
         </>
       }

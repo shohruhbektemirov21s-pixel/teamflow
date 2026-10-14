@@ -29,7 +29,7 @@ import { periodText } from "./period";
 import { PortfolioItemForm, PortfolioItemView } from "./PortfolioItem";
 import { Stars } from "./Stars";
 
-type OverviewTab = "overview" | "projects" | "reviews";
+type OverviewTab = "overview" | "projects" | "reviews" | "experience";
 
 /** Bitta portfolio modali: profil tablari, loyiha tafsiloti va loyiha formasi ichki holat sifatida almashadi. */
 export default function PortfolioModal({ id, item, add }: { id: number; item?: number; add?: boolean }) {
@@ -88,11 +88,13 @@ function PortfolioOverview({ id }: { id: number }) {
               { key: "overview", label: T.portfolio.tabs.overview },
               { key: "projects", label: T.portfolio.tabs.projects },
               { key: "reviews", label: T.portfolio.tabs.reviews },
+              { key: "experience", label: T.portfolio.tabs.experience },
             ] as { key: OverviewTab; label: ReactNode }[])}
           />
           {tab === "overview" && <Overview data={data} />}
           {tab === "projects" && <Projects data={data} onOpen={(itemId) => open({ portfolio: id, item: itemId })} />}
           {tab === "reviews" && <Reviews reviews={data.reviews ?? []} />}
+          {tab === "experience" && <Experience data={data} />}
         </div>
       )}
     </Modal>
@@ -160,7 +162,6 @@ function PortfolioHeader({
       <div className="pmodal-id-row">
         <div className="pmodal-avatar-box">
           <Avatar user={data} size="xl" card={false} />
-          <span className="uonline-dot" aria-hidden />
         </div>
 
         <div className="pmodal-id-info">
@@ -174,10 +175,12 @@ function PortfolioHeader({
           </div>
           <p className="pmodal-specialty">{data.specialty || T.portfolio.developer}</p>
           <div className="pmodal-meta-row">
-            <span className="pmodal-meta-item">
-              <MapPin size={14} className="muted" aria-hidden />
-              {T.portfolio.locationVal}
-            </span>
+            {data.location && (
+              <span className="pmodal-meta-item">
+                <MapPin size={14} className="muted" aria-hidden />
+                {data.location}
+              </span>
+            )}
             <span className="pmodal-meta-item">
               <Calendar size={14} className="muted" aria-hidden />
               {T.portfolio.since(fmtDate(data.experience.since))}
@@ -229,10 +232,12 @@ function Overview({ data }: { data: PortfolioDetail }) {
         <section className="card card-pad stack-sm">
           <h3 className="section-title">{T.portfolio.contact}</h3>
           <div className="stack-sm pmodal-contact-list">
-            <div className="pmodal-contact-item">
-              <MapPin size={16} className="muted" aria-hidden />
-              <span>{T.portfolio.locationVal}</span>
-            </div>
+            {data.location && (
+              <div className="pmodal-contact-item">
+                <MapPin size={16} className="muted" aria-hidden />
+                <span>{data.location}</span>
+              </div>
+            )}
             {data.email && (
               <div className="pmodal-contact-item">
                 <Mail size={16} className="muted" aria-hidden />
@@ -251,7 +256,7 @@ function Overview({ data }: { data: PortfolioDetail }) {
 
       <div className="stack" style={{ gap: 16 }}>
         <div className="card card-pad stack-sm">
-          <h3 className="section-title">{T.profile.stats}</h3>
+          <h3 className="section-title">{T.portfolio.statsTitle}</h3>
           <div className="pmodal-stats-grid">
             <div className="pmodal-stat-box">
               <span className="pmodal-stat-val text-violet">{data.projects_count}</span>
@@ -271,39 +276,56 @@ function Overview({ data }: { data: PortfolioDetail }) {
             </div>
           </div>
         </div>
-
-        {data.years.length > 0 && (
-          <section className="card card-pad stack-sm">
-            <h3 className="section-title">{T.portfolio.years}</h3>
-            <div className="stack-sm">
-              {data.years.map((year) => (
-                <div key={year.year} className="list-row" style={{ padding: "8px 0" }}>
-                  <b style={{ minWidth: 48 }}>{year.year}</b>
-                  <span className="small muted">{T.portfolio.yearRow(year.projects, year.tasks)}</span>
-                </div>
-              ))}
-            </div>
-          </section>
-        )}
-
-        {data.recent_tasks.length > 0 && (
-          <section className="card card-pad stack-sm">
-            <h3 className="section-title">{T.portfolio.recentTasks}</h3>
-            <div className="stack-sm">
-              {data.recent_tasks.map((task) => (
-                <div key={task.id} className="list-row" style={{ padding: "8px 0" }}>
-                  <CheckCircle2 size={16} style={{ color: "var(--success)", flex: "none" }} aria-hidden />
-                  <span className="grow stack-sm" style={{ gap: 2, minWidth: 0 }}>
-                    <span className="ellipsis" style={{ fontWeight: 600, fontSize: 13 }}>{task.title}</span>
-                    <span className="small muted ellipsis">{task.project}</span>
-                  </span>
-                  {task.completed_at && <span className="small muted nowrap">{fmtDate(task.completed_at)}</span>}
-                </div>
-              ))}
-            </div>
-          </section>
-        )}
       </div>
+    </div>
+  );
+}
+
+function Experience({ data }: { data: PortfolioDetail }) {
+  const hasHistory = data.years.length > 0 || data.recent_tasks.length > 0;
+  return (
+    <div className="stack" style={{ gap: 16 }}>
+      <section className="card card-pad stack-sm">
+        <h3 className="section-title">{T.portfolio.stat.experience}</h3>
+        <p className="portfolio-description">
+          <b>{T.portfolio.experience(data.experience.months)}</b> · {T.portfolio.since(fmtDate(data.experience.since))}
+        </p>
+      </section>
+      {!hasHistory && (
+        <div className="card">
+          <Empty icon={<Trophy />} title={T.portfolio.experienceEmpty} hint={T.portfolio.experienceEmptyHint} />
+        </div>
+      )}
+      {data.years.length > 0 && (
+        <section className="card card-pad stack-sm">
+          <h3 className="section-title">{T.portfolio.years}</h3>
+          <div className="stack-sm">
+            {data.years.map((year) => (
+              <div key={year.year} className="list-row" style={{ padding: "8px 0" }}>
+                <b style={{ minWidth: 48 }}>{year.year}</b>
+                <span className="small muted">{T.portfolio.yearRow(year.projects, year.tasks)}</span>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+      {data.recent_tasks.length > 0 && (
+        <section className="card card-pad stack-sm">
+          <h3 className="section-title">{T.portfolio.recentTasks}</h3>
+          <div className="stack-sm">
+            {data.recent_tasks.map((task) => (
+              <div key={task.id} className="list-row" style={{ padding: "8px 0" }}>
+                <CheckCircle2 size={16} style={{ color: "var(--success)", flex: "none" }} aria-hidden />
+                <span className="grow stack-sm" style={{ gap: 2, minWidth: 0 }}>
+                  <span className="ellipsis" style={{ fontWeight: 600, fontSize: 13 }}>{task.title}</span>
+                  <span className="small muted ellipsis">{task.project}</span>
+                </span>
+                {task.completed_at && <span className="small muted nowrap">{fmtDate(task.completed_at)}</span>}
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
     </div>
   );
 }

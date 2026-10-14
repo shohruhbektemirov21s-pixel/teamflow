@@ -22,6 +22,7 @@ export interface Profile extends Me {
   date_joined: string;
   email: string;
   bio: string;
+  location: string;
   stats?: { active: number; in_review: number; done: number; overdue: number };
   /** Faqat oddiy foydalanuvchida: nechta baho qo'ygan va nechta dasturchini kuzatadi. */
   activity?: { reviews: number; following: number } | null;
@@ -320,6 +321,7 @@ export interface PortfolioDeveloper extends UserBrief {
   cover?: string | null;
   technologies?: string[];
   email?: string;
+  location?: string;
   telegram_username?: string;
 }
 

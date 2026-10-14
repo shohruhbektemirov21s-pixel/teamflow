@@ -35,6 +35,9 @@ export default function ProfilePage() {
   const [first, setFirst] = useState("");
   const [last, setLast] = useState("");
   const [telegram, setTelegram] = useState("");
+  const [email, setEmail] = useState("");
+  const [location, setLocation] = useState("");
+  const [bio, setBio] = useState("");
   const [oldPass, setOldPass] = useState("");
   const [newPass, setNewPass] = useState("");
 
@@ -49,6 +52,9 @@ export default function ProfilePage() {
       setFirst(p.first_name);
       setLast(p.last_name);
       setTelegram(p.telegram_username || "");
+      setEmail(p.email || "");
+      setLocation(p.location || "");
+      setBio(p.bio || "");
     }
   }, [p]);
 
@@ -57,6 +63,9 @@ export default function ProfilePage() {
       first_name: first,
       last_name: last,
       telegram_username: telegram,
+      email,
+      location,
+      bio,
     }),
     onSuccess: () => {
       toast(T.profile.savedToast);
@@ -171,6 +180,15 @@ export default function ProfilePage() {
               {(id, bad) => (
                 <input id={id} className="input" aria-invalid={bad} value={telegram} placeholder={T.profile.telegramPh} onChange={(e) => setTelegram(e.target.value)} />
               )}
+            </Field>
+            <Field label={T.profile.email} error={fieldError(infoMut.error, "email")}>
+              {(id, bad) => <input id={id} className="input" type="email" autoComplete="email" aria-invalid={bad} value={email} onChange={(e) => setEmail(e.target.value)} />}
+            </Field>
+            <Field label={T.profile.location} error={fieldError(infoMut.error, "location")}>
+              {(id, bad) => <input id={id} className="input" maxLength={120} aria-invalid={bad} value={location} placeholder={T.profile.locationPh} onChange={(e) => setLocation(e.target.value)} />}
+            </Field>
+            <Field label={T.profile.bio} error={fieldError(infoMut.error, "bio")}>
+              {(id, bad) => <textarea id={id} className="textarea" rows={3} maxLength={1000} aria-invalid={bad} value={bio} placeholder={T.profile.bioPh} onChange={(e) => setBio(e.target.value)} />}
             </Field>
             <Field label={T.profile.login}>{(id) => <input id={id} className="input" value={me.username} disabled />}</Field>
             <Field label={T.profile.dateJoined}>

@@ -52,6 +52,7 @@ export function UserProfileView() {
   const [last, setLast] = useState("");
   const [email, setEmail] = useState("");
   const [bio, setBio] = useState("");
+  const [location, setLocation] = useState("");
   const [telegram, setTelegram] = useState("");
   const [oldPass, setOldPass] = useState("");
   const [newPass, setNewPass] = useState("");
@@ -65,6 +66,7 @@ export function UserProfileView() {
       setLast(p.last_name || "");
       setEmail(p.email || "");
       setBio(p.bio || "");
+      setLocation(p.location || "");
       setTelegram(p.telegram_username || "");
     }
   }, [p]);
@@ -76,6 +78,7 @@ export function UserProfileView() {
         last_name: last,
         email,
         bio,
+        location,
         telegram_username: telegram,
       }),
     onSuccess: () => {
@@ -338,6 +341,20 @@ export function UserProfileView() {
                   )}
                 </Field>
               </div>
+
+              <Field label={T.profile.location} error={fieldError(infoMut.error, "location")}>
+                {(id, bad) => (
+                  <input
+                    id={id}
+                    className="input"
+                    maxLength={120}
+                    aria-invalid={bad}
+                    value={location}
+                    placeholder={T.profile.locationPh}
+                    onChange={(e) => setLocation(e.target.value)}
+                  />
+                )}
+              </Field>
 
               <Field
                 label={T.profile.bio}

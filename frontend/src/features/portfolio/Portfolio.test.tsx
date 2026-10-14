@@ -110,6 +110,42 @@ describe("Portfolio oynasi", () => {
     expect(within(dialog).getByText("Portal")).toBeTruthy();
   });
 
+  it("Tajriba tabida yillar va bajarilgan vazifalar, ma'lumot bo'lmasa bo'sh holat ko'rsatiladi", async () => {
+    mockGet({ [`/portfolio/${JASUR.id}/`]: {
+      ...DETAIL,
+      years: [{ year: 2025, projects: 2, tasks: 7 }],
+      recent_tasks: [{ id: 5, code: "123456789", title: "API yozish", project: "Portal", completed_at: "2025-03-01T10:00:00Z" }],
+    } });
+    const first = renderApp(<PortfolioModal id={JASUR.id} />);
+    const dialog = await screen.findByRole("dialog", { name: T.portfolio.title });
+    fireEvent.click(await within(dialog).findByRole("tab", { name: T.portfolio.tabs.experience }));
+    expect(await within(dialog).findByText("2025")).toBeTruthy();
+    expect(within(dialog).getByText(T.portfolio.yearRow(2, 7))).toBeTruthy();
+    expect(within(dialog).getByText("API yozish")).toBeTruthy();
+    first.unmount();
+
+    mockGet({ [`/portfolio/${JASUR.id}/`]: { ...DETAIL, years: [], recent_tasks: [] } });
+    renderApp(<PortfolioModal id={JASUR.id} />);
+    const empty = await screen.findByRole("dialog", { name: T.portfolio.title });
+    fireEvent.click(await within(empty).findByRole("tab", { name: T.portfolio.tabs.experience }));
+    expect(await within(empty).findByText(T.portfolio.experienceEmpty)).toBeTruthy();
+  });
+
+  it("joylashuvni faqat bazadagi qiymatdan ko'rsatadi, soxta matn va onlayn belgisi yo'q", async () => {
+    mockGet({ [`/portfolio/${JASUR.id}/`]: { ...DETAIL, location: "Samarqand" } });
+    const { container, unmount } = renderApp(<PortfolioModal id={JASUR.id} />);
+    const dialog = await screen.findByRole("dialog", { name: T.portfolio.title });
+    expect((await within(dialog).findAllByText("Samarqand")).length).toBeGreaterThan(0);
+    expect(container.querySelector(".uonline-dot")).toBeNull();
+    unmount();
+
+    mockGet({ [`/portfolio/${JASUR.id}/`]: { ...DETAIL, location: "" } });
+    renderApp(<PortfolioModal id={JASUR.id} />);
+    const empty = await screen.findByRole("dialog", { name: T.portfolio.title });
+    await within(empty).findByRole("tab", { name: T.portfolio.tabs.overview });
+    expect(within(empty).queryByText(/Toshkent/)).toBeNull();
+  });
+
   it("muqovasiz loyiha uchun rasm o'rniga placeholder ko'rsatadi", async () => {
     mockGet({ [`/portfolio/${JASUR.id}/`]: { ...DETAIL, items: [{ ...DETAIL.items[0]!, cover: null, technologies: [] }] } });
     renderApp(<PortfolioModal id={JASUR.id} />);
@@ -177,7 +213,7 @@ describe("Portfolio oynasi", () => {
     mockGet({});
     vi.mocked(api.post).mockImplementation(async (url) => url === "/portfolio/items/" ? { ...ITEM, id: 11 } : {});
     renderApp(<PortfolioModal id={JASUR.id} add />);
-    const save = await screen.findByRole("button", { name: T.common.save });
+    const save = await screen.findByRole("button", { name: T.portfolio.addSubmit });
     expect((save as HTMLButtonElement).disabled).toBe(true);
     fireEvent.change(screen.getByLabelText(new RegExp(T.portfolio.fields.title)), { target: { value: "Telegram bot" } });
     fireEvent.change(screen.getByLabelText(T.portfolio.fields.link), { target: { value: "https://github.com/x/bot" } });
