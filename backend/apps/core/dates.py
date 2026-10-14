@@ -1,8 +1,8 @@
 """Muddat sanalari qoidasi — BITTA joyda: bugungi kundan oldingi sana kiritilmaydi (bugun va keyingi kunlar mumkin).
 
 Faqat yangi kiritilgan yoki o'zgartirilgan qiymat tekshiriladi: eski yozuvdagi o'tib ketgan sana o'zgarmasa,
-boshqa maydonlarni (nom, izoh) saqlashga xalaqit bermaydi. Filtrlar va tarixiy sanalar (portfolio, ish jurnali)
-bu qoidaga kirmaydi.
+boshqa maydonlarni (nom, izoh) saqlashga xalaqit bermaydi. Filtrlar bu qoidaga kirmaydi; ish jurnali sanasi
+kiritilmaydi (har doim bugun), portfolio loyiha sanalari esa qoidaga kiradi (2026-10-14).
 """
 from datetime import datetime
 

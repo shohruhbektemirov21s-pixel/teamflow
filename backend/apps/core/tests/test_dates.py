@@ -108,10 +108,14 @@ class PastDateEntryPointsTests(TestCase):
         self.assertEqual(project.start_date, day(-3))
         orders.update_order_dates(order, self.pm, start_date=day(-3), end_date=day(6))  # boshlanish o'zgarmadi
 
-    def test_portfolio_and_worklog_dates_are_not_restricted(self):
-        r = client_for(self.dev).post("/api/portfolio/items/", {"title": "Eski ish", "start_date": day(-400).isoformat(),
-                                                                "end_date": day(-300).isoformat()}, format="json")
-        self.assertIn(r.status_code, (200, 201), r.data)
+    def test_portfolio_dates_follow_the_same_rule(self):
+        client = client_for(self.dev)
+        r = client.post("/api/portfolio/items/", {"title": "Eski ish", "start_date": day(-400).isoformat(),
+                                                  "end_date": day(-300).isoformat()}, format="json")
+        self.assertEqual(r.status_code, 400, r.data)
+        r = client.post("/api/portfolio/items/", {"title": "Yangi ish", "start_date": day(0).isoformat(),
+                                                  "end_date": day(30).isoformat()}, format="json")
+        self.assertEqual(r.status_code, 201, r.data)
 
 
 @override_settings(DEBUG=True)

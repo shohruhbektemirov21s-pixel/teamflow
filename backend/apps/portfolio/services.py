@@ -6,6 +6,7 @@ from rest_framework.exceptions import PermissionDenied
 
 from apps.accounts.models import User
 from apps.core.api_utils import ServiceError
+from apps.core.dates import ensure_not_past
 from apps.projects.models import ProjectMember
 
 from .files import normalized_cover, validate_video
@@ -46,6 +47,8 @@ def _require_owner(user, item):
 def create_item(user, **data):
     if not user.is_developer:
         raise PermissionDenied("Portfolio faqat dasturchilar uchun.")
+    ensure_not_past(data.get("start_date"), "start_date")
+    ensure_not_past(data.get("end_date"), "end_date")
     item = PortfolioItem(owner=user, **data)
     item.full_clean()
     item.save()
@@ -57,6 +60,9 @@ def update_item(item, user, **data):
     _require_owner(user, item)
     if item.is_auto and any(field in data for field in MANUAL_ONLY_FIELDS):
         raise ServiceError("TeamFlow loyihasining nomi va sanalari loyihadan olinadi, ularni o'zgartirib bo'lmaydi.")
+    # Faqat yangi kiritilgan yoki o'zgargan sana tekshiriladi (eski yozuvni nom/izoh bilan saqlash mumkin)
+    ensure_not_past(data.get("start_date"), "start_date", item.start_date)
+    ensure_not_past(data.get("end_date"), "end_date", item.end_date)
     for field, value in data.items():
         setattr(item, field, value)
     item.full_clean()

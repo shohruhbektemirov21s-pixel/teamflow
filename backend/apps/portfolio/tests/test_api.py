@@ -174,7 +174,8 @@ class EditTests(PortfolioTestCase):
     def test_developer_adds_and_edits_own_project(self):
         client = client_for(self.dev)
         res = client.post("/api/portfolio/items/", {"title": "Telegram bot", "link": "https://github.com/x/bot",
-                                                    "start_date": "2024-01-10", "end_date": "2024-05-01"},
+                                                    "start_date": today().isoformat(),
+                                                    "end_date": (today() + timedelta(days=30)).isoformat()},
                           format="json")
         self.assertEqual(res.status_code, 201)
         self.assertFalse(res.data["is_auto"])
@@ -200,8 +201,25 @@ class EditTests(PortfolioTestCase):
         res = client.post("/api/portfolio/items/", {"title": "X", "link": "javascript:alert(1)"}, format="json")
         self.assertEqual(res.status_code, 400)
         self.assertIn("link", res.data["fields"])
-        res = client.post("/api/portfolio/items/", {"title": "X", "start_date": "2025-02-01", "end_date": "2025-01-01"},
+        res = client.post("/api/portfolio/items/", {"title": "X", "start_date": (today() + timedelta(days=20)).isoformat(),
+                                                    "end_date": (today() + timedelta(days=10)).isoformat()},
                           format="json")
+        self.assertEqual(res.status_code, 400)
+
+    def test_past_dates_are_rejected_but_unchanged_old_dates_can_be_kept(self):
+        client = client_for(self.dev)
+        past = (today() - timedelta(days=1)).isoformat()
+        for field in ("start_date", "end_date"):
+            res = client.post("/api/portfolio/items/", {"title": "Eski", field: past}, format="json")
+            self.assertEqual(res.status_code, 400, res.data)
+            self.assertIn(field, res.data["fields"])
+        item = self.manual_item()
+        PortfolioItem.objects.filter(pk=item.pk).update(start_date=today() - timedelta(days=200))
+        # Eski sana o'zgarmasa, boshqa maydonni saqlash mumkin
+        res = client.patch(f"/api/portfolio/items/{item.pk}/", {"description": "Yangi tavsif"}, format="json")
+        self.assertEqual(res.status_code, 200, res.data)
+        # Sanani o'tgan kunga o'zgartirib bo'lmaydi
+        res = client.patch(f"/api/portfolio/items/{item.pk}/", {"start_date": past}, format="json")
         self.assertEqual(res.status_code, 400)
 
     def test_team_project_keeps_name_and_cannot_be_deleted(self):
