@@ -234,6 +234,8 @@ GET/POST   /api/comments/?target=order:12
 GET        /api/notifications/  POST /api/notifications/{id}/read/
 GET        /api/dashboard/      rolga mos hisob-kitob kartalari (Boshqarma: orders + periods — orders/filters.py)
 GET        /api/orders/?period=week&bucket=sent|rejected|approved   bosh panel kartasi bilan bir xil ro'yxat
+GET        /api/orders/stats/ · /api/tasks/stats/ · /api/projects/stats/   {totals, series (8 hafta), tabs, departments?} — ro'yxat sahifalari tepasi (core/trends.py); ro'yxatda ham `page_size` (10/25/50), buyurtmada `stage`, `priority`, `department`, `sent_from`, `sent_to`
+GET        /api/orders/?due_soon=1&sort=due|-due|priority|-priority|created|-created   muddati 7 kun ichida; saralash (core/sorting.py). /api/tasks/ ham `sort`, `created=me`, `bucket=overdue` qabul qiladi
 GET        /api/people/         xodimlar va bandligi (vazifasi yo'qlar tepada)
 PUT        /api/people/{id}/business-trip/    {return_date: YYYY-MM-DD} (faqat boshliq; safar darhol boshlanadi)
 DELETE     /api/people/{id}/business-trip/    safarni muddatidan oldin tugatish (faqat boshliq)

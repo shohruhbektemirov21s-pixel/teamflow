@@ -9,13 +9,14 @@ from rest_framework.response import Response
 
 from apps.core.api_utils import IsManager, require_manager
 from apps.core.pagination import bounded_unpaged
+from apps.core.sorting import sort_expressions
 from apps.orders.permissions import visible_orders
 from apps.projects.permissions import visible_projects
 
 from . import services
-from .filters import filter_tasks
+from .filters import filter_tasks, tasks_stats
 from .models import SubTask, Submission, TaskAssignment, WorkLog
-from .permissions import visible_tasks
+from .permissions import listed_tasks, visible_tasks
 from .serializers import (
     AssigneesSerializer,
     BulkTaskSerializer,
@@ -45,7 +46,7 @@ class TaskViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.Gen
             return filter_tasks(qs, self.request.query_params, self.request.user).annotate(
                 subtask_total=Coalesce(Subquery(subtask_counts.annotate(n=Count("pk")).values("n")), 0),
                 subtask_done=Coalesce(Subquery(subtask_counts.filter(is_done=True).annotate(n=Count("pk")).values("n")), 0),
-            ).order_by("due_at", "-created_at", "-pk")
+            ).order_by(*(sort_expressions(self.request.query_params.get("sort"), "due_at") or ["due_at", "-created_at", "-pk"]))
         return qs.prefetch_related(
             "subtasks",
             "worklogs__author",
@@ -59,6 +60,11 @@ class TaskViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.Gen
 
     def get_serializer_class(self):
         return TaskListSerializer if self.action == "list" else TaskDetailSerializer
+
+    @action(detail=False, methods=["get"])
+    def stats(self, request):
+        """Kartalar va holat tugmalari soni — ro'yxatda ko'rinadigan vazifalar bo'yicha (filtrlardan mustaqil)."""
+        return Response(tasks_stats(listed_tasks(request.user)))
 
     def paginate_queryset(self, queryset):
         # Doska va taqvim butun ro'yxatni oladi: ?all=1 (visible_tasks bilan cheklangan)

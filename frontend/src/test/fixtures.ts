@@ -41,8 +41,20 @@ export const META: MetaData = {
     { value: "in_review", label: "Tekshiruvda" },
     { value: "done", label: "Bajarildi" },
   ],
-  order_statuses: [],
-  project_stages: [],
+  order_statuses: [
+    { value: "submitted", label: "Yuborilgan" },
+    { value: "approved", label: "Tasdiqlangan" },
+    { value: "rejected", label: "Rad etilgan" },
+    { value: "project_created", label: "Loyiha yaratilgan" },
+  ],
+  project_stages: [
+    { value: "planned", label: "Rejalashtirilgan" },
+    { value: "started", label: "Boshlangan" },
+    { value: "needs_fix", label: "Tuzatish kerak" },
+    { value: "rejected", label: "Rad etildi" },
+    { value: "pending_approval", label: "Tasdiqlash kutilmoqda" },
+    { value: "done", label: "Yakunlangan" },
+  ],
   task_moves: [],
   telegram_bot: "teamflow_test_bot",
 };
@@ -71,6 +83,18 @@ export function taskDetail(overrides: Partial<TaskDetail> = {}): TaskDetail {
     worklogs: [],
     worklog_hours: "0.00",
     actions: { start: false, submit: false, review: false, edit: false, delete: false, add_files: false, log_work: false },
+    ...overrides,
+  };
+}
+
+/** `/orders/stats/`, `/tasks/stats/`, `/projects/stats/` javobi (ro'yxat sahifalari uchun). */
+export function listStats(overrides: Partial<{ totals: Record<string, number>; tabs: Record<string, number>; departments: string[] }> = {}) {
+  const week = [0, 0, 0, 0, 0, 0, 1, 2];
+  return {
+    totals: { all: 3, submitted: 1, planned: 1, done: 1, urgent: 0, in_progress: 1, in_review: 0, overdue: 0, started: 1, pending_approval: 0 },
+    series: { all: week, submitted: week, planned: week, done: week, urgent: week, in_progress: week, in_review: week, overdue: week, started: week, pending_approval: week },
+    tabs: { all: 3, submitted: 1, approved: 1, rejected: 1, done: 1 },
+    departments: ["IT boshqarma"],
     ...overrides,
   };
 }

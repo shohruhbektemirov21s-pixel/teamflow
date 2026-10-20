@@ -87,6 +87,15 @@ export interface Paged<T> {
   results: T[];
 }
 
+/** `/orders/stats/`, `/tasks/stats/`, `/projects/stats/`: kartalar (jami + so'nggi 8 hafta) va holat tugmalaridagi sonlar. */
+export interface ListStats {
+  totals: Record<string, number>;
+  series: Record<string, number[]>;
+  tabs: Record<string, number>;
+  /** Faqat buyurtmalar, faqat menejerga: boshqarma nomlari. */
+  departments?: string[];
+}
+
 export interface Task {
   id: number;
   code: string;

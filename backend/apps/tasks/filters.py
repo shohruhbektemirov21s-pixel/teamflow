@@ -12,6 +12,7 @@ from django.utils.dateparse import parse_date
 
 from apps.core.codes import resolve_code
 from apps.core.periods import PERIOD_KEYS, period_cards, period_starts
+from apps.core.trends import stats_block
 
 from .models import Task, TaskAssignment
 
@@ -76,6 +77,8 @@ def filter_tasks(qs, params, user):
     """GET parametrlari bo'yicha filtr (ro'yxat, jadval, taqvim, doska)."""
     if params.get("mine") == "1":
         qs = qs.filter(pk__in=TaskAssignment.objects.filter(developer=user).values("task_id"))
+    if params.get("created") == "me":
+        qs = qs.filter(created_by=user)
     if params.get("q"):
         code = resolve_code(params["q"])
         if code:
@@ -134,6 +137,20 @@ def filter_tasks(qs, params, user):
     # Only the name lookup can match multiple assignments for one task.
     # Avoid a DISTINCT over every wide task row for the ordinary list/count.
     return qs.distinct() if params.get("assignee_name") else qs
+
+
+def tasks_stats(qs):
+    """Vazifalar sahifasi tepasidagi kartalar va holat tugmalaridagi sonlar (ro'yxatda ko'rinadigan vazifalar bo'yicha).
+    Bajarilganlar grafigi — bajarilgan haftasi bo'yicha, qolganlari — yaratilgan haftasi bo'yicha."""
+    metrics = {
+        "all": (Q(), "created_at"),
+        "in_progress": (Q(status=S.IN_PROGRESS), "created_at"),
+        "in_review": (Q(status=S.IN_REVIEW), "created_at"),
+        "done": (Q(status=S.DONE), "completed_at"),
+        "overdue": (bucket_condition("overdue"), "created_at"),
+    }
+    tabs = {"all": Q(), **{s: Q(status=s) for s in (S.CONTROL, S.IN_PROGRESS, S.IN_REVIEW, S.DONE)}}
+    return stats_block(qs, metrics, tabs)
 
 
 def dashboard_counts(qs):

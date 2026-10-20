@@ -1,7 +1,6 @@
 import { fireEvent, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 
-import { api } from "@/shared/api";
 import { T } from "@/shared/text";
 import type { Me, Order } from "@/shared/types";
 import { PM, testUser } from "@/test/fixtures";
@@ -45,12 +44,11 @@ describe("DepartmentHome", () => {
     expect(await screen.findByText("Ellik birinchi buyurtma")).toBeTruthy();
   });
 
-  it("o'z buyurtmalari va holat kartalari chiqadi, qo'shimcha eslatma yo'q", async () => {
+  it("o'z buyurtmalari chiqadi, takroriy holat kartalari va qo'shimcha eslatma yo'q", async () => {
     testUser.current = DEPT;
     mockGet({
       "/dashboard/": { orders: { submitted: 1, rejected: 1, approved: 2 }, periods: PERIODS },
       "/orders/": { count: 2, next: null, previous: null, results: [order(1, "Kadrlar tizimi", "submitted"), order(2, "Hujjat aylanishi", "rejected")] },
-      "/orders/?status=approved%2Cproject_created": EMPTY,
     });
     renderApp(<DepartmentHome />);
 
@@ -61,11 +59,9 @@ describe("DepartmentHome", () => {
     expect(screen.queryByRole("heading", { level: 1 })).toBeNull();
     expect(screen.getByRole("button", { name: T.orders.new })).toBeTruthy();
 
-    // "Tasdiqlangan" kartasi loyihaga aylanganlarni ham ko'rsatadi (soni bilan mos)
-    const cards = screen.getAllByRole("button", { pressed: false }).filter((b) => b.classList.contains("total"));
-    fireEvent.click(cards[2]!);
-    expect(await screen.findByText(T.orders.empty)).toBeTruthy();
-    expect(api.get).toHaveBeenCalledWith("/orders/?status=approved%2Cproject_created");
+    // Holat kartalari yo'q (davr kartalari bilan takrorlanardi); "Buyurtmalarim" tugmasi ham yo'q (menyuda bor)
+    expect(document.querySelector(".total")).toBeNull();
+    expect(screen.queryByRole("link", { name: T.nav.myOrders })).toBeNull();
   });
 
   it("yil/oy/hafta kartalari boshqa bosh panellardagidek; raqam bosilsa ro'yxat shu davr va toifa bo'yicha", async () => {

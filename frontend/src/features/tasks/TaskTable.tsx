@@ -1,4 +1,4 @@
-import { ListChecks, SlidersHorizontal, X } from "lucide-react";
+import { FolderKanban, ListChecks, SlidersHorizontal, X } from "lucide-react";
 import { type ReactNode, useState } from "react";
 
 import { useModal } from "@/app/modals";
@@ -6,7 +6,7 @@ import { fmtDateTime } from "@/shared/format";
 import { useMeta } from "@/shared/meta";
 import { T } from "@/shared/text";
 import type { Task } from "@/shared/types";
-import { Button, CodeTag, Due, Empty, Field, People, PriorityBadge, SkeletonRows, TaskStatusBadge } from "@/shared/ui";
+import { Button, CodeTag, Due, Empty, Field, People, PriorityBadge, SkeletonRows, SortHeader, TaskStatusBadge } from "@/shared/ui";
 
 export interface TaskFilterState {
   q: string;
@@ -14,6 +14,14 @@ export interface TaskFilterState {
   date_to: string;
   status: string;
   assignee_name: string;
+  /** Muhimlik ("low" … "urgent"); bo'sh — hammasi. */
+  priority: string;
+  /** Vazifalar sahifasi: saralash kaliti ("due", "-priority", …); bo'sh — odatdagi tartib. */
+  sort: string;
+  /** "1" — faqat kechikkanlar. */
+  overdue: string;
+  /** "me" — faqat o'zim yaratgan vazifalar. */
+  created: string;
 }
 
 export const EMPTY_FILTERS: TaskFilterState = {
@@ -22,6 +30,10 @@ export const EMPTY_FILTERS: TaskFilterState = {
   date_to: "",
   status: "",
   assignee_name: "",
+  priority: "",
+  sort: "",
+  overdue: "",
+  created: "",
 };
 
 /** Vazifa filtrlari: qidiruv, sanadan/sanagacha, holat, xodim.
@@ -43,7 +55,9 @@ export function TaskFilters({
   const set = <K extends keyof TaskFilterState>(k: K) => (e: { target: { value: string } }) => onChange({ ...value, [k]: e.target.value });
   const dirty = JSON.stringify(value) !== JSON.stringify(EMPTY_FILTERS);
   const [open, setOpen] = useState(false);
-  const extra = (Object.keys(value) as (keyof TaskFilterState)[]).filter((k) => k !== "q" && value[k]).length;
+  // "Filtrlar" tugmasidagi son: faqat shu panel ichidagilar (qidiruv va tashqaridagi tugmalar kirmaydi)
+  const inPanel: (keyof TaskFilterState)[] = ["date_from", "date_to", "assignee_name", ...(showStatus ? (["status"] as const) : [])];
+  const extra = inPanel.filter((k) => value[k]).length;
   return (
     <div className={`filters ${open ? "open" : ""}`}>
       <Field label={T.filters.search}>
@@ -104,8 +118,26 @@ export function TaskFilters({
   );
 }
 
-/** Vazifalar jadvali. Qator bosilsa — vazifa modali. */
-export function TaskTable({ tasks, loading, emptyHint }: { tasks: Task[] | undefined; loading?: boolean; emptyHint?: string }) {
+/** Topshiriqlar bajarilish chizig'i (faqat topshiriq bo'lsa). */
+function SubtaskProgress({ done, total }: { done: number; total: number }) {
+  if (!total) return null;
+  return (
+    <span className="task-progress" title={T.tasks.subtasksDone(done, total)}>
+      <span className="progress"><span style={{ width: `${Math.round((done / total) * 100)}%` }} /></span>
+      <span className="small muted nowrap">{T.tasks.subtasksDone(done, total)}</span>
+    </span>
+  );
+}
+
+/**
+ * Vazifalar jadvali. Qator bosilsa — vazifa modali. Chap chetdagi rangli chiziq — muhimlik, kechikkan qator ajralib turadi.
+ * `showProject` — vazifa nomi ostida loyiha (loyiha oynasida kerak emas).
+ */
+export function TaskTable({ tasks, loading, emptyHint, showProject = false, sort, onSort }: {
+  tasks: Task[] | undefined; loading?: boolean; emptyHint?: string; showProject?: boolean;
+  /** Ikkalasi ham berilsa, "Muhimlik" va "Muddat" sarlavhalari bosilib saralanadi. */
+  sort?: string; onSort?: (s: string) => void;
+}) {
   const { open } = useModal();
   if (loading && !tasks) return <SkeletonRows rows={5} />;
   if (!tasks?.length) return <Empty icon={<ListChecks />} title={T.tasks.empty} hint={emptyHint ?? T.tasks.emptyHint} />;
@@ -117,15 +149,16 @@ export function TaskTable({ tasks, loading, emptyHint }: { tasks: Task[] | undef
             <th style={{ width: 40 }}>№</th>
             <th>{T.tasks.col.title}</th>
             <th className="hide-sm">{T.tasks.col.status}</th>
-            <th className="hide-sm">{T.tasks.col.priority}</th>
+            {onSort ? <SortHeader className="hide-sm" label={T.tasks.col.priority} first="-priority" second="priority" sort={sort ?? ""} onSort={onSort} /> : <th className="hide-sm">{T.tasks.col.priority}</th>}
             <th className="hide-sm">{T.tasks.col.assignees}</th>
-            <th className="hide-sm">{T.tasks.col.due}</th>
+            {onSort ? <SortHeader className="hide-sm" label={T.tasks.col.due} first="due" second="-due" sort={sort ?? ""} onSort={onSort} /> : <th className="hide-sm">{T.tasks.col.due}</th>}
           </tr>
         </thead>
         <tbody>
           {tasks.map((t, i) => (
             <tr
               key={t.id}
+              className={`row-p-${t.priority}${t.is_overdue && t.status !== "done" ? " row-overdue" : ""}`}
               tabIndex={0}
               onClick={() => open({ task: t.id })}
               onKeyDown={(e) => e.key === "Enter" && open({ task: t.id })}
@@ -135,6 +168,12 @@ export function TaskTable({ tasks, loading, emptyHint }: { tasks: Task[] | undef
                 <div className="task-title">
                   <CodeTag code={t.code} /> {t.title}
                 </div>
+                {showProject && (
+                  <div className="small muted task-project">
+                    <FolderKanban size={13} /> {t.project ? t.project.name : T.tasks.noProject}
+                  </div>
+                )}
+                <SubtaskProgress done={t.subtasks_progress.done} total={t.subtasks_progress.total} />
                 <div className="row-wrap show-sm" style={{ marginTop: 8 }}>
                   <TaskStatusBadge status={t.status} />
                   <Due value={t.due_at} done={t.status === "done"} format={fmtDateTime} />
@@ -167,5 +206,10 @@ export function filterParams(f: TaskFilterState) {
     due_to: f.date_to,
     status: f.status,
     assignee_name: f.assignee_name,
+    priority: f.priority,
+    sort: f.sort,
+    // `bucket` faqat kerak bo'lganda: Bosh panel o'z toifasini shu obyektdan oldin beradi va uni bosib ketmasligi kerak
+    ...(f.overdue ? { bucket: "overdue" } : {}),
+    ...(f.created ? { created: f.created } : {}),
   };
 }

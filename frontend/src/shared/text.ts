@@ -156,6 +156,22 @@ export const T = {
     deptApproved: "Tasdiqlangan",
   },
 
+  /** Ro'yxat sahifalari (Buyurtmalar, Vazifalar, Loyihalar) uchun umumiy matnlar. */
+  list: {
+    perPage: "Har sahifada:",
+    trend: (label: string) => `${label}: so'nggi 8 hafta`,
+    allStatuses: "Barcha holatlar",
+    allPriorities: "Barcha darajalar",
+    allDepartments: "Barcha boshqarmalar",
+    priority: "Muhimlik",
+    department: "Boshqarma",
+    sentRange: "Yuborilgan sana",
+    dueRange: "Muddat oralig'i",
+    groupOrder: "Buyurtma",
+    groupProject: "Loyiha",
+    statsError: "Ko'rsatkichlarni yuklab bo'lmadi.",
+  },
+
   filters: {
     search: "Qidiruv",
     searchPh: "Vazifa nomi yoki kodi",
@@ -175,12 +191,44 @@ export const T = {
     allProjects: "Barcha loyihalar",
     toggle: "Filtrlar",
     clear: "Filtrni tozalash",
+    sort: "Saralash",
+    sortDefault: "Odatdagi tartib",
+    onlyOverdue: "Faqat kechikkanlar",
+    createdByMe: "Men yaratganlar",
+    dueSoon: "Muddati yaqin",
+    sortBy: (label: string) => `${label} bo'yicha saralash`,
+    taskSorts: [
+      { value: "due", label: "Muddat: yaqini birinchi" },
+      { value: "-due", label: "Muddat: uzog'i birinchi" },
+      { value: "-priority", label: "Muhimlik: yuqorisi birinchi" },
+      { value: "priority", label: "Muhimlik: pastrog'i birinchi" },
+      { value: "-created", label: "Yangi qo'shilganlar birinchi" },
+      { value: "created", label: "Eskilari birinchi" },
+    ],
+    orderSorts: [
+      { value: "-created", label: "Yangi yuborilganlar birinchi" },
+      { value: "created", label: "Eskilari birinchi" },
+      { value: "due", label: "Muddat: yaqini birinchi" },
+      { value: "-due", label: "Muddat: uzog'i birinchi" },
+      { value: "-priority", label: "Muhimlik: yuqorisi birinchi" },
+      { value: "priority", label: "Muhimlik: pastrog'i birinchi" },
+    ],
   },
 
   tasks: {
     new: "Yangi vazifa",
     empty: "Vazifa topilmadi",
     emptyHint: "Filtrlarni tozalab ko'ring yoki yangi vazifa yarating.",
+    found: (n: number) => `${n} ta vazifa`,
+    searchPh: "Vazifa nomi, loyiha yoki kod…",
+    stats: {
+      all: ["Jami", "Barcha vazifalar"],
+      in_progress: ["Jarayonda", "Hozir bajarilmoqda"],
+      in_review: ["Tekshiruvda", "Menejer ko'rishini kutmoqda"],
+      done: ["Bajarilgan", "Muvaffaqiyatli yakunlangan"],
+      overdue: ["Kechikkan", "Muddati o'tib ketgan"],
+    } as Record<string, [string, string]>,
+    subtasksDone: (done: number, total: number) => `${done}/${total} topshiriq`,
     col: { title: "Vazifa", status: "Holat", priority: "Muhimlik", assignees: "Ijrochilar", due: "Muddat" },
     project: "Loyiha",
     name: "Vazifa nomi",
@@ -277,6 +325,16 @@ export const T = {
 
   orders: {
     new: "Yangi buyurtma",
+    found: (n: number) => `${n} ta buyurtma`,
+    searchPh: "Buyurtma nomi yoki boshqarma…",
+    stats: {
+      all: ["Jami", "Barcha buyurtmalar"],
+      submitted: ["Yangi", "Yangi kelib tushgan"],
+      planned: ["Rejalashtirilgan", "Rejalashtirilgan buyurtmalar"],
+      done: ["Yakunlangan", "Muvaffaqiyatli yakunlangan"],
+      urgent: ["Shoshilinch", "Tezkor ishlov talab etadi"],
+    } as Record<string, [string, string]>,
+    sentAtShort: "Yuborilgan",
     empty: "Buyurtma yo'q",
     emptyDept: "Birinchi buyurtmangizni yuboring — TZ faylini biriktiring va muddatni belgilang.",
     emptyManager: "Boshqarmalar buyurtma yuborganda shu yerda ko'rinadi.",
@@ -336,6 +394,15 @@ export const T = {
   },
 
   projects: {
+    found: (n: number) => `${n} ta loyiha`,
+    searchPh: "Loyiha nomi yoki raqami…",
+    stats: {
+      all: ["Jami", "Barcha loyihalar"],
+      planned: ["Rejalashtirilgan", "Hali boshlanmagan"],
+      started: ["Boshlangan", "Ish ketmoqda"],
+      pending_approval: ["Tasdiq kutilmoqda", "Yakunlash tasdig'i kerak"],
+      done: ["Yakunlangan", "Muvaffaqiyatli yakunlangan"],
+    } as Record<string, [string, string]>,
     new: "Yangi loyiha",
     empty: "Loyiha yo'q",
     emptyHint: "Loyiha yarating yoki tasdiqlangan buyurtmadan loyiha oching.",

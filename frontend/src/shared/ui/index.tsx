@@ -1,4 +1,4 @@
-import { AlertTriangle, Check, CheckCircle2, Download, Eye, FileText, Inbox, Info, Loader2, Paperclip, UploadCloud, X } from "lucide-react";
+import { AlertTriangle, ArrowDown, ArrowUp, ArrowUpDown, BarChart3, Flame, Check, CheckCircle2, Download, Eye, FileText, Inbox, Info, Loader2, Paperclip, UploadCloud, X } from "lucide-react";
 // eslint-disable-next-line @typescript-eslint/no-restricted-imports -- Avatar needs modal access for click-to-profile
 import { useNavigate, useLocation } from "react-router-dom";
 import {
@@ -163,9 +163,10 @@ export function OrderStatusBadge({ status }: { status: OrderStatus }) {
 export function StageBadge({ stage }: { stage: ProjectStage }) {
   return <Badge tone={STAGE_TONE[stage]}>{useMeta().label("project_stages", stage)}</Badge>;
 }
-export function PriorityBadge({ priority }: { priority: Priority }) {
+export function PriorityBadge({ priority, icon = false }: { priority: Priority; icon?: boolean }) {
   return (
     <Badge tone={PRIORITY_TONE[priority]} dot={false}>
+      {icon && (priority === "urgent" ? <Flame /> : <BarChart3 />)}
       {useMeta().label("priorities", priority)}
     </Badge>
   );
@@ -376,6 +377,24 @@ export function Segmented<V extends string>({
         </button>
       ))}
     </div>
+  );
+}
+
+/**
+ * Saralanadigan ustun sarlavhasi. `first` — birinchi bosishdagi saralash kaliti (masalan "due"), `second` — ikkinchisi
+ * ("-due"); `sort` hozirgi kalit. Uchinchi bosish ham `first` ga qaytaradi. Rang yolg'iz emas: o'q ikonka ham bor.
+ */
+export function SortHeader({ label, first, second, sort, onSort, className }: {
+  label: string; first: string; second: string; sort: string; onSort: (s: string) => void; className?: string;
+}) {
+  const active = sort === first || sort === second;
+  const Arrow = !active ? ArrowUpDown : sort === first ? ArrowUp : ArrowDown;
+  return (
+    <th className={className} aria-sort={!active ? "none" : sort === first ? "ascending" : "descending"}>
+      <button type="button" className={`sort-btn${active ? " active" : ""}`} onClick={() => onSort(sort === first ? second : first)} aria-label={T.filters.sortBy(label)} title={T.filters.sortBy(label)}>
+        {label} <Arrow size={14} />
+      </button>
+    </th>
   );
 }
 

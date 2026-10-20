@@ -1,15 +1,13 @@
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { FileText, Plus } from "lucide-react";
 import { useState } from "react";
-import { Link } from "react-router-dom";
 
 import { useModal } from "@/app/modals";
-import { OrdersTable, OrderStatusCards } from "@/features/orders/OrdersTable";
+import { OrdersTable } from "@/features/orders/OrdersTable";
 import { api, qs } from "@/shared/api";
-import { useMeta } from "@/shared/meta";
 import { T } from "@/shared/text";
 import type { DepartmentDashboard, Order, OrderBucket, Paged, PeriodKey } from "@/shared/types";
-import { Button, Empty, ErrorBox, Skeleton, SkeletonRows } from "@/shared/ui";
+import { Button, Empty, ErrorBox, SkeletonRows } from "@/shared/ui";
 import { Pagination } from "@/shared/ui/Pagination";
 
 import { PeriodCards } from "./PeriodCards";
@@ -20,22 +18,20 @@ const PERIOD_BUCKETS: { key: OrderBucket; label: string; alert?: boolean }[] = [
   { key: "approved", label: T.dashboard.deptApproved },
 ];
 
-/** Ro'yxat filtri: davr kartasi (`period` + `bucket`) yoki holat kartasi (`status`). */
+/** Ro'yxat filtri: davr kartasi (`period` + `bucket`). */
 interface Selection {
-  params: { status?: string; period?: PeriodKey; bucket?: OrderBucket };
+  params: { period?: PeriodKey; bucket?: OrderBucket };
   title: string;
 }
 
 /**
- * Boshqarma bosh paneli: yil/oy/hafta boshidan kartalari (boshqa bosh panellar bilan bir xil), buyurtmalar holati
- * va o'z buyurtmalari ro'yxati (server faqat o'zinikini beradi). Karta bosilsa ro'yxat filtrlanadi.
+ * Boshqarma bosh paneli: yil/oy/hafta boshidan kartalari (boshqa bosh panellar bilan bir xil) va o'z buyurtmalari
+ * ro'yxati (server faqat o'zinikini beradi). Karta bosilsa ro'yxat filtrlanadi.
  */
 export default function DepartmentHome() {
   const { open } = useModal();
-  const meta = useMeta();
   const [selected, setSelected] = useState<Selection | null>(null);
   const [page, setPage] = useState(1);
-  const status = selected?.params.status ?? "";
   const toggle = (next: Selection) => {
     setPage(1);
     setSelected((cur) => (cur && JSON.stringify(cur.params) === JSON.stringify(next.params) ? null : next));
@@ -55,9 +51,6 @@ export default function DepartmentHome() {
     <>
       <div className="page-toolbar">
         <div className="page-actions">
-          <Link to="/buyurtmalar" className="btn">
-            <FileText size={16} /> {T.nav.myOrders}
-          </Link>
           <Button variant="primary" icon={<Plus />} onClick={newOrder}>
             {T.orders.new}
           </Button>
@@ -72,23 +65,6 @@ export default function DepartmentHome() {
         isOn={(bucket, period) => selected?.params.bucket === bucket && selected.params.period === period}
         onPick={(bucket, period, title) => toggle({ params: { period, bucket }, title })}
       />
-
-      <h2 className="section-title">
-        {T.dashboard.departmentTitle}
-      </h2>
-      {summary.data ? (
-        <OrderStatusCards
-          counts={summary.data.orders}
-          value={status}
-          onChange={(filter) => { setPage(1); setSelected(filter ? { params: { status: filter }, title: meta.label("order_statuses", filter.split(",")[0]!) } : null); }}
-        />
-      ) : (
-        <div className="grid-3">
-          {[0, 1, 2].map((i) => (
-            <Skeleton key={i} h={84} />
-          ))}
-        </div>
-      )}
 
       <section className="card" aria-label={T.dashboard.deptOrders}>
         <div className="card-head">
@@ -112,11 +88,6 @@ export default function DepartmentHome() {
             icon={<FileText />}
             title={T.orders.empty}
             hint={T.orders.emptyDept}
-            action={
-              <Button variant="primary" icon={<Plus />} onClick={newOrder}>
-                {T.orders.new}
-              </Button>
-            }
           />
         ) : (
           <OrdersTable orders={orders.data.results} showDepartment={false} />

@@ -5,9 +5,10 @@ from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 
 from apps.core.api_utils import IsDepartment, require_manager
+from apps.core.sorting import sort_expressions
 
 from . import services
-from .filters import filter_orders
+from .filters import filter_orders, orders_stats
 from .permissions import visible_orders
 from .serializers import (
     ApproveSerializer,
@@ -34,7 +35,10 @@ class OrderViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.Crea
         if params.get("q"):
             q = params["q"]
             qs = qs.filter(Q(title__icontains=q) | Q(submitted_by__department_name__icontains=q))
-        if self.request.user.is_department:
+        sort = sort_expressions(params.get("sort"), "requested_due_date")
+        if sort:
+            qs = qs.order_by(*sort)
+        elif self.request.user.is_department:
             qs = qs.alias(display_priority=Case(
                 When(project__stage="pending_approval", then=Value(0)),
                 When(project__stage="done", then=Value(2)),
@@ -46,6 +50,17 @@ class OrderViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.Crea
 
     def get_serializer_class(self):
         return OrderDetailSerializer if self.action == "retrieve" else OrderListSerializer
+
+    @action(detail=False, methods=["get"])
+    def stats(self, request):
+        """Kartalar, holat tugmalari soni va (menejerga) boshqarmalar ro'yxati — filtrlardan mustaqil."""
+        visible = visible_orders(request.user)
+        data = orders_stats(visible)
+        data["departments"] = (
+            sorted(visible.exclude(submitted_by__department_name="").order_by().values_list("submitted_by__department_name", flat=True).distinct())
+            if request.user.is_manager else []
+        )
+        return Response(data)
 
     def get_permissions(self):
         if self.action == "create":

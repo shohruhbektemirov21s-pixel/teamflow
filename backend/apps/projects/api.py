@@ -7,6 +7,7 @@ from rest_framework.response import Response
 
 from apps.core.api_utils import IsDepartment, IsManager
 from apps.core.pagination import bounded_unpaged
+from apps.core.trends import stats_block
 from apps.core.codes import resolve_code
 from apps.orders.permissions import visible_orders
 
@@ -82,6 +83,14 @@ class ProjectViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.
         queryset = visible_projects(request.user).select_related(None).order_by("name", "pk").values("id", "name", "code")
         page = super().paginate_queryset(queryset)
         return self.get_paginated_response(list(page))
+
+    @action(detail=False, methods=["get"])
+    def stats(self, request):
+        """Kartalar va daraja tugmalaridagi sonlar — ko'rinadigan loyihalar bo'yicha (filtrlardan mustaqil)."""
+        S = Project.Stage
+        metrics = {"all": (Q(), "created_at"), **{s: (Q(stage=s), "created_at") for s in (S.PLANNED, S.STARTED, S.PENDING_APPROVAL, S.DONE)}}
+        tabs = {"all": Q(), **{s: Q(stage=s) for s in S.values}}
+        return Response(stats_block(visible_projects(request.user), metrics, tabs))
 
     def get_permissions(self):
         if self.action in self.MANAGER_ACTIONS:
