@@ -133,8 +133,10 @@ function SubtaskProgress({ done, total }: { done: number; total: number }) {
  * Vazifalar jadvali. Qator bosilsa — vazifa modali. Chap chetdagi rangli chiziq — muhimlik, kechikkan qator ajralib turadi.
  * `showProject` — vazifa nomi ostida loyiha (loyiha oynasida kerak emas).
  */
-export function TaskTable({ tasks, loading, emptyHint, showProject = false, sort, onSort }: {
+export function TaskTable({ tasks, loading, emptyHint, showProject = false, rich = false, sort, onSort }: {
   tasks: Task[] | undefined; loading?: boolean; emptyHint?: string; showProject?: boolean;
+  /** Vazifalar sahifasi ko'rinishi: muhimlik chizig'i, kechikkan qator rangi, topshiriqlar chizig'i. Boshqa joylarda — oddiy. */
+  rich?: boolean;
   /** Ikkalasi ham berilsa, "Muhimlik" va "Muddat" sarlavhalari bosilib saralanadi. */
   sort?: string; onSort?: (s: string) => void;
 }) {
@@ -158,7 +160,7 @@ export function TaskTable({ tasks, loading, emptyHint, showProject = false, sort
           {tasks.map((t, i) => (
             <tr
               key={t.id}
-              className={`row-p-${t.priority}${t.is_overdue && t.status !== "done" ? " row-overdue" : ""}`}
+              className={rich ? `row-p-${t.priority}${t.is_overdue && t.status !== "done" ? " row-overdue" : ""}` : undefined}
               tabIndex={0}
               onClick={() => open({ task: t.id })}
               onKeyDown={(e) => e.key === "Enter" && open({ task: t.id })}
@@ -173,7 +175,7 @@ export function TaskTable({ tasks, loading, emptyHint, showProject = false, sort
                     <FolderKanban size={13} /> {t.project ? t.project.name : T.tasks.noProject}
                   </div>
                 )}
-                <SubtaskProgress done={t.subtasks_progress.done} total={t.subtasks_progress.total} />
+                {rich && <SubtaskProgress done={t.subtasks_progress.done} total={t.subtasks_progress.total} />}
                 <div className="row-wrap show-sm" style={{ marginTop: 8 }}>
                   <TaskStatusBadge status={t.status} />
                   <Due value={t.due_at} done={t.status === "done"} format={fmtDateTime} />

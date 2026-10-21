@@ -134,7 +134,7 @@ export default function TasksPage() {
             <ErrorBox error={query.error} onRetry={() => query.refetch()} />
           </div>
         ) : (
-          <TaskTable tasks={query.data?.results} loading={query.isLoading} showProject sort={filters.sort} onSort={(sort) => change({ sort })} />
+          <TaskTable tasks={query.data?.results} loading={query.isLoading} showProject rich sort={filters.sort} onSort={(sort) => change({ sort })} />
         )}
         <Pagination
           data={query.isPlaceholderData ? undefined : query.data}

@@ -148,7 +148,7 @@ export default function OrdersPage() {
           <Empty icon={<FileText />} title={T.orders.empty} hint={dept ? T.orders.emptyDept : T.orders.emptyManager} />
         )}
         {query.data && query.data.results.length > 0 && (
-          <OrdersTable orders={query.data.results} showDepartment={!dept} sort={f.sort} onSort={(sort) => change({ sort })} />
+          <OrdersTable orders={query.data.results} showDepartment={!dept} rich sort={f.sort} onSort={(sort) => change({ sort })} />
         )}
         <Pagination
           data={query.isPlaceholderData ? undefined : query.data}
