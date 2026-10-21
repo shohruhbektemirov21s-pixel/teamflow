@@ -1,7 +1,7 @@
 import { fmtDate } from "@/shared/format";
 import { T } from "@/shared/text";
 import type { PeriodKey } from "@/shared/types";
-import { Skeleton } from "@/shared/ui";
+import { AnimatedNumber, Skeleton } from "@/shared/ui";
 
 export interface PeriodData<B extends string> {
   key: PeriodKey;
@@ -47,7 +47,7 @@ export function PeriodCards<B extends string>({
                       onClick={() => onPick(b.key, p.key, T.dashboard.tableTitle(p.label, b.label))}
                     >
                       <span className={`stat-num ${n ? (b.alert ? "alert" : "") : "zero"}`}>
-                        {n}
+                        <AnimatedNumber value={n} />
                       </span>
                       <span className="stat-label">
                         {b.label}

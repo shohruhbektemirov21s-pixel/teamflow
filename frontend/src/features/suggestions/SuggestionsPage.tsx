@@ -80,11 +80,6 @@ export default function SuggestionsPage() {
             icon={<Lightbulb />}
             title={T.suggestions.empty}
             hint={T.suggestions.emptyHint}
-            action={
-              <Button variant="primary" icon={<Plus />} onClick={() => open({ new: "suggestion" })}>
-                {T.suggestions.new}
-              </Button>
-            }
           />
         </div>
       )}

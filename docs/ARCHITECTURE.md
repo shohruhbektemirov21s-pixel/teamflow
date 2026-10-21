@@ -17,14 +17,14 @@
 ```
 
 Portlar: Django `127.0.0.1:8020` (8000-port boshqa dastur bilan band). Vite dev `127.0.0.1:5173`.
-Deployment: bitta Django jarayoni (`127.0.0.1:8020`). Frontend build (`frontend/dist`) Django orqali beriladi (`http://127.0.0.1:8020/`), shuning uchun serverda Node kerak emas. Ishlab chiqishda Vite dev-server `/api` va `/admin` ni 8020-portga proksi qiladi.
+Mahalliy ishga tushirish: Django (`127.0.0.1:8020`) frontend buildni ham beradi. Vite dev-server `/api` va `/admin` ni 8020-portga proksi qiladi. Production: HTTPS gateway → Nginx → Gunicorn/Django → PostgreSQL va Redis. Alohida Telegram outbox worker tashqi xabarlarni yuboradi. Node faqat build bosqichida kerak. Sozlash, ulanishlar chegarasi, backup va masshtablash shartlari: [deployment qo'llanmasi](../backend/deploy/README.md).
 
 ## 2. Texnologiya qarorlari
 
 | Qaror | Tanlov | Nima uchun |
 |---|---|---|
 | Backend | Python 3.14, Django 5.2, DRF 3.17 | Talab. Django admin tayyor tasdiqlash paneli beradi. |
-| DB | SQLite | Talab ("Django'nikidan"). Hamma so'rov ORM orqali, keyin PostgreSQL'ga o'tish oson. |
+| DB | Mahalliy SQLite; production PostgreSQL | Bir vaqtda yozish va tranzaksiya bloklashlari uchun PostgreSQL. Production SQLite'ga yashirin qaytmaydi. |
 | Auth | **Sessiya + CSRF** (DRF `SessionAuthentication`) | Bir origin (SPA Django orqali beriladi). Token `localStorage`da saqlanmaydi, XSS xavfi kam. Qo'shimcha kutubxona kerak emas. |
 | Foydalanuvchi | `AbstractUser` kengaytmasi, `role` maydoni | Rollar 4 ta, qat'iy. Alohida Role/Permission jadvali ortiqcha. |
 | Frontend | React + TypeScript + Vite | Kelishilgan. Node faqat build uchun. |
@@ -41,7 +41,7 @@ backend/
   config/            settings.py, urls.py, wsgi.py, asgi.py
   apps/
     core/            umumiy: choices, fayl validatsiyasi, kod yordamchilari (codes.py: tasodifiy 9 xonali kod — `apps.get_model` orqali, Task/Project statik import qilinmaydi), davrlar (periods.py), Comment, ActivityLog
-    accounts/        User, Specialty, ro'yxatdan o'tish, login, ruxsat yordamchilari
+    accounts/        User, Specialty, ResponsibleProject(+News), ro'yxatdan o'tish, login, ruxsat yordamchilari
     orders/          Order, OrderVersion, buyurtma holat mashinasi, servislar
     projects/        Project, ProjectMember, ProjectFile
     tasks/           Task, TaskAssignment, SubTask, Submission, WorkLog, holat mashinasi
@@ -51,6 +51,9 @@ backend/
     panel/           modelsiz yig'uvchi qatlam: dashboard, people, search, comments, history, files, meta
     ai/              WebAgentRun; services/tinyfish_service.py (tashqi provayder klienti, SSRF himoyasi),
                      services/web_agent.py (ishni boshlash va holatini yangilash); faqat core'ni import qiladi
+    portfolio/       PortfolioItem, PortfolioVideo, PortfolioReview, Follow; files.py (video validatsiyasi, Range bilan
+                     berish), stats.py (reyting, sonlar, tajriba — subquery bilan), signals.py (video fayli o'chirilishi);
+                     accounts/projects/tasks/core'ni import qiladi, uni hech kim import qilmaydi (eng yuqori domen qatlami)
 ```
 
 ### Qatlamlar (har bir app ichida)
@@ -82,13 +85,23 @@ core  ←  accounts  ←  orders  ←  projects  ←  tasks
 - Telegram'ga yuborish `transaction.on_commit` da, bitta fon oqimida, 5 soniya timeout bilan. **Nima uchun:** amal bekor bo'lsa xabar ketmasin, so'rov Telegram'ni kutib qolmasin. Token `TELEGRAM_BOT_TOKEN` (va havola uchun `TELEGRAM_BOT_USERNAME`) — `backend/.env` da yoki muhit o'zgaruvchisida; `.env` ni `config/settings.py` kutubxonasiz o'qiydi, haqiqiy muhit o'zgaruvchisi ustun. **Nima uchun:** token gitga tushmasin, autostart (`start_server.bat`) ham uni topsin. Xato loglarida URL (demak token) yozilmaydi — faqat holat kodi.
 - Taqvim loyihalarni `GET /api/projects/?end_from=&end_to=&all=1` bilan oladi (`all=1` — sahifalanmaydi, `visible_projects` bilan cheklangan); kun modali vazifalarni `GET /api/tasks/?date=&all=1` bilan oladi.
 
+### 3.1. 10 000 faol foydalanuvchi uchun ishlash chegaralari
+
+Production oqimi bitta Django jarayoniga bog'lanmaydi: Nginx → Gunicorn (measured profile: 12 worker × 2 thread) → PostgreSQL/Redis. Bildirishnoma unread soni Redis'da 60 soniya keshlanadi va xabar yaratish/o'qish tranzaksiyasi commit bo'lgach invalidatsiya qilinadi. Portfolio reytingi standart birinchi sahifada 60 soniya keshlanadi; viewerga bog'liq follow holati alohida olinadi. Chat xabarlari yangi xabar bo'lmasa 5 → 10 → 20 → 40 → 60 soniyagacha adaptive polling qiladi, suhbatlar ro'yxati 30 soniyada yangilanadi, yashirin tabda polling to'xtaydi. Sessiyalar `cached_db` orqali PostgreSQL'da saqlanadi; `clearsessions` har kuni bajariladi.
+
+Ruxsatli fayllar (avatar, portfolio muqovasi/videosi, buyurtma/loyiha/vazifa hujjatlari) production'da Gunicorn oqimini band qilmaydi: Django ruxsat va egalikni tekshiradi va `X-Accel-Redirect: /protected-media/<nom>` qaytaradi, faylni Nginx o'zi beradi (sendfile, Range, sekin mijoz). `/protected-media/` — `internal`, tashqaridan ochilmaydi. Qoida bitta joyda: `apps/core/serving.py: protected_file` (`PROTECTED_MEDIA_ACCEL_PREFIX` bo'sh bo'lsa — mahalliy — Django beradi). Nginx `Cache-Control: no-store`ni faqat Django kesh sarlavhasi bermagan javobga qo'yadi, shuning uchun versiyalangan avatar/muqova (`?v=`) brauzerda 1 kun keshlanadi. **Nima uchun:** 12×2 oqimda bitta 100 MB video yoki sahifadagi o'nlab rasm API so'rovlarini navbatga qo'yardi.
+
+2026-10-06 dagi 10k hisobot oldingi schema va synthetic workload uchun o'lchangan: u portfolio, login burst, fayl uploadi, browser polling va uzoq soakni to'liq qamramaydi. Shuning uchun bu arxitektura resurslarni kamaytiradi, lekin joriy mahsulot uchun yakuniy sig'im raqami faqat aynan tanlangan serverda yangilangan capacity harness bilan tasdiqlanadi.
+
 ## 4. Ma'lumotlar modeli
 
 ### accounts
 | Model | Maydonlar | Izoh |
 |---|---|---|
 | `Specialty` | name (unique), is_active | Mutaxassisliklar ro'yxati **Django adminda** boshqariladi (ochiq savol yopildi). |
-| `User` | username (login), first_name, last_name, password, role, specialty FK?, department_name, telegram_username, telegram_chat_id, avatar (rasm, 1024px JPEG), is_active | `role`: boss / pm / developer / department. Ro'yxatdan o'tganlar `is_active=False` bilan yaratiladi, admin faollashtiradi. Boshliq admin orqali. |
+| `User` | username (login), first_name, last_name, password, role, specialty FK?, department_name, telegram_username, telegram_chat_id, avatar (rasm, 1024px JPEG), is_active | `role`: boss / pm / developer / department. Ro'yxatdan o'tganlar `is_active=False` bilan yaratiladi, admin faollashtiradi. Boshliq admin orqali. `responsibilities` (eski erkin matn) ustuni bazada qoldi, lekin 2026-10-14 dan ekranda va API'da ishlatilmaydi. |
+| `ResponsibleProject` | employee FK (PM/dasturchi), name (255), description (1000), created_by, created_at, updated_at | Xodim javobgar bo'lgan loyiha — Boshliq/PM qo'lda kiritadi, TeamFlow `Project`iga bog'lanmaydi (2026-10-14). |
+| `ResponsibleProjectNews` | project FK (CASCADE), author FK, text (2000), created_at. Indeks `(project, -created_at)` | Mas'ul loyiha yangiligi. Mas'ul xodim va uni boshqaradigan Boshliq/PM yozadi. Ruxsat qoidasi bitta joyda: `accounts/services.py` (`managed_employees`, `can_view_responsible`). |
 
 ### orders
 | Model | Maydonlar |
@@ -112,7 +125,7 @@ Yakunlash (`stage=done` so'ralganda): loyihada faol dasturchi bo'lsa, avval hamm
 ### tasks
 | Model | Maydonlar |
 |---|---|
-| `Task` | code (tasodifiy 9 xonali, unique), project FK (PROTECT), title, description, priority, status (control/in_progress/in_review/done), starts_at?, due_at?, completed_at?, archived_at?, created_by, created_at |
+| `Task` | code (tasodifiy 9 xonali, unique), project FK? (PROTECT; bo'sh — dasturchining loyihasiz vazifasi, 2026-10-14; PM/Boshliq uchun servis majburiy qiladi), title, description, priority, status (control/in_progress/in_review/done), starts_at?, due_at?, completed_at?, archived_at?, created_by, created_at |
 | `TaskAssignment` | task FK, developer FK, `unique(task, developer)` — bitta vazifa bir nechta dasturchiga |
 | `SubTask` | task FK, title, assignees M2M (bir nechta dasturchi), is_done, position |
 | `TaskFile` | task FK, file, uploaded_by |
@@ -130,6 +143,17 @@ Hisoblanadigan (saqlanmaydi): `is_overdue` = muddat o'tgan, `done` va arxivda em
 | `Comment` | author, text, target (GenericFK: Order/Project/Task), created_at |
 | `ActivityLog` | actor, verb, message, target (GenericFK), created_at — "Umumiy tarix" |
 | `Notification` | recipient, kind, message, target (GenericFK), is_read, created_at |
+
+### portfolio (2026-10-08)
+| Model | Maydonlar |
+|---|---|
+| `PortfolioItem` | owner FK (dasturchi), project FK? (TeamFlow loyihasi — bo'lsa nomi/sanalari loyihadan), title, description (2000), link (http/https), start_date?, end_date?, created_at. `unique(owner, project)` (project bo'lsa) |
+| `PortfolioVideo` | item FK, file (mp4/webm/mov, 100 MB, magic bytes tekshiruvi), original_name, created_at |
+| `PortfolioReview` | item FK, author FK, stars (1–5, CHECK), text (1000), created_at, updated_at. `unique(item, author)` |
+| `Follow` | follower FK, developer FK, created_at. `unique`, CHECK `follower != developer` |
+
+Reyting, sharhlar, kuzatuvchilar, loyihalar soni va tajriba **saqlanmaydi** — `stats.py` subquery bilan hisoblaydi (JOIN ko'payib o'rtachani buzmasin). `ProjectMember` yaratilganda signal `PortfolioItem`ni idempotent tarzda materializatsiya qiladi; 0002 migratsiyasi eski a'zoliklar uchun backfill qiladi. Shuning uchun portfolio GET endi yozuv bajarmaydi. Reyting ro'yxatining standart birinchi sahifasi Redis'da 60 soniya saqlanadi, joriy foydalanuvchining `Follow` holati esa alohida indekslangan so'rov bilan qo'shiladi. `PortfolioItem(owner, -created_at, -id)` va `PortfolioReview(item, -updated_at, -id)` feed indekslari sahifalashni barqaror qiladi.
+**Nima uchun** video API orqali: media ochiq berilmaydi (9-bo'lim), Range (206) — brauzerda oldinga o'tkazish uchun.
 
 ### chat
 | Model | Maydonlar |
@@ -190,7 +214,7 @@ POST       /api/projects/setup/     loyiha + jamoa + har bir xodimga vazifa (mul
                                     bitta tranzaksiya, tasks.services.create_project_with_tasks (tasks yuqori qatlam)
 POST       /api/projects/{id}/completion-ack/   {confirmed, reason?}  (loyiha a'zosi dasturchi — yakunlashga tasdiq/rad)
 
-GET/POST   /api/tasks/
+GET/POST   /api/tasks/          POST: `project` ixtiyoriy faqat dasturchi uchun (bo'sh — loyihasiz vazifa); PM/Boshliqqa majburiy
 GET/PATCH/DELETE /api/tasks/{id}/     DELETE: arxivlash, tarixni saqlash
 POST       /api/tasks/{id}/status/        {status}   (dasturchi: control→in_progress)
 POST       /api/tasks/{id}/submit/        {note, files}
@@ -210,14 +234,38 @@ GET/POST   /api/comments/?target=order:12
 GET        /api/notifications/  POST /api/notifications/{id}/read/
 GET        /api/dashboard/      rolga mos hisob-kitob kartalari (Boshqarma: orders + periods — orders/filters.py)
 GET        /api/orders/?period=week&bucket=sent|rejected|approved   bosh panel kartasi bilan bir xil ro'yxat
+GET        /api/orders/stats/ · /api/tasks/stats/ · /api/projects/stats/   {totals, series (8 hafta), tabs, departments?} — ro'yxat sahifalari tepasi (core/trends.py); ro'yxatda ham `page_size` (10/25/50), buyurtmada `stage`, `priority`, `department`, `sent_from`, `sent_to`
+GET        /api/orders/?due_soon=1&sort=due|-due|priority|-priority|created|-created   muddati 7 kun ichida; saralash (core/sorting.py). /api/tasks/ ham `sort`, `created=me`, `bucket=overdue` qabul qiladi
 GET        /api/people/         xodimlar va bandligi (vazifasi yo'qlar tepada)
 PUT        /api/people/{id}/business-trip/    {return_date: YYYY-MM-DD} (faqat boshliq; safar darhol boshlanadi)
 DELETE     /api/people/{id}/business-trip/    safarni muddatidan oldin tugatish (faqat boshliq)
+GET        /api/people/{id}/responsible-projects/    mas'ul loyihalar {can_manage, can_post, projects[]} (xodimning o'zi yoki Boshliq/PM; boshqalarga 404)
+POST       /api/people/{id}/responsible-projects/    {name, description} (Boshliq/PM; dasturchi — faqat o'ziga)
+PATCH      /api/responsible-projects/{id}/           {name, description} (Boshliq/PM; dasturchi — faqat o'ziniki)
+DELETE     /api/responsible-projects/{id}/           yangiliklari bilan o'chiriladi (Boshliq/PM; dasturchi — faqat o'ziniki)
+GET        /api/responsible-projects/{id}/news/      yangiliklar, yangisi tepada (sahifalangan)
+POST       /api/responsible-projects/{id}/news/      {text} (mas'ul xodim yoki Boshliq/PM)
 GET        /api/developers/     dasturchilar ro'yxati (menejer va dasturchi)
 GET        /api/search/?q=...   global qidiruv (Ctrl K)
 GET        /api/history/        umumiy tarix
 GET        /api/meta/           rollar, holatlar, ruxsat etilgan o'tishlar (yagona manba)
 GET        /api/files/{kind}/{id}/?download=1   ruxsat tekshiruvi bilan fayl yuklab olish/ochish
+
+GET        /api/portfolio/?q=             dasturchilar reyting bo'yicha (sahifalangan, `rank`)
+GET        /api/portfolio/{user_id}/      portfolio: ko'rsatkichlar, tajriba, yillar, loyihalar, so'nggi vazifalar
+POST/DELETE /api/portfolio/{user_id}/follow/   kuzatish / to'xtatish (o'zini emas)
+POST       /api/portfolio/items/          o'z loyihasini qo'shish (faqat dasturchi)
+GET/PATCH/DELETE /api/portfolio/items/{id}/    PATCH/DELETE — faqat egasi; TeamFlow loyihasida nom/sana o'zgarmaydi, o'chmaydi
+GET/POST/DELETE  /api/portfolio/items/{id}/reviews/   sahifalangan baholar · o'z bahom {stars} · o'chirish
+GET/POST   /api/portfolio/items/{id}/comments/        sahifalangan sharhlar (hamma ko'radi) · yangi sharh {text} — istalgancha
+DELETE     /api/portfolio/items/{id}/comments/{cid}/  faqat o'z sharhi
+POST       /api/portfolio/items/{id}/attachments/     multipart `file` — rasm yoki .docx/.pdf (faqat egasi)
+DELETE     /api/portfolio/items/{id}/attachments/{aid}/   faqat egasi
+GET        /api/portfolio/attachments/{aid}/          rasm (ko'rsatiladi) / hujjat (yuklanadi), faqat tizimga kirganlarga
+GET        /api/portfolio/items/{id}/history/         sahifalangan tarix: rasm/video/fayl/muqova qo'shildi-o'chirildi (`ActivityLog`, verb `portfolio_*`)
+POST       /api/portfolio/items/{id}/videos/          multipart `video` (faqat egasi)
+DELETE     /api/portfolio/items/{id}/videos/{vid}/
+GET        /api/portfolio/videos/{vid}/   video (Range 206), faqat tizimga kirganlarga
 ```
 
 Xatolar: bir xil shakl `{code, detail, fields?}`. Sahifalash: DRF `PageNumberPagination`. Har bir ro'yxat `select_related/prefetch_related` bilan (N+1 testlar bilan qamrab olinadi).
@@ -241,6 +289,7 @@ frontend/src/
     history/      HistoryPage
     notifications/ NotificationsModal (modal — qo'ng'iroq ikonkasi; sahifa emas)
     chat/          MessagesPage
+    portfolio/     PortfolioPage (reyting ro'yxati), PortfolioModal (dasturchi sahifasi), PortfolioItem (loyiha, video, baho), Stars
 ```
 
 - **Modal:** yagona `Modal` komponenti (o'lcham, sarlavha, footer). Modal holati brauzer tarixining `state` qismida (`{ modal: { task: 12 } }`), manzil satri toza qoladi (foydalanuvchi talabi). Sahifa ro'yxat bo'lib qoladi, ustida modal ochiladi; brauzer "Orqaga" tugmasi modalni yopadi, sahifa yangilansa modal qayta ochiladi. Eski `?task=12` havolalar modalni ochib, manzilni tozalaydi. Modal ustida modal ochilmaydi.

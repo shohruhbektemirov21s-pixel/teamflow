@@ -54,3 +54,20 @@ def project_targets(current, role):
 def active_members(project):
     """Loyihadagi faol dasturchilar — yakunlashdan oldin shularga tasdiq so'raladi."""
     return [m.developer for m in project.memberships.select_related("developer") if m.developer.is_active]
+
+
+def completion_locked(project):
+    """Yakunlangan, boshqarma tasdig'ini kutayotgan yoki dasturchilardan yakunlash tasdig'i so'ralgan loyiha:
+    yangi vazifa qo'shish va ish biriktirish yopiq. Qoida BITTA joyda: servislar va serializerlar shundan oladi."""
+    return project.stage in (S.DONE, S.PENDING_APPROVAL) or project.completion_requested_at is not None
+
+
+def pending_acks(project):
+    """Hali javob bermagan yakunlash tasdiqlari: faqat hozirgi jamoadagi FAOL dasturchilarniki.
+    "Hamma rozimi?" qoidasi BITTA joyda: bloklangan yoki jamoadan chiqqan dasturchi yakunlashni to'xtatib qo'ymaydi.
+    (memberships va completion_acks__developer prefetch qilingan bo'lsa, qo'shimcha so'rov yo'q.)"""
+    if project.completion_requested_at is None:
+        return []
+    member_ids = {m.developer_id for m in project.memberships.all()}
+    return [a for a in project.completion_acks.all()
+            if a.confirmed is None and a.developer_id in member_ids and a.developer.is_active]

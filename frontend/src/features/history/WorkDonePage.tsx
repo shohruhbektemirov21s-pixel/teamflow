@@ -12,7 +12,7 @@ import { Avatar, Badge, Button, Empty, ErrorBox, SkeletonRows, Tabs } from "@/sh
 interface WorkDoneData {
   page: number;
   counts: { tasks: number; reviews: number; history: number };
-  completed_tasks: { id: number; title: string; project: { id: number; name: string }; completed_at: string; assignees: UserBrief[] }[];
+  completed_tasks: { id: number; title: string; project: { id: number; name: string } | null; completed_at: string; assignees: UserBrief[] }[];
   reviews: { id: number; task_id: number; task_title: string; project: string; submitted_by: UserBrief; reviewed_by: UserBrief | null; decision: "accepted" | "returned"; decision_label: string; note: string; review_note: string; reviewed_at: string }[];
   recent_activity: HistoryItem[];
 }
@@ -93,7 +93,7 @@ export default function WorkDonePage() {
                     {data.completed_tasks.map((t) => (
                       <tr key={t.id} onClick={() => open({ task: t.id })} className="clickable">
                         <td><b>{t.title}</b></td>
-                        <td>{t.project.name}</td>
+                        <td>{t.project?.name ?? T.tasks.noProject}</td>
                         <td>
                           <div className="row-wrap" style={{ gap: 4 }}>
                             {t.assignees.map((a) => (

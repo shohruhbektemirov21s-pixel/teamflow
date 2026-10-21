@@ -1,4 +1,6 @@
-import { AlertTriangle, Check, CheckCircle2, Download, Eye, FileText, Inbox, Info, Loader2, Paperclip, UploadCloud, X } from "lucide-react";
+import { AlertTriangle, ArrowDown, ArrowUp, ArrowUpDown, BarChart3, Flame, Check, CheckCircle2, Download, Eye, FileText, Inbox, Info, Loader2, Paperclip, UploadCloud, X } from "lucide-react";
+// eslint-disable-next-line @typescript-eslint/no-restricted-imports -- Avatar needs modal access for click-to-profile
+import { useNavigate, useLocation } from "react-router-dom";
 import {
   type ButtonHTMLAttributes,
   type CSSProperties,
@@ -18,6 +20,8 @@ import { useMeta } from "../meta";
 import { avatarColor, ORDER_TONE, PRIORITY_TONE, STAGE_TONE, TASK_TONE, type Tone } from "../status";
 import { T } from "../text";
 import type { FileInfo, OrderStatus, Priority, ProjectStage, TaskStatus, UserBrief } from "../types";
+
+import { Modal } from "./Modal";
 
 export { Modal, useDialogBehavior } from "./Modal";
 
@@ -49,26 +53,89 @@ export function Button({
   );
 }
 
-/** Ikki bosqichli o'chirish tugmasi: brauzer dialogi o'rniga (modal ustida modal yo'q). */
-export function ConfirmButton({ onConfirm, children, loading, confirmText }: { onConfirm: () => void; children: ReactNode; loading?: boolean; confirmText?: string }) {
+/** Tasdiqlash oynasida "O'chirish" necha soniyadan keyin faollashadi (testlarda kutilmaydi). */
+export const CONFIRM_DELAY_SECONDS = import.meta.env.MODE === "test" ? 0 : 5;
+
+/**
+ * O'chirish tugmasi: bosilsa alohida (ustma-ust, qora fonli) tasdiqlash oynasi ochiladi. Tasodifan bosib yuborilmasligi uchun
+ * "Ha, o'chirish" tugmasi `delay` soniya orqaga sanaydi va shundan keyingina faollashadi (CLAUDE.md, 4-bo'lim istisnosi).
+ */
+export function ConfirmButton({ onConfirm, children, loading, confirmText, delay = CONFIRM_DELAY_SECONDS }: {
+  onConfirm: () => void; children: ReactNode; loading?: boolean; confirmText?: string; delay?: number;
+}) {
   const [asking, setAsking] = useState(false);
-  if (!asking)
-    return (
-      <Button variant="ghost" onClick={() => setAsking(true)}>
+  return (
+    <>
+      <Button variant="ghost" disabled={loading} onClick={() => setAsking(true)}>
         {children}
       </Button>
-    );
-  return (
-    <span className="row">
-      <span className="small muted">{confirmText ?? T.common.confirmDelete}</span>
-      <Button variant="danger" size="sm" loading={loading} onClick={onConfirm}>
-        {T.common.yes}
-      </Button>
-      <Button size="sm" variant="ghost" onClick={() => setAsking(false)}>
-        {T.common.cancel}
-      </Button>
-    </span>
+      {asking && (
+        <ConfirmDeleteModal
+          text={confirmText ?? T.common.confirmDelete}
+          delay={delay}
+          onCancel={() => setAsking(false)}
+          onConfirm={() => { setAsking(false); onConfirm(); }}
+        />
+      )}
+    </>
   );
+}
+
+function ConfirmDeleteModal({ text, delay, onCancel, onConfirm }: { text: string; delay: number; onCancel: () => void; onConfirm: () => void }) {
+  const [left, setLeft] = useState(delay);
+  useEffect(() => {
+    if (left <= 0) return;
+    const timer = window.setTimeout(() => setLeft((value) => value - 1), 1000);
+    return () => window.clearTimeout(timer);
+  }, [left]);
+  return (
+    <Modal
+      stacked
+      size="sm"
+      title={<span className="confirm-title"><AlertTriangle size={20} aria-hidden /> {T.common.confirmDeleteTitle}</span>}
+      onClose={onCancel}
+      footer={
+        <>
+          <Button onClick={onCancel}>{T.common.cancel}</Button>
+          <Button variant="danger" disabled={left > 0} onClick={onConfirm}>
+            {left > 0 ? T.common.deleteWait(left) : T.common.yes}
+          </Button>
+        </>
+      }
+    >
+      <div className="stack-sm">
+        <p style={{ margin: 0 }}>{text}</p>
+        {delay > 0 && <div className="countdown-bar" aria-hidden><span key={delay} style={{ animationDuration: `${delay}s` }} /></div>}
+      </div>
+    </Modal>
+  );
+}
+
+/**
+ * Raqamni 0 dan qiymatigacha silliq sanab chiqadi (ko'rinadigan, lekin tez: ~0,7 s). Harakatni kamaytirish yoqilgan
+ * bo'lsa, testlarda va raqam bo'lmasa — qiymat darrov ko'rsatiladi.
+ */
+export function AnimatedNumber({ value }: { value: number | string }) {
+  const target = typeof value === "number" ? value : Number.NaN;
+  const reduced = typeof window === "undefined" || import.meta.env.MODE === "test" || typeof window.matchMedia !== "function" || window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const [shown, setShown] = useState<number>(reduced ? target : 0);
+  useEffect(() => {
+    if (reduced || Number.isNaN(target)) {
+      setShown(target);
+      return;
+    }
+    const started = performance.now();
+    let frame = 0;
+    const tick = (now: number) => {
+      const progress = Math.min(1, (now - started) / 700);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      setShown(Math.round(target * eased));
+      if (progress < 1) frame = requestAnimationFrame(tick);
+    };
+    frame = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(frame);
+  }, [target, reduced]);
+  return <>{Number.isNaN(target) ? value : shown}</>;
 }
 
 // ─── Belgilar ────────────────────────────────────────────────────────────────
@@ -96,9 +163,10 @@ export function OrderStatusBadge({ status }: { status: OrderStatus }) {
 export function StageBadge({ stage }: { stage: ProjectStage }) {
   return <Badge tone={STAGE_TONE[stage]}>{useMeta().label("project_stages", stage)}</Badge>;
 }
-export function PriorityBadge({ priority }: { priority: Priority }) {
+export function PriorityBadge({ priority, icon = false }: { priority: Priority; icon?: boolean }) {
   return (
     <Badge tone={PRIORITY_TONE[priority]} dot={false}>
+      {icon && (priority === "urgent" ? <Flame /> : <BarChart3 />)}
       {useMeta().label("priorities", priority)}
     </Badge>
   );
@@ -127,64 +195,121 @@ type AvatarUser = Pick<UserBrief, "id" | "full_name"> & Partial<Pick<UserBrief, 
 /**
  * Avatar: rasm bo'lsa rasm, bo'lmasa bosh harflar. Sichqoncha ustiga kelsa — kichik profil kartochkasi
  * (rasm, ism familiya, rol). Kartochka `body` ga chiqariladi — jadval va modal chegarasida kesilmaydi.
+ * `clickable` — bosilganda xodim profili modali ochiladi (default: `card` bilan bir xil, ya'ni lg va xl bo'lmasa).
  */
-export function Avatar({ user, size, card = size !== "lg" }: { user: AvatarUser; size?: "sm" | "lg" | "xl"; card?: boolean }) {
+export function Avatar({ user, size, card = size !== "lg", clickable = false }: { user: AvatarUser; size?: "sm" | "lg" | "xl"; card?: boolean; clickable?: boolean }) {
   const ref = useRef<HTMLSpanElement>(null);
   const timer = useRef<number | undefined>(undefined);
   const [anchor, setAnchor] = useState<DOMRect | null>(null);
+  const navigate = useNavigate();
+  const location = useLocation();
   useEffect(() => () => window.clearTimeout(timer.current), []);
 
   const show = () => {
     window.clearTimeout(timer.current);
-    timer.current = window.setTimeout(() => setAnchor(ref.current?.getBoundingClientRect() ?? null), 250);
+    timer.current = window.setTimeout(() => setAnchor(ref.current?.getBoundingClientRect() ?? null), 150);
   };
   const hide = () => {
     window.clearTimeout(timer.current);
-    setAnchor(null);
+    timer.current = window.setTimeout(() => setAnchor(null), 180);
   };
+
+  const handleClick = clickable
+    ? (e: React.MouseEvent) => {
+        e.stopPropagation();
+        window.clearTimeout(timer.current);
+        setAnchor(null);
+        navigate(
+          { pathname: location.pathname, search: location.search },
+          { state: { modal: { person: user.id }, pushed: true } },
+        );
+      }
+    : undefined;
 
   return (
     <>
       <span
         ref={ref}
-        className={`avatar ${size ?? ""}`}
-        style={{ background: avatarColor(user.id) }}
+        className={`avatar ${size ?? ""}${clickable ? " clickable" : ""}`}
+        style={{ background: avatarColor(user.id), cursor: clickable ? "pointer" : undefined }}
         title={card ? undefined : user.full_name}
-        aria-hidden
+        aria-hidden={!clickable}
+        role={clickable ? "button" : undefined}
+        tabIndex={clickable ? 0 : undefined}
+        aria-label={clickable ? user.full_name : undefined}
+        onClick={handleClick}
+        onKeyDown={clickable ? (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); handleClick?.(e as unknown as React.MouseEvent); } } : undefined}
         onMouseEnter={card ? show : undefined}
         onMouseLeave={card ? hide : undefined}
       >
         {user.avatar ? <img src={user.avatar} alt="" loading="lazy" /> : initials(user.full_name)}
       </span>
-      {anchor && createPortal(<AvatarCard user={user} anchor={anchor} />, document.body)}
+      {anchor && (
+        createPortal(
+          <AvatarCard
+            user={user}
+            anchor={anchor}
+            clickable={clickable}
+            onClick={handleClick}
+            onMouseEnter={() => window.clearTimeout(timer.current)}
+            onMouseLeave={hide}
+          />,
+          document.body,
+        )
+      )}
     </>
   );
 }
 
-function AvatarCard({ user, anchor }: { user: AvatarUser; anchor: DOMRect }) {
+function AvatarCard({
+  user,
+  anchor,
+  clickable,
+  onClick,
+  onMouseEnter,
+  onMouseLeave,
+}: {
+  user: AvatarUser;
+  anchor: DOMRect;
+  clickable?: boolean;
+  onClick?: (e: React.MouseEvent) => void;
+  onMouseEnter?: () => void;
+  onMouseLeave?: () => void;
+}) {
   const meta = useMeta();
   const below = anchor.bottom + 160 < window.innerHeight;
   const left = Math.min(Math.max(anchor.left + anchor.width / 2, 124), window.innerWidth - 124);
   const subtitle = [user.role ? meta.label("roles", user.role) : "", user.department_name].filter(Boolean).join(" · ");
   return (
     <div
-      className="avatar-card"
-      role="tooltip"
-      style={{ left, top: below ? anchor.bottom + 8 : anchor.top - 8, transform: below ? "translateX(-50%)" : "translate(-50%, -100%)" }}
+      className={`avatar-card ${clickable ? "clickable" : ""}`}
+      role={clickable ? "button" : "tooltip"}
+      tabIndex={clickable ? 0 : undefined}
+      style={{
+        left,
+        top: below ? anchor.bottom + 8 : anchor.top - 8,
+        transform: below ? "translateX(-50%)" : "translate(-50%, -100%)",
+        pointerEvents: "auto",
+        cursor: clickable ? "pointer" : "default",
+      }}
+      onClick={onClick}
+      onKeyDown={clickable ? (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onClick?.(e as unknown as React.MouseEvent); } } : undefined}
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
     >
-      <Avatar user={user} size="xl" card={false} />
+      <Avatar user={user} size="xl" card={false} clickable={false} />
       <b>{user.full_name}</b>
       {subtitle && <span className="small muted">{subtitle}</span>}
     </div>
   );
 }
 
-export function People({ users, max = 4 }: { users: UserBrief[]; max?: number }) {
+export function People({ users, max = 4, clickable = true }: { users: UserBrief[]; max?: number; clickable?: boolean }) {
   if (!users.length) return <span className="muted">{T.common.notSet}</span>;
   if (users.length === 1)
     return (
       <span className="row">
-        <Avatar user={users[0]!} size="sm" />
+        <Avatar user={users[0]!} size="sm" clickable={clickable} />
         <span className="ellipsis">{users[0]!.full_name}</span>
       </span>
     );
@@ -192,7 +317,7 @@ export function People({ users, max = 4 }: { users: UserBrief[]; max?: number })
     <span className="row" title={users.map((u) => u.full_name).join(", ")}>
       <span className="avatar-stack">
         {users.slice(0, max).map((u) => (
-          <Avatar key={u.id} user={u} size="sm" />
+          <Avatar key={u.id} user={u} size="sm" clickable={clickable} />
         ))}
       </span>
       <span className="small muted">{T.common.count(users.length)}</span>
@@ -252,6 +377,24 @@ export function Segmented<V extends string>({
         </button>
       ))}
     </div>
+  );
+}
+
+/**
+ * Saralanadigan ustun sarlavhasi. `first` — birinchi bosishdagi saralash kaliti (masalan "due"), `second` — ikkinchisi
+ * ("-due"); `sort` hozirgi kalit. Uchinchi bosish ham `first` ga qaytaradi. Rang yolg'iz emas: o'q ikonka ham bor.
+ */
+export function SortHeader({ label, first, second, sort, onSort, className }: {
+  label: string; first: string; second: string; sort: string; onSort: (s: string) => void; className?: string;
+}) {
+  const active = sort === first || sort === second;
+  const Arrow = !active ? ArrowUpDown : sort === first ? ArrowUp : ArrowDown;
+  return (
+    <th className={className} aria-sort={!active ? "none" : sort === first ? "ascending" : "descending"}>
+      <button type="button" className={`sort-btn${active ? " active" : ""}`} onClick={() => onSort(sort === first ? second : first)} aria-label={T.filters.sortBy(label)} title={T.filters.sortBy(label)}>
+        {label} <Arrow size={14} />
+      </button>
+    </th>
   );
 }
 
@@ -409,6 +552,7 @@ export function FilePicker({
   hint = T.common.attachHint,
   invalid,
   size = "sm",
+  maxMb = UPLOAD_MAX_MB,
 }: {
   files: File[];
   onChange: (files: File[]) => void;
@@ -419,6 +563,8 @@ export function FilePicker({
   invalid?: boolean;
   /** "lg" — katta, markazlashgan drag&drop zonasi (masalan tekshiruvga yuborish oynasida). */
   size?: "sm" | "lg";
+  /** Bitta fayl hajmi chegarasi (server chegarasi bilan bir xil bo'lsin). */
+  maxMb?: number;
 }) {
   const input = useRef<HTMLInputElement>(null);
   const [drag, setDrag] = useState(false);
@@ -426,7 +572,7 @@ export function FilePicker({
   const big = size === "lg";
   const allowed = accept.split(",").map((ext) => ext.trim().toLowerCase());
   // Server ham tekshiradi; bu yerda — drag&drop `accept`ni chetlab o'tmasligi va xato darrov ko'rinishi uchun.
-  const isValid = (f: File) => allowed.some((ext) => f.name.toLowerCase().endsWith(ext)) && f.size <= UPLOAD_MAX_MB * 1024 * 1024;
+  const isValid = (f: File) => allowed.some((ext) => f.name.toLowerCase().endsWith(ext)) && f.size <= maxMb * 1024 * 1024;
   const add = (list: FileList | null) => {
     if (!list) return;
     const incoming = Array.from(list);

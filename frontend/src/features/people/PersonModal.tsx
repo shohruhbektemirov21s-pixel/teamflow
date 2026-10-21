@@ -1,19 +1,21 @@
 import { useQuery } from "@tanstack/react-query";
-import { Activity, BarChart, CheckCircle2, ListTodo, Plus, TrendingUp } from "lucide-react";
+import { BarChart, CheckCircle2, ListTodo, Plus, TrendingUp } from "lucide-react";
 import { useState } from "react";
 
 import { useMe } from "@/app/auth";
 import { useModal } from "@/app/modals";
+import { usePagedList } from "@/app/queries";
 import { TaskTable } from "@/features/tasks/TaskTable";
-import { api, qs } from "@/shared/api";
+import { api } from "@/shared/api";
 import { fmtDate } from "@/shared/format";
 import { T } from "@/shared/text";
 import type { Person, Task } from "@/shared/types";
 import { Button, ErrorBox, Modal, Skeleton, Tabs } from "@/shared/ui";
+import { Pagination } from "@/shared/ui/Pagination";
 
 import { ProfileHeader } from "./ProfileHeader";
 import { PersonWork } from "./PersonWork";
-import { PersonResponsibilities } from "./PersonResponsibilities";
+import { ResponsibleProjects } from "./ResponsibleProjects";
 
 export default function PersonModal({ id }: { id: number }) {
   const me = useMe();
@@ -28,26 +30,23 @@ export default function PersonModal({ id }: { id: number }) {
     queryFn: () => api.get<Person>(`/people/${id}/`),
   });
 
-  const tasksQuery = useQuery({
-    queryKey: ["tasks", "person", id],
-    queryFn: () => api.get<Task[]>(`/tasks/${qs({ assignee: id, all: 1 })}`),
-    enabled: personQuery.data?.role === "developer",
-  });
+  const tasksQuery = usePagedList<Task>(["tasks", "person", id], "/tasks/", { assignee: id }, personQuery.data?.role === "developer");
 
   const person = personQuery.data;
   const tasks = tasksQuery.data || [];
 
   // Hisobot hisob-kitoblari
-  const totalTasks = tasks.length;
+  const totalTasks = person?.report?.total ?? tasks.length;
   const doneTasks = tasks.filter((t) => t.status === "done");
   const inProgressTasks = tasks.filter((t) => t.status !== "done");
   
-  const lateDone = doneTasks.filter((t) => t.due_at && t.completed_at && new Date(t.completed_at) > new Date(t.due_at)).length;
-  const onTimeDone = doneTasks.length - lateDone;
-  const currentlyOverdue = inProgressTasks.filter((t) => t.is_overdue).length;
+  const doneCount = person?.report?.done ?? doneTasks.length;
+  const lateDone = person?.report?.late ?? doneTasks.filter((t) => t.due_at && t.completed_at && new Date(t.completed_at) > new Date(t.due_at)).length;
+  const onTimeDone = doneCount - lateDone;
+  const currentlyOverdue = person?.overdue_tasks ?? inProgressTasks.filter((t) => t.is_overdue).length;
 
-  const successRate = totalTasks > 0 ? Math.round((doneTasks.length / totalTasks) * 100) : 0;
-  const disciplineRate = doneTasks.length > 0 ? Math.round((onTimeDone / doneTasks.length) * 100) : 0;
+  const successRate = totalTasks > 0 ? Math.round((doneCount / totalTasks) * 100) : 0;
+  const disciplineRate = doneCount > 0 ? Math.round((onTimeDone / doneCount) * 100) : 0;
 
   return (
     <Modal title={person ? T.people.profileTitle : T.common.loading} onClose={close} dirty={dirty}>
@@ -65,7 +64,7 @@ export default function PersonModal({ id }: { id: number }) {
             }
           />
           {person.is_on_business_trip && <div className="card card-pad small">{T.people.onBusinessTrip}. {T.people.tripUntil(fmtDate(person.business_trip_return_date!))}. {T.people.tripBlocked}.</div>}
-          <PersonResponsibilities key={person.id} person={person} editable={isMgr} onDirtyChange={setDirty} />
+          {(person.role === "developer" || person.role === "pm") && <ResponsibleProjects key={person.id} employeeId={person.id} onDirtyChange={setDirty} />}
           <div className="card card-pad"><PersonWork person={person} full /></div>
           {isMgr && person.role === "developer" && (
             <div
@@ -79,9 +78,6 @@ export default function PersonModal({ id }: { id: number }) {
                 <div className="grow">
                   <div style={{ fontWeight: 650, fontSize: 13.5 }}>
                     {person.is_on_business_trip ? T.people.onBusinessTrip : person.active_tasks === 0 ? T.people.freeNow : T.people.busyNow(person.active_tasks)}
-                  </div>
-                  <div className="small muted">
-                    {person.is_on_business_trip ? T.people.tripBlocked : person.active_tasks === 0 ? T.people.freeHint : T.people.busyHint}
                   </div>
                 </div>
                 <Button
@@ -113,6 +109,7 @@ export default function PersonModal({ id }: { id: number }) {
           {person.role === "developer" && tab === "tasks" && !tasksQuery.error && (
             <div className="card">
               <TaskTable tasks={tasksQuery.data} loading={tasksQuery.isLoading} emptyHint={T.people.noTasksHint} />
+              <Pagination data={tasksQuery.pagination} page={tasksQuery.page} onPageChange={tasksQuery.onPageChange} />
             </div>
           )}
 
@@ -139,7 +136,7 @@ export default function PersonModal({ id }: { id: number }) {
                 </div>
                 <div className="card card-pad row" style={{ justifyContent: "space-between" }}>
                   <span className="muted">{T.people.doneTotal}</span>
-                  <b style={{ color: "var(--success)" }}>{doneTasks.length}</b>
+                  <b style={{ color: "var(--success)" }}>{doneCount}</b>
                 </div>
                 <div className="card card-pad row" style={{ justifyContent: "space-between" }}>
                   <span className="muted">{T.people.doneLate}</span>
@@ -149,13 +146,6 @@ export default function PersonModal({ id }: { id: number }) {
                   <span className="muted">{T.people.lateNow}</span>
                   <b style={{ color: currentlyOverdue > 0 ? "var(--danger)" : "inherit" }}>{currentlyOverdue}</b>
                 </div>
-              </div>
-              
-              <div className="card card-pad" style={{ background: "var(--surface-2)" }}>
-                <p className="small muted" style={{ margin: 0, lineHeight: 1.5 }}>
-                  <Activity size={14} style={{ display: "inline", verticalAlign: "middle", marginRight: 6 }} />
-                  {T.people.reportNote}
-                </p>
               </div>
             </div>
           )}

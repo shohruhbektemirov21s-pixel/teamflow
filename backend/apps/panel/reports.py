@@ -96,13 +96,14 @@ def work_report(user, filters):
         "page": page, "page_size": PAGE_SIZE,
         "counts": {"tasks": completed.count(), "reviews": reviews.count(), "history": history.count()},
         "completed_tasks": [
-            {"id": task.pk, "title": task.title, "project": {"id": task.project_id, "name": task.project.name},
+            {"id": task.pk, "title": task.title,
+             "project": {"id": task.project_id, "name": task.project.name} if task.project_id else None,
              "completed_at": task.completed_at, "assignees": [user_brief(a) for a in task.assignees.all()]}
             for task in page_slice(completed, page)
         ],
         "reviews": [
             {"id": review.pk, "task_id": review.task_id, "task_title": review.task.title,
-             "project": review.task.project.name, "submitted_by": user_brief(review.submitted_by),
+             "project": review.task.project.name if review.task.project_id else "", "submitted_by": user_brief(review.submitted_by),
              "reviewed_by": user_brief(review.reviewed_by), "decision": review.decision,
              "decision_label": review.get_decision_display(), "note": review.note,
              "review_note": review.review_note, "reviewed_at": review.reviewed_at}

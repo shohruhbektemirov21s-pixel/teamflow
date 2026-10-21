@@ -7,6 +7,7 @@ from apps.core.api_utils import JSONListField, file_info, user_brief
 from apps.core.choices import Priority
 from apps.core.files import validate_upload
 from apps.projects.serializers import ProjectCreateSerializer
+from apps.projects.workflow import completion_locked
 
 from .models import Task
 from .permissions import can_manage_assignees, can_manage_subtasks, can_work_on
@@ -29,12 +30,16 @@ class TaskListSerializer(serializers.ModelSerializer):
                   "subtasks_progress", "created_at", "archived_at"]
 
     def get_project(self, obj):
+        if obj.project_id is None:
+            return None  # dasturchining loyihasiz vazifasi
         return {"id": obj.project_id, "name": obj.project.name, "code": obj.project.code}
 
     def get_assignees(self, obj):
         return [user_brief(a.developer) for a in obj.assignments.all()]
 
     def get_subtasks_progress(self, obj):
+        if hasattr(obj, "subtask_total"):
+            return {"done": obj.subtask_done, "total": obj.subtask_total}
         items = obj.subtasks.all()
         return {"done": sum(1 for s in items if s.is_done), "total": len(items)}
 
@@ -100,6 +105,7 @@ class TaskDetailSerializer(TaskListSerializer):
         user = self.context["request"].user
         targets = task_targets(obj.status, user.role)
         worker = can_work_on(user, obj)
+        open_project = obj.project_id is None or not completion_locked(obj.project)  # yakunlash davrida ish biriktirilmaydi
         return {
             "start": worker and Task.Status.IN_PROGRESS in targets and obj.status == Task.Status.CONTROL,
             "submit": worker and Task.Status.IN_REVIEW in targets,
@@ -108,8 +114,8 @@ class TaskDetailSerializer(TaskListSerializer):
             "delete": user.is_manager,
             "add_files": worker and obj.status != Task.Status.DONE,
             "log_work": worker and obj.status != Task.Status.DONE,
-            "manage_subtasks": can_manage_subtasks(user, obj) and obj.status != Task.Status.DONE,
-            "manage_assignees": can_manage_assignees(user, obj) and obj.status != Task.Status.DONE,
+            "manage_subtasks": can_manage_subtasks(user, obj) and obj.status != Task.Status.DONE and open_project,
+            "manage_assignees": can_manage_assignees(user, obj) and obj.status != Task.Status.DONE and open_project,
         }
 
 
@@ -121,7 +127,8 @@ class SubTaskInput(serializers.Serializer):
 
 
 class TaskCreateSerializer(serializers.Serializer):
-    project = serializers.IntegerField()
+    # Bo'sh — loyihasiz vazifa (faqat dasturchi uchun, servis tekshiradi)
+    project = serializers.IntegerField(required=False, allow_null=True, default=None)
     title = serializers.CharField(max_length=255)
     description = serializers.CharField(required=False, allow_blank=True, default="")
     priority = serializers.ChoiceField(choices=Priority.choices, default=Priority.MEDIUM)

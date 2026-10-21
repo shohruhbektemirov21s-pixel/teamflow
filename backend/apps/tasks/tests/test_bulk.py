@@ -1,6 +1,7 @@
-from datetime import date
+from datetime import date, timedelta
 
 from django.test import TestCase
+from django.utils import timezone
 
 from apps.accounts.models import Role
 from apps.panel.tests.factories import client_for, make_user
@@ -24,7 +25,7 @@ class BulkTaskTests(TestCase):
     def test_distribute_rows_with_individual_assignees(self):
         response = self.post(tasks=[
             {"title": "API", "assignee_ids": [self.dev.pk], "priority": "high"},
-            {"title": "UI", "assignee_ids": [self.other.pk], "due_at": "2026-10-10T10:00:00Z"},
+            {"title": "UI", "assignee_ids": [self.other.pk], "due_at": (timezone.now() + timedelta(days=5)).isoformat()},
         ])
         self.assertEqual(response.status_code, 201)
         self.assertEqual(response.data["created"], 2)

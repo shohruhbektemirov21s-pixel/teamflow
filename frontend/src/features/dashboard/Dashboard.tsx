@@ -10,7 +10,7 @@ import { api, qs } from "@/shared/api";
 import { useDebounced } from "@/shared/hooks";
 import { T } from "@/shared/text";
 import type { Bucket, Dashboard as DashboardData, Paged, PeriodKey, Task } from "@/shared/types";
-import { Button, ErrorBox } from "@/shared/ui";
+import { AnimatedNumber, Button, ErrorBox } from "@/shared/ui";
 import { Pagination } from "@/shared/ui/Pagination";
 
 import { PeriodCards } from "./PeriodCards";
@@ -95,7 +95,7 @@ export default function Dashboard() {
               <span className="stat-label">
                 {c.label}
               </span>
-              <span className="stat-num">{d ? d.totals[c.bucket] : "—"}</span>
+              <span className="stat-num">{d ? <AnimatedNumber value={d.totals[c.bucket]} /> : "—"}</span>
             </span>
             <ChevronRight size={18} className="muted" />
           </button>

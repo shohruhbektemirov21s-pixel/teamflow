@@ -8,11 +8,14 @@ from apps.accounts import api as accounts
 from apps.notifications.api import NotificationViewSet
 from apps.orders.api import OrderViewSet
 from apps.panel import api as panel
+from apps.portfolio import api as portfolio
 from apps.projects.api import ProjectViewSet
 from apps.suggestions.api import SuggestionViewSet
 from apps.tasks.api import TaskViewSet, project_setup
 from apps.chat.api import ChatViewSet
 from apps.ai.api import WebAgentView
+from apps.core.health import live, ready
+from apps.panel.calendar import calendar_summary
 
 admin.site.site_header = "TeamFlow — Boshqaruv paneli"
 admin.site.site_title = "TeamFlow"
@@ -40,9 +43,14 @@ api = [
     path("developers/", accounts.developers),
     path("meta/", panel.meta),
     path("dashboard/", panel.dashboard),
+    path("calendar/", calendar_summary),
     path("people/", panel.people),
+    path("people/stats/", panel.people_stats),
+    path("people/create/", panel.people_create),
     path("people/<int:pk>/business-trip/", accounts.business_trip),
-    path("people/<int:pk>/responsibilities/", accounts.responsibilities),
+    path("people/<int:pk>/responsible-projects/", accounts.responsible_projects),
+    path("responsible-projects/<int:pk>/", accounts.responsible_project),
+    path("responsible-projects/<int:pk>/news/", accounts.responsible_project_news),
     path("search/", panel.search),
     path("workdone/", panel.workdone),
     path("people/<int:pk>/", panel.person_profile),
@@ -50,6 +58,25 @@ api = [
     path("history/", panel.history),
     path("files/<str:kind>/<int:pk>/", panel.file_download),
     path("projects/setup/", project_setup),  # router'dagi projects/<pk>/ dan oldin turishi shart
+    path("portfolio/", portfolio.developer_list),
+    path("portfolio/<int:pk>/", portfolio.developer_detail),
+    path("portfolio/<int:pk>/follow/", portfolio.follow),
+    path("portfolio/summary/", portfolio.developers_summary),
+    path("portfolio/my-reviews/", portfolio.my_reviews),
+    path("portfolio/items/", portfolio.item_create),
+    path("portfolio/items/<int:pk>/", portfolio.item),
+    path("portfolio/items/<int:pk>/reviews/", portfolio.reviews),
+    path("portfolio/items/<int:pk>/comments/", portfolio.comments),
+    path("portfolio/items/<int:pk>/comments/<int:comment_pk>/", portfolio.comment_delete),
+    path("portfolio/items/<int:pk>/videos/", portfolio.video_upload),
+    path("portfolio/items/<int:pk>/videos/<int:video_pk>/", portfolio.video_delete),
+    path("portfolio/videos/<int:pk>/", portfolio.video_file),
+    path("portfolio/items/<int:pk>/attachments/", portfolio.attachment_upload),
+    path("portfolio/items/<int:pk>/attachments/<int:attachment_pk>/", portfolio.attachment_delete),
+    path("portfolio/attachments/<int:pk>/", portfolio.attachment_file),
+    path("portfolio/items/<int:pk>/history/", portfolio.history),
+    path("portfolio/items/<int:pk>/cover/", portfolio.cover),
+    path("portfolio/covers/<int:pk>/", portfolio.cover_file),
     path("ai/web-agent/", WebAgentView.as_view()),
     path("ai/web-agent/<int:pk>/", WebAgentView.as_view()),
     path("", include(router.urls)),
@@ -66,6 +93,8 @@ def spa(request):
 
 
 urlpatterns = [
+    path("healthz/live/", live),
+    path("healthz/ready/", ready),
     path("admin/", admin.site.urls),
     path("api/", include(api)),
     re_path(r"^(?!api/|admin/|static/).*$", spa),

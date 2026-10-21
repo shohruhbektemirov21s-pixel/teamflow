@@ -1,6 +1,6 @@
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { CalendarDays, FolderKanban, Plus } from "lucide-react";
-import { useState } from "react";
+import { AlertTriangle, CalendarDays, CheckCircle2, Clock, FolderKanban, Hourglass, Layers, Play, Plus, Search, ShieldX, Wrench } from "lucide-react";
+import { type ReactNode, useState } from "react";
 
 import { isManager, useMe } from "@/app/auth";
 import { useModal } from "@/app/modals";
@@ -9,9 +9,26 @@ import { fmtDate } from "@/shared/format";
 import { useDebounced } from "@/shared/hooks";
 import { useMeta } from "@/shared/meta";
 import { T } from "@/shared/text";
-import type { Paged, Project, ProjectStage } from "@/shared/types";
+import type { ListStats, Paged, Project, ProjectStage } from "@/shared/types";
 import { Badge, Button, CodeTag, Empty, ErrorBox, People, Skeleton, StageBadge } from "@/shared/ui";
+import { StatRow, type StatItem, TabChips, type TabItem } from "@/shared/ui/ListKit";
 import { Pagination } from "@/shared/ui/Pagination";
+
+const STAT_ICONS: Record<string, [ReactNode, StatItem["tone"]]> = {
+  all: [<FolderKanban key="i" />, "primary"],
+  planned: [<Clock key="i" />, "slate"],
+  started: [<Play key="i" />, "info"],
+  pending_approval: [<Hourglass key="i" />, "violet"],
+  done: [<CheckCircle2 key="i" />, "success"],
+};
+const TAB_ICONS: Record<ProjectStage, ReactNode> = {
+  planned: <Clock size={16} />,
+  started: <Play size={16} />,
+  needs_fix: <Wrench size={16} />,
+  rejected: <ShieldX size={16} />,
+  pending_approval: <Hourglass size={16} />,
+  done: <CheckCircle2 size={16} />,
+};
 
 export default function ProjectsPage() {
   const me = useMe();
@@ -21,35 +38,43 @@ export default function ProjectsPage() {
   const [stage, setStage] = useState<"" | ProjectStage>("");
   const [q, setQ] = useState("");
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   const search = useDebounced(q);
   const query = useQuery({
-    queryKey: ["projects", stage, search, page],
-    queryFn: () => api.get<Paged<Project>>(`/projects/${qs({ stage, q: search, page: page === 1 ? undefined : page })}`),
+    queryKey: ["projects", stage, search, page, pageSize],
+    queryFn: () => api.get<Paged<Project>>(`/projects/${qs({ stage, q: search, page_size: pageSize, page: page === 1 ? undefined : page })}`),
     placeholderData: keepPreviousData,
   });
+  const stats = useQuery({ queryKey: ["projects", "stats"], queryFn: () => api.get<ListStats>("/projects/stats/") });
+
+  const cards: StatItem[] | undefined = stats.data && (["all", "planned", "started", "pending_approval", "done"] as const).map((key) => ({
+    key, label: T.projects.stats[key]![0], caption: T.projects.stats[key]![1],
+    icon: STAT_ICONS[key]![0], tone: STAT_ICONS[key]![1], value: stats.data.totals[key] ?? 0, series: stats.data.series[key],
+  }));
+  const tabs: TabItem[] = [
+    { key: "", label: T.common.all, icon: <Layers size={16} />, count: stats.data?.tabs.all },
+    ...meta.options<ProjectStage>("project_stages").map((s) => ({ key: s.value, label: s.label, icon: TAB_ICONS[s.value] ?? <AlertTriangle size={16} />, count: stats.data?.tabs[s.value] })),
+  ];
 
   return (
     <>
-      <div className="page-toolbar">
-        <input className="input page-search" placeholder={T.common.search} value={q} onChange={(e) => { setQ(e.target.value); setPage(1); }} aria-label={T.common.search} />
-        {manager && (
-          <div className="page-actions">
+      <StatRow items={cards} />
+
+      <section className="card list-panel">
+        <div className="list-top list-top-last">
+          <TabChips tabs={tabs} value={stage} onChange={(key) => { setStage(key as "" | ProjectStage); setPage(1); }} label={T.projects.stage} />
+          <div className="list-search">
+            <Search size={16} aria-hidden />
+            <input className="input" placeholder={T.projects.searchPh} value={q} onChange={(e) => { setQ(e.target.value); setPage(1); }} aria-label={T.common.search} />
+          </div>
+          {manager && (
             <Button variant="primary" icon={<Plus />} onClick={() => open({ new: "project" })}>
               {T.projects.new}
             </Button>
-          </div>
-        )}
-        <div className="chips toolbar-filters">
-          <button className="chip" aria-pressed={stage === ""} onClick={() => { setStage(""); setPage(1); }}>
-            {T.common.all}
-          </button>
-          {meta.options<ProjectStage>("project_stages").map((s) => (
-            <button key={s.value} className="chip" aria-pressed={stage === s.value} onClick={() => { setStage(s.value); setPage(1); }}>
-              {s.label}
-            </button>
-          ))}
+          )}
         </div>
-      </div>
+      </section>
+
       {query.error && <ErrorBox error={query.error} onRetry={() => query.refetch()} />}
       {query.isLoading && (
         <div className="project-grid">
@@ -64,13 +89,6 @@ export default function ProjectsPage() {
             icon={<FolderKanban />}
             title={T.projects.empty}
             hint={manager ? T.projects.emptyHint : T.projects.emptyDev}
-            action={
-              manager && (
-                <Button variant="primary" icon={<Plus />} onClick={() => open({ new: "project" })}>
-                  {T.projects.new}
-                </Button>
-              )
-            }
           />
         </div>
       )}
@@ -107,7 +125,18 @@ export default function ProjectsPage() {
           );
         })}
       </div>
-      <Pagination data={query.isPlaceholderData ? undefined : query.data} page={page} onPageChange={setPage} />
+      {query.data && (
+        <div className="card">
+          <Pagination
+            data={query.isPlaceholderData ? undefined : query.data}
+            page={page}
+            onPageChange={setPage}
+            pageSize={pageSize}
+            onPageSizeChange={(size) => { setPageSize(size); setPage(1); }}
+            unit={T.projects.found}
+          />
+        </div>
+      )}
     </>
   );
 }

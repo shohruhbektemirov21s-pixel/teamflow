@@ -4,6 +4,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from .models import Notification
+from .services import invalidate_unread_counts, unread_count
 
 # Bildirishnoma bosilganda frontend qaysi modalni ochishi: ContentType modeli → marshrut turi
 TARGET_KIND = {"order": "order", "project": "project", "task": "task"}
@@ -53,7 +54,7 @@ class NotificationViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
         qs = Notification.objects.filter(recipient=self.request.user).select_related("target_type")
         if self.request.query_params.get("unread") == "1":
             qs = qs.filter(is_read=False)
-        return qs
+        return qs.order_by("-created_at", "-id")
 
     def list(self, request):
         page = self.paginate_queryset(self.get_queryset())
@@ -62,14 +63,18 @@ class NotificationViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
 
     @action(detail=False, methods=["get"])
     def unread_count(self, request):
-        return Response({"count": Notification.objects.filter(recipient=request.user, is_read=False).count()})
+        return Response({"count": unread_count(request.user.pk)})
 
     @action(detail=True, methods=["post"])
     def read(self, request, pk=None):
-        Notification.objects.filter(recipient=request.user, pk=pk).update(is_read=True)
+        updated = Notification.objects.filter(recipient=request.user, pk=pk, is_read=False).update(is_read=True)
+        if updated:
+            invalidate_unread_counts([request.user.pk])
         return Response({"ok": True})
 
     @action(detail=False, methods=["post"])
     def read_all(self, request):
-        Notification.objects.filter(recipient=request.user, is_read=False).update(is_read=True)
+        updated = Notification.objects.filter(recipient=request.user, is_read=False).update(is_read=True)
+        if updated:
+            invalidate_unread_counts([request.user.pk])
         return Response({"ok": True})

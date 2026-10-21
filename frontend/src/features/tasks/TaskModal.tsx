@@ -60,7 +60,8 @@ export default function TaskModal({ id, submitMode }: { id: number; submitMode?:
   const me = useMe();
   const { close, open } = useModal();
   const toast = useToast();
-  const refresh = useRefresh();
+  const refresh = useRefresh(["task", "tasks", "project", "projects", "order", "orders", "dashboard",
+    "people", "person", "profile", "developers", "history", "workdone", "comments", "notifications", "search", "calendar"]);
   const meta = useMeta();
   const query = useQuery({ queryKey: ["task", id], queryFn: () => api.get<TaskDetail>(`/tasks/${id}/`) });
   const task = query.data;
@@ -234,7 +235,7 @@ export default function TaskModal({ id, submitMode }: { id: number; submitMode?:
           </ConfirmButton>
         )}
         {a.edit && (
-          <Button variant="ghost" icon={<Pencil />} onClick={() => open({ new: "task", edit: task.id, project: task.project.id })}>
+          <Button variant="ghost" icon={<Pencil />} onClick={() => open({ new: "task", edit: task.id, project: task.project?.id })}>
             {T.common.edit}
           </Button>
         )}
@@ -468,7 +469,7 @@ export default function TaskModal({ id, submitMode }: { id: number; submitMode?:
             <details className="details-section" open>
               <summary>{T.tasks.info}</summary>
               <div className="details-content stack-sm">
-                <Meta icon={<FolderKanban />} label={T.tasks.project}>{task.project.name}</Meta>
+                <Meta icon={<FolderKanban />} label={T.tasks.project}>{task.project?.name ?? T.tasks.noProject}</Meta>
                 <Meta icon={<CalendarClock />} label={T.tasks.col.due}>
                   <Due value={task.due_at} done={task.status === "done"} format={fmtDateTime} />
                 </Meta>
@@ -656,7 +657,6 @@ function TaskActionScreen({
           <span>{isSubmit ? T.tasks.submit : T.tasks.return}</span>
         </span>
       }
-      subtitle={isSubmit ? T.tasks.submitSubtitle : T.tasks.returnSubtitle}
       onClose={onCancel}
       dirty={dirty}
       footer={

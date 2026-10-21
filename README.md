@@ -2,7 +2,7 @@
 
 Jamoa ishini boshqarish tizimi. Boshqarmalar buyurtma (TZ) yuboradi, loyiha menejeri uni tasdiqlab loyihaga aylantiradi, dasturchilarga vazifa beradi va bajarilgan ishni tekshiradi. Boshliq hamma narsani kuzatadi va boshqaradi.
 
-> **Holat (2026-10-06):** UX/UI tugmalari, modal sarlavha/pastki panellari, mobil buyurtma jadvali, klaviatura fokusi va tablar tartiblandi. Boshqarma buyurtmalari: yakunlash tasdig'i kutilayotganlar birinchi, yangi/faol buyurtmalar keyingi, to'liq yakunlanganlar oxirida. 236 backend testi, 94 frontend testi, TypeScript va build o'tdi. To'rt rol bo'yicha 253 boshlang'ich brauzer holati va 42 yakuniy holat 375/768/1440 px da soxta API bilan tekshirildi; 9 namunaviy axe auditida tuzatishdan keyin avtomatik buzilish topilmadi. Mahalliy server qayta ishga tushirildi, / va /api/meta/ 200.
+> **Holat (2026-10-06):** Production PostgreSQL/Redis, Gunicorn/Nginx, Telegram outbox, indekslar va sahifalash qo'shildi. 10 000 bir vaqtda virtual foydalanuvchi: 250 soniya peak, 501,96 so'rov/soniya, 135 349 so'rov, 0 xato, p95 110 ms. 269 PostgreSQL backend testi, 104 frontend testi, TypeScript, build va haqiqiy brauzerdagi 60 holat o'tdi. Mahalliy biznes ma'lumotlari saqlandi; root, JS, readiness va meta 200. Server hali tanlanmagan; natija sinovdagi aniq yuklama profiliga tegishli. [To'liq dalil va chegaralar](docs/performance/2026-10-06/REPORT.md), [production deploy](backend/deploy/README.md).
 > Bu fayl — loyihaning **yagona haqiqat manbai**. Agentlar uchun qoidalar: `CLAUDE.md`, `GEMINI.md`. Flow va modal reestri: `docs/FLOWS_MODALS.md`. Arxitektura, ma'lumotlar modeli va API: `docs/ARCHITECTURE.md`.
 
 ## Mundarija
@@ -16,8 +16,8 @@ Jamoa ishini boshqarish tizimi. Boshqarmalar buyurtma (TZ) yuboradi, loyiha mene
 7. [Menyu va sahifalar](#7-menyu-va-sahifalar)
 8. [Telegram bildirishnomalari](#8-telegram-bildirishnomalari)
 9. [TinyFish AI web-agent](#tinyfish-ai-web-agent)
-9. [Modallar](#9-modallar-amalda-14-ta)
-10. [Flow'lar](#10-flowlar-amalda-13-ta)
+9. [Modallar](#9-modallar-amalda-16-ta)
+10. [Flow'lar](#10-flowlar-amalda-16-ta)
 11. [Qarorlar va ochiq savollar](#11-qabul-qilingan-qarorlar-va-ochiq-savollar)
 12. [Xavfsizlik](#12-xavfsizlik)
 13. [Ishga tushirish va demo loginlar](#13-ishga-tushirish-va-demo-loginlar)
@@ -32,7 +32,8 @@ Jamoa ishini boshqarish tizimi. Boshqarmalar buyurtma (TZ) yuboradi, loyiha mene
 | Qatlam | Tanlov |
 |---|---|
 | Backend | Python + Django + Django REST Framework |
-| Ma'lumotlar bazasi | Django standart bazasi (SQLite) |
+| Ma'lumotlar bazasi | Mahalliy SQLite; production PostgreSQL |
+| Production | Gunicorn + Nginx, Redis sessiya keshi, alohida Telegram outbox worker |
 | Admin panel | Django admin (alohida admin panel yozilmaydi) |
 | Frontend | React + TypeScript (Vite). Node faqat ishlab chiqishda kerak |
 | Word (.docx) ko'rish | Brauzerda, modal ichida (`docx-preview`) |
@@ -50,6 +51,7 @@ Barcha ma'lumotlar bazadan olinadi. Butun interfeys bitta Design System (ranglar
 | **Loyiha menejeri (PM)** | Ro'yxatdan o'tadi, admin tasdiqlaydi | Buyurtmani tasdiqlaydi yoki rad etadi, loyiha yaratadi, dasturchi biriktiradi, vazifa beradi, ishni tekshiradi |
 | **Dasturchi** | Ro'yxatdan o'tadi, admin tasdiqlaydi | O'ziga berilgan vazifani bajaradi va tekshiruvga yuboradi |
 | **Boshqarma** | Ro'yxatdan o'tadi (boshqarma nomi bilan), admin tasdiqlaydi | Buyurtma (TZ) yuboradi |
+| **Oddiy foydalanuvchi** | Ro'yxatdan o'tadi, admin tasdiqlaydi | Dasturchilar portfoliosini ko'radi, loyihalarni baholaydi va o'z baholari hamda profilini boshqaradi |
 
 ### Ruxsatlar jadvali
 
@@ -120,7 +122,8 @@ Qoidalar:
 - Faqat **PM va Boshliq** loyiha yaratadi. **Dasturchi yarata olmaydi.**
 - Loyiha: **loyiha raqami** (qo'lda kiritiladi, majburiy, erkin matn/kod — masalan `PRJ-12`, takrorlanmaydi: band bo'lsa xatolik chiqadi), nom, izoh, boshlanish sanasi, tugash sanasi, fayllar, dasturchilar (bir nechta), darajasi.
 - **Loyiha darajasi (6 ta):** Rejalashtirilgan → Boshlangan → Tuzatish kerak → Tasdiqlash kutilmoqda → Yakunlangan. PM/Boshliq qo'lda o'zgartiradi.
-- **Yakunlashni tasdiqlash:** PM/Boshliq "Yakunlangan"ni tanlaganda, avval **loyihadagi barcha faol dasturchilarga** bildirishnoma boradi ("Loyiha yakunlanishi kerak, tasdiqlaysizmi?" — bildirishnoma ichidagi tugma bilan Ha/Yo'q). **Hammasi tasdiqlagach keyingi bosqich avtomatik ishga tushadi** (PM qayta bosmaydi): buyurtmasiz (PM o'zi yaratgan) loyiha "Yakunlangan"ga to'g'ridan-to'g'ri o'tadi; buyurtmadan yaratilgan loyiha avval **"Tasdiqlash kutilmoqda"**ga o'tadi va buyurtmani yuborgan boshqarmaga bildirishnoma boradi — faqat o'sha boshqarma (Buyurtma oynasidan) **Tasdiqlaydi** (loyiha "Yakunlangan" bo'ladi) yoki **kamchilik sababi bilan rad etadi** ("Rad etildi"ga o'tadi, PM sababni ko'rib tuzatib yana so'raydi). Agar birortasi dasturchi sababli rad etsa, loyiha yakunlanmaydi, hozirgi holatida davom etadi va PM/Boshliq sababni ko'radi; qayta so'ralganda hammadan yangidan so'raladi. Loyihada faol dasturchi bo'lmasa, dasturchi so'rovi o'tkazib yuboriladi.
+- **2026-10-06:** PM loyihani yakunlashda izoh (1000 belgigacha) va fayllarni alohida modal orqali yuboradi. Loyiha oynasi orqada ko'rinib turadi va inert bo'ladi; umumiy Modal stacked uslubi ishlatiladi. Dasturchilar tasdig'idan keyin boshqarma buyurtma oynasida yakunlash hisoboti va fayllarini ko'radi. Fayllar faqat tegishli boshqarma uchun ochiladi.
+- **Yakunlashni tasdiqlash:** PM/Boshliq "Yakunlangan"ni tanlaganda, avval **loyihadagi barcha faol dasturchilarga** bildirishnoma boradi ("Loyihani yakunlashga rozimisiz?" — bildirishnoma ichidagi tugma bilan Ha/Yo'q). **Hammasi rozi bo'lgach PMga xabar keladi va "Yakunlash" tugmasi ochiladi**. PM yakunlaganda: buyurtmasiz (PM o'zi yaratgan) loyiha "Yakunlangan"ga to'g'ridan-to'g'ri o'tadi; buyurtmadan yaratilgan loyiha avval **"Tasdiqlash kutilmoqda"**ga o'tadi va buyurtmani yuborgan boshqarmaga bildirishnoma boradi — faqat o'sha boshqarma (Buyurtma oynasidan) **Tasdiqlaydi** (loyiha "Yakunlangan" bo'ladi) yoki **kamchilik sababi bilan rad etadi** ("Rad etildi"ga o'tadi, PM sababni ko'rib tuzatib yana so'raydi). Agar birortasi dasturchi sababli rad etsa, loyiha yakunlanmaydi, hozirgi holatida davom etadi va PM/Boshliq sababni ko'radi; qayta so'ralganda hammadan yangidan so'raladi. Loyihada faol dasturchi bo'lmasa, dasturchi so'rovi o'tkazib yuboriladi.
 - Loyihaga bir nechta dasturchi biriktiriladi, har biriga bir nechta vazifa berish mumkin.
 
 **Loyiha yaratish oynasi (3 qadam):** Asosiy → Jamoa → Vazifalar va fayllar. Buyurtmadan yaratilsa, 1-qadam oldindan to'ldirilgan.
@@ -135,7 +138,8 @@ Qoidalar:
 
 ## 6. Vazifalar
 
-- PM/Boshliq loyiha ichida vazifa yaratadi: nom, izoh, muddat (boshlanish/tugash), muhimlik, fayl.
+- PM/Boshliq loyiha ichida vazifa yaratadi: nom, izoh, muddat (boshlanish/tugash), muhimlik, fayl. PM/Boshliq uchun loyiha majburiy.
+- **Loyihasiz vazifa (2026-10-14):** dasturchi "Mening ishim"da o'ziga vazifa qo'shganda loyihani tanlamasa ham bo'ladi — formadagi "Loyiha" maydonida "Loyihasiz" turadi (bitta loyiha bo'lsa ham avtomatik tanlanmaydi). Bunday vazifa faqat o'ziga biriktiriladi; ro'yxat, doska, qidiruv, Xodimlar va hisobotlarda loyiha o'rnida "Loyihasiz" yoziladi. Loyiha jamoasi va yakunlash qulfi unga tegishli emas: vazifani yaratgan dasturchi (va PM/Boshliq) unga istalgan faol dasturchini ijrochi qilib qo'sha oladi, hech kim loyihaga avtomatik qo'shilmaydi. Tekshiruvga yuborilganda barcha menejerlarga xabar boradi (loyiha egasi yo'q). Server: `tasks/services.py: create_task` (`project=None` faqat dasturchiga), `Task.project` bo'sh bo'lishi mumkin (migratsiya `tasks/0012`).
 - **Ommaviy vazifalar:** PM bitta ro'yxat matni (har qatorga bittadan) orqali ko'p vazifani birdaniga yaratadi va har biriga ijrochi biriktira oladi.
 - **Bitta vazifa bir nechta dasturchiga** biriktiriladi. Vazifa oynasida "Ijrochilar → O'zgartirish": PM va Boshliq har qanday vazifaga, dasturchi faqat **o'zi yaratgan** vazifaga boshqa dasturchini qo'shadi (o'zini olib tashlay olmaydi). Bajarilgan vazifa o'zgartirilmaydi.
 - **Topshiriqlar:** kichik qadamlar, har biriga **bir nechta dasturchi** biriktiriladi. Mavjud topshiriqqa ham keyin qo'shish yoki olib tashlash mumkin (PM, Boshliq yoki vazifa ijrochisi). Ijrochisiz topshiriq "Hamma" deb ko'rinadi (vazifaning barcha ijrochilari).
@@ -176,15 +180,15 @@ Menyu guruhlarga bo'lingan: *Asosiy ish* | *Muloqot* | *Kuzatuv* (Kuzatuv faqat 
 
 | Rol | Asosiy ish | Muloqot | Kuzatuv |
 |---|---|---|---|
-| **Dasturchi** | Bosh panel · Vazifalar · Mening ishim · Taqvim | Xabarlar · Takliflar | — |
-| **PM va Boshliq** | Bosh panel · Loyihalar · Buyurtmalar (TZ) · Vazifalar · Taqvim | Xodimlar · Xabarlar · Tekshiruv navbati · Takliflar | Qilingan ishlar |
-| **Boshqarma** | Bosh panel · Buyurtmalarim | Xabarlar · Takliflar | — |
+| **Dasturchi** | Bosh panel · Vazifalar · Mening ishim · Taqvim | Xabarlar · Portfolio · Takliflar | — |
+| **PM va Boshliq** | Bosh panel · Loyihalar · Buyurtmalar (TZ) · Vazifalar · Taqvim | Xodimlar · Xabarlar · Tekshiruv navbati · Portfolio · Takliflar | Qilingan ishlar |
+| **Boshqarma** | Bosh panel · Buyurtmalarim | Xabarlar · Portfolio · Takliflar | — |
 
 - Menyu pastida foydalanuvchi kartasi (ism, rol; bosilsa Profil ochiladi) va "Chiqish".
 - Yuqorida: qidiruv (`Ctrl K`, kodlar bilan ham), tungi/kunduzgi rejim, bildirishnomalar (qo'ng'iroq ikonkasi — o'z soni bilan; bosilsa modal ochiladi, chap menyuda alohida band yo'q, barcha rolda shu yerdan ochiladi).
 - Yon panel (drawer) **ishlatilmaydi**: ko'rish, yaratish, tahrirlash — faqat modalda.
 - **Sahifalarda katta sarlavha yo'q** — sahifa nomi tepadagi panelda. Sahifa asboblar qatori bilan boshlanadi: chapda filtrlar/qidiruv, o'ngda amallar (asosiy tugma eng o'ngda).
-- Manzillar: `/`, `/vazifalar`, `/mening-ishim`, `/taqvim`, `/loyihalar`, `/buyurtmalar`, `/xodimlar`, `/tekshiruv`, `/xabarlar`, `/takliflar`, `/qilingan-ishlar`, `/profil`. Rolga tegishli bo'lmagan sahifa ochilmaydi. (Bildirishnomalar alohida sahifa emas — qo'ng'iroq ikonkasi modal ochadi, 9-bo'lim.)
+- Manzillar: `/`, `/vazifalar`, `/mening-ishim`, `/taqvim`, `/loyihalar`, `/buyurtmalar`, `/xodimlar`, `/tekshiruv`, `/xabarlar`, `/portfolio`, `/takliflar`, `/qilingan-ishlar`, `/profil`. Rolga tegishli bo'lmagan sahifa ochilmaydi. (Bildirishnomalar alohida sahifa emas — qo'ng'iroq ikonkasi modal ochadi, 9-bo'lim.)
 
 ### Bosh panel — PM va Boshliq
 - Tepada o'ngda asosiy amallar: Xodimlar, (yangi buyurtma bo'lsa) Buyurtmalar, Yangi loyiha, **Yangi vazifa** (eng o'ngda). Salomlashish matni yo'q (foydalanuvchi qarori, 2026-10-06).
@@ -204,10 +208,12 @@ Menyu guruhlarga bo'lingan: *Asosiy ish* | *Muloqot* | *Kuzatuv* (Kuzatuv faqat 
 
 ### Vazifalar (`/vazifalar`)
 - Vazifalar jadvali: qidiruv (kodlar bilan ham), muddat, sana oralig'i, holat, xodim filtrlari. Telefonda filtrlar "Filtrlar" tugmasi ortida, jadvalda holat va muddat sarlavha ostida ko'rinadi.
+- **Yangi dizayn (2026-10-20, foydalanuvchi bergan "Buyurtmalar" dizayni bo'yicha):** tepada 5 ta ko'rsatkich kartasi (Jami, Jarayonda, Tekshiruvda, Bajarilgan, Kechikkan — har birida so'nggi 8 hafta grafigi), holat tugmalari soni bilan, qidiruv, filtr kartasi (Muhimlik, Xodim, Muddat oralig'i, "Filtrni tozalash"), sahifa tagida "N ta vazifa", "Har sahifada 10/25/50" va raqamli sahifalar. Hammasi serverdan: `GET /api/tasks/stats/` (`tasks/filters.py: tasks_stats`; dasturchida faqat o'z vazifalari), ro'yxat `?priority=`, `?page_size=`. Grafik qoidasi bitta joyda: `core/trends.py`.
+- **Ko'rinish va tezkor amallar (2026-10-20):** holat tugmalari (Hammasi · Nazoratda · Jarayonda · …), "Faqat kechikkanlar" va "Men yaratganlar" tugmalari, topilganlar soni. Saralash: "Saralash" tanlagichi yoki jadvaldagi **Muhimlik** va **Muddat** sarlavhasini bosish (1-bosish — o'sish, 2-bosish — kamayish); muddat, muhimlik (shoshilinchlari birinchi) yoki qo'shilgan sana bo'yicha; muddatsiz vazifalar doim oxirida. Qatorda loyiha nomi, topshiriqlar bajarilish chizig'i, chap chetda muhimlik chizig'i, kechikkan qator qizg'ish. Qoida bitta joyda: `core/sorting.py` (`?sort=`), `tasks/filters.py` (`?created=me`, `?bucket=overdue`).
 - Dasturchiga **faqat o'ziga biriktirilgan** vazifalar chiqadi (Ctrl K qidiruvida ham). Faqat topshirig'i biriktirilgan boshqa vazifa ro'yxatda chiqmaydi, lekin ochib topshiriqni bajarish mumkin. Qoida bitta joyda: `tasks/permissions.py` → `listed_tasks`.
 
 ### Mening ishim (`/mening-ishim`, Dasturchi)
-- "+ Yangi vazifa" tugmasi, filtrlar: loyiha, muddat (Bugun / Shu hafta / Hammasi).
+- "+ Yangi vazifa" tugmasi (loyiha tanlash ixtiyoriy — "Loyihasiz" ham bo'ladi, 6-bo'lim), filtrlar: loyiha, muddat (Bugun / Shu hafta / Hammasi).
 - Doska ustunlari — holatlar: **Nazoratda | Jarayonda | Tekshiruvda | Bajarildi**. Kartada vazifa izohi ko'rsatilmaydi (izoh vazifa oynasida).
 - Vazifani **sichqoncha bilan sudrab** ustunlar orasida o'tkazish mumkin.
 - **Tekshiruvda** ustuniga tashlanganda (yoki vazifa oynasida "Tekshiruvga yuborish" bosilganda) **"Tekshiruvga yuborish" oynasi** ochiladi — vazifa oynasi ustida qora fonli alohida modal bo'lib ochiladi (vazifa oynasi orqada ko'rinib turadi): "Nima qildingiz?" (majburiy, 1000 belgigacha, hisoblagich bilan), katta drag&drop fayl zonasi va "Fayl tanlash" tugmasi (Word, PDF yoki rasm, 20 MB gacha — mos kelmagan fayl brauzerning o'zida rad etiladi), "Biriktirilgan fayllar (N)" ro'yxati. Matn bo'sh bo'lsa yuborilmaydi, xato maydon yonida chiqadi. "Bekor qilish", ✕ yoki `Esc` vazifa oynasiga qaytaradi. PM'ning "Qaytarish" oynasi ham xuddi shu ko'rinishda (faylsiz).
@@ -229,12 +235,27 @@ Menyu guruhlarga bo'lingan: *Asosiy ish* | *Muloqot* | *Kuzatuv* (Kuzatuv faqat 
 - PM/Boshliq uchun "Buyurtmalar (TZ)", Boshqarma uchun "Buyurtmalarim" (faqat o'z buyurtmalari).
 - Filtrlar: **Hammasi** (birinchi, standart tanlangan) · Yangi · Tasdiqlangan · Rad etilgan.
 - Jadvalda buyurtma nomi ostida izoh ko'rsatilmaydi (izoh buyurtma oynasida). Boshqarma bosh sahifasidagi jadval ham shunday.
+- **Yangi dizayn (2026-10-20, foydalanuvchi bergan "Buyurtmalar (TZ)" dizayni — Loyihalar va Vazifalar sahifalari ham shunga o'xshash):** tepada 5 ta ko'rsatkich kartasi (Jami, Yangi, Rejalashtirilgan, Yakunlangan, Shoshilinch — grafigi bilan), holat tugmalari soni bilan (Hammasi · Yangi · Tasdiqlangan · Rad etilgan · Yakunlangan), qidiruv, filtr kartasi (Holat, Muhimlik, Boshqarma — menejerga, Yuborilgan sana oralig'i, "Filtrni tozalash"), jadval (ikonka, boshqarma va yuboruvchi, holat, muhimlik ikonka bilan, muddat, yuborilgan sana), "Har sahifada 10/25/50" va raqamli sahifalar. "Rejalashtirilgan"/"Yakunlangan" — buyurtmadan yaratilgan loyiha darajasi; "Shoshilinch" — hali yopilmagan shoshilinchlar. Server: `GET /api/orders/stats/` (kartalar, tugma sonlari, boshqarmalar ro'yxati), ro'yxat `?stage=`, `?priority=`, `?department=`, `?sent_from=&sent_to=`, `?page_size=`. Qilinmadi: dizayndagi qator oxiridagi "⋮" menyu (amali yo'q) va orqaga "←" tugmasi (tepadagi panelda sahifa nomi bor). Loyihalar sahifasi: 5 ta ko'rsatkich (`GET /api/projects/stats/`), daraja tugmalari soni bilan, loyiha kartalari avvalgidek.
+- **Ko'rinish va tezkor amallar (2026-10-20):** holat rangidagi ikonka, menejerga boshqarma va yuboruvchi nom ostida, muddat "5 kun qoldi" matni bilan, topilganlar soni. **"Muddati yaqin"** tugmasi — so'ralgan muddati 7 kun ichida (o'tib ketgani ham) bo'lgan buyurtmalar; rad etilgan va loyihasi yakunlanganlar chiqmaydi (`orders/filters.py`, `DUE_SOON_DAYS`). **Saralash:** "Saralash" tanlagichi yoki **Muhimlik** / **Muddat** sarlavhasi (`?sort=`, `core/sorting.py`). Saralash tanlanmasa, tartib avvalgidek (Boshqarmada tasdiq kutayotganlar birinchi).
+
+### Muddat sanalari (2026-10-09)
+- Muddat kiritiladigan barcha joylarda (vazifa boshlanishi va muddati, loyiha sanalari, buyurtma muddati va tasdiqlash sanalari) **bugungi kundan oldingi sanani tanlab bo'lmaydi** — bugun va keyingi kunlar mumkin. Sana tanlagichda o'tgan kunlar o'chirilgan, server ham rad etadi ("Bugungi kundan oldingi sanani tanlab bo'lmaydi.", maydon yonida). Qoida bitta joyda: `backend/apps/core/dates.py`.
+- Tahrirlashda eski, o'tib ketgan sana o'zgartirilmasa, boshqa maydonlarni saqlash mumkin.
+- Qoidaga kirmaydi: filtrlar (o'tgan davrni ko'rish uchun), portfolio loyiha sanalari (o'tgan ishlar tarixi), ish jurnali sanasi.
 
 ### Xodimlar (`/xodimlar`, PM, Boshliq)
-- Barcha jamoa a'zolari (dasturchilar, menejerlar): bandligi, faol va kechikkan vazifalari, hozir nima qilayotgani. Vazifasi yo'qlar birinchi turadi.
+- **Statistik kartalar (2026-10-14):** Sahifa tepasida 4 ta ixcham real ko'rsatkich (Jami xodimlar, Jarayondagi vazifalar, Kechikkan vazifalar, Bo'sh xodimlar — backend `/api/people/stats/` API orqali).
+- **Gorizontal toolbar (2026-10-14):** Qidiruv (ism, lavozim, loyiha), lavozim/mutaxassislik bo'yicha filtr, vazifa holati bo'yicha filtr (barchasi, bo'sh, band, kechikkan), sana oralig'i ("Sanadan" — "Sanagacha") va "+ Yangi xodim" tugmasi (yangi xodim yaratish modali, `POST /api/people/create/`).
+- **Xodim kartalari va jadval (2026-10-14):**
+  - Chap taraf: dumaloq avatar, xodimning to'liq ismi, lavozimi, bo'limi, online/xizmat safari indikatori.
+  - O'rta qism: faol va kechikkan vazifalar soni, bandlik darajasi (kichik dumaloq progress indikatori).
+  - Pastki qism: 36–42px ixcham vazifalar ro'yxati (vazifa nomi, loyiha kodi va nomi, holat, muddat; **bajarilgan vazifalar bu sahifada ko'rsatilmaydi**; dastlab 3 tasi ko'rinadi, qolgani uchun "Yana N ta" havolasi).
+  - O'ng taraf: "Profil", "+ Vazifa berish" va uch nuqtali qo'shimcha menyu (profil, vazifa biriktirish, xabarlar/chat, portfolio).
 - Bo'sh (vazifasi yo'q yoki yuklamasi kam) xodimga to'g'ridan-to'g'ri vazifa berish tugmasi.
 - Vazifa topshiriqlarga ajratilib, ularga boshqa xodimlar biriktiriladi.
 - Xodim bosilsa, xodim oynasi ochiladi: profil sarlavhasi, statistika, joriy ishlari, vazifa berish.
+- **Filtrlar bitta qatorda (2026-10-09):** qidiruv (ism, loyiha, mas'ul loyiha nomi), **Vazifa muddati** ("Sanadan" — "Sanagacha"), rol (faqat Boshliqda) va "Faqat bo'sh xodimlar". Muddat tanlansa, shu oraliqda muddati bo'lgan **har qanday holatdagi** (bajarilgan ham, arxivlanganidan tashqari) vazifasi bor xodimlar chiqadi, qatorda shu muddatdagi ishlar ko'rinadi. "Sanagacha" "Sanadan"dan oldin bo'lsa, maydon yonida xato chiqadi va so'rov yuborilmaydi; server ham rad etadi. Muddat qoidasi Vazifalar filtri bilan bitta joyda: `tasks/filters.py` → `due_range_condition`.
+- **Soddalashtirilgan qator (2026-10-09):** bitta asosiy belgi ("Bo'sh" / "N faol" / "Xizmat safarida" / rol) va kerak bo'lsa qizil "N kechikkan"; 1 ta eng yaqin ish (vazifasi bo'lmasa — 1 ta faol loyiha) va "Yana N ta — profilda"; mas'ul loyihalar nomlari ism ostida 2 qatorgacha ("Mas'ul: …"); amallar: "Profilni ko'rish" va "Vazifa berish". Jadval/kartochka almashtirgich olib tashlandi: kompyuterda jadval, telefonda kartochkalar avtomatik.
 - Boshliq o'z profilidagi **Xizmat safarlari** bo'limida faol PM yoki dasturchining qaytish sanasini belgilaydi yoki safarni muddatidan oldin tugatadi. Safar darhol boshlanadi; qaytish kuni yangi vazifa berish avtomatik qayta ochiladi. Safardagi dasturchiga yangi vazifa/topshiriq biriktirilmaydi; avvaldan biriktirilgan ishlar saqlanadi. Bu qoida serverda ham tekshiriladi.
 
 ### Tekshiruv navbati (`/tekshiruv`, PM, Boshliq)
@@ -263,6 +284,7 @@ Menyu guruhlarga bo'lingan: *Asosiy ish* | *Muloqot* | *Kuzatuv* (Kuzatuv faqat 
 - Barcha profillar bir xil ko'rinishda (o'z profilim va xodim oynasi): umumiy `ProfileHeader` (avatar, ism, lavozim, 4 ko'rsatkich: faol, kechikkan, tekshiruvda, bajarilgan) va umumiy vazifalar jadvali (`TaskTable`). "Faol" soni hamma joyda bir xil qoida bilan hisoblanadi.
 - Ism, familiya, Telegram username, parolni almashtirish. Telegram username o'zgarsa, eski chat uziladi (botga `/start` qayta yuboriladi).
 - Dasturchi profilida **"Mening vazifalarim"** jadvali — faqat o'ziga biriktirilgan vazifalar.
+- Dasturchi va PM profilida **"Mas'ul loyihalar"** — Boshliq/PM biriktirgan loyihalar; xodim ular bo'yicha yangilik yozadi (qo'sha/tahrirlay olmaydi).
 - **Profil rasmi:** "Rasm yuklash" (keyin "Rasmni almashtirish" / "Rasmni o'chirish"). JPG, PNG yoki WEBP, 5 MB gacha. Server rasmni tekshiradi, 1024px gacha kichraytiradi, joylashuv kabi ichki ma'lumotlarni (EXIF) o'chiradi. Rasm faqat tizimga kirganlarga ko'rinadi.
 - **Rasmni ko'rish:** profil sarlavhasidagi rasm (o'z profilim va xodim oynasi) bosilsa, Telegram kabi to'liq ekranda ochiladi: to'q fon, tepada ism va ✕. `Esc`, fonga bosish yoki "Orqaga" yopadi. Xodim oynasidan ochilsa, uning o'rnini egallaydi va "Orqaga" xodim oynasiga qaytaradi.
 - **Avatar kartochkasi:** har qanday joyda (jadval, vazifa oynasi, chat, menyu) avatar ustiga sichqoncha olib borilsa, kichik profil kartochkasi chiqadi: rasm, ism familiya, rol (Boshqarma bo'lsa, boshqarma nomi). Rasm bo'lmasa, bosh harflar. Kartochka modal emas.
@@ -270,9 +292,30 @@ Menyu guruhlarga bo'lingan: *Asosiy ish* | *Muloqot* | *Kuzatuv* (Kuzatuv faqat 
 ### Izohlar
 - Buyurtma, loyiha va vazifa oynalarida izohlar bo'limi bor. Izoh yozilsa, ishtirokchilarga bildirishnoma boradi va tarixga yoziladi.
 
-**Mas'uliyatlarni kiritish:** Boshliq va PM xodim profilidagi 'Mas?uliyatlar' bo'limida xodim qaysi ishlar/yo'nalishlarga mas'ul ekanini yozadi, tahrirlaydi va saqlaydi (2000 belgigacha; matnni tozalash ham mumkin). Saqlangan ma'lumot Xodimlar ro'yxatida ko'rinadi va qidiruvda ishlaydi. PM faqat faol dasturchilarni, Boshliq barcha faol xodimlarni tahrirlaydi.
+**Mas'ul loyihalar va yangiliklar (2026-10-14):** avvalgi erkin matnli "Mas'uliyatlar" maydoni o'rniga — xodim **javobgar bo'lgan loyihalar** ro'yxati.
+- **Kiritish:** Boshliq yoki PM xodim oynasidagi "Mas'ul loyihalar" bo'limida "Loyiha qo'shish" bosadi va loyihani **qo'lda** yozadi: nomi (majburiy, 255 belgigacha) va qisqa izoh (1000 belgigacha). Tizimdagi Loyihalar bilan bog'lanmaydi. Tahrirlash va o'chirish (ikki bosqichli tasdiq bilan, yangiliklari ham o'chadi) ham Boshliq/PM da.
+- **Yangiliklar:** har bir loyihada "Yangiliklar (N)" ochiladi — yangisi tepada, muallif, sana-vaqt va matn (2000 belgigacha, hisoblagich bilan), sahifalab. Yangilikni **mas'ul xodimning o'zi** (o'z profilida, `/profil`) va Boshliq/PM yozadi. Kartada "Oxirgi yangilik: sana".
+- **Kim ko'radi:** faqat ichki xodimlar — mas'ul xodimning o'zi va uni boshqaradigan Boshliq/PM. Boshqa dasturchi, boshqarma va oddiy foydalanuvchi ko'rmaydi (server 404 qaytaradi). Ruxsat qoidasi Xodimlar oynasi bilan bir xil: Boshliq — faol PM va dasturchilar, PM — faol dasturchilar. Qoida bitta joyda: `accounts/services.py` (`managed_employees`, `can_view_responsible`).
+- Xodimlar ro'yxatida ism ostida "Mas'ul: …" (loyiha nomlari), qidiruv ham shu nomlar bo'yicha ishlaydi.
+- Eski "Mas'uliyatlar" matni bazada o'chirilmadi (`User.responsibilities` ustuni qoldi), faqat ekrandan va API'dan olib tashlandi.
+- API: `GET/POST /api/people/<id>/responsible-projects/`, `PATCH/DELETE /api/responsible-projects/<id>/`, `GET/POST /api/responsible-projects/<id>/news/`. Yangi modal yo'q (xodim oynasi va profil sahifasi ichida).
+- **Dasturchi o'zi ham (2026-10-20):** dasturchi **o'z** mas'ul loyihalarini o'zi ham qo'shadi, tahrirlaydi va o'chiradi (o'z profilida, `/profil`); boshqa xodimning loyihasini boshqara olmaydi. Qoida shu bitta joyda — `accounts/services.py` → `managed_employees`.
 
-**Xodimlar (Boshliq va PM):** har bir xodimning faol ishlari, loyiha nomi/raqami, holati va muddati ro'yxatda ko'rinadi. 'Profilni ko'rish' yoki ism orqali xodim profili ochiladi: barcha vazifalar, dasturchi hisoboti va biriktirilgan loyihalar. Ro'yxatda 3 ta ish va 2 ta faol loyiha qisqa ko'rsatiladi, qolganlari profilda. Ish yoki loyihani bosish mavjud tafsilot oynasini ochadi. Telefonda kartalar, kompyuterda jadval/kartalar; kunduzgi va tungi rejim.
+**Xodimlar (Boshliq va PM):** har bir xodimning faol ishlari, loyiha nomi/raqami, holati va muddati ro'yxatda ko'rinadi. 'Profilni ko'rish' yoki ism orqali xodim profili ochiladi: barcha vazifalar, dasturchi hisoboti va biriktirilgan loyihalar. Ro'yxatda 1 ta eng yaqin ish (vazifasi bo'lmasa 1 ta faol loyiha) qisqa ko'rsatiladi, qolganlari profilda (2026-10-09 da soddalashtirildi; avval 3 ta ish va 2 ta loyiha edi). Ish yoki loyihani bosish mavjud tafsilot oynasini ochadi. Telefonda kartalar, kompyuterda jadval; kunduzgi va tungi rejim.
+
+### Portfolio (`/portfolio`, hamma rol) — 2026-10-08
+Dasturchilar portfoliosi va reytingi. Menyuda barcha rollarda ("Muloqot" guruhida) bor — hamma ko'radi.
+- **Ro'yxat:** barcha faol dasturchilar **reyting bo'yicha** — eng balandi tepada, o'rni (1, 2, 3…), yulduz va o'rtacha baho, **kuzatuvchilar**, **sharhlar** va **loyihalar** soni, kuzatayotgan bo'lsangiz "Kuzatyapsiz" belgisi. Ism yoki mutaxassislik bo'yicha qidiruv. Dasturchida o'ng tomonda "Mening portfoliom".
+- **Portfolio oynasi** (qator bosilsa): avatar, ism, mutaxassislik; ko'rsatkichlar — Reyting, Kuzatuvchilar, Loyihalar, Bajarilgan vazifalar, **Tajriba** ("3 yil 7 oy", qachondan beri); **Loyihalar** kartalari; **Yillar bo'yicha** (har yili nechta loyiha va bajarilgan vazifa); **So'nggi bajarilgan vazifalar**. Pastda bitta asosiy amal: boshqalarga "Kuzatish" / "Kuzatishni to'xtatish", egasiga "Loyiha qo'shish".
+- **Avtomatik:** dasturchi a'zo bo'lgan TeamFlow loyihalari portfolioda o'zi paydo bo'ladi ("TeamFlow loyihasi" belgisi, loyiha raqami, sanalari, shu loyihada bajargan vazifalari soni). Nomi va sanalari loyihadan olinadi, o'chirilmaydi; dasturchi tavsif, havola va video qo'sha oladi. Jamoadan chiqarilsa ham portfoliodagi yozuv (baho va videolari bilan) qoladi. Tajriba — TeamFlow'ga qo'shilgan kun yoki eng erta loyiha boshlanishidan bugungacha.
+- **O'zi qo'shadi:** "Loyiha qo'shish" — nomi (majburiy), boshlanish/tugash sanasi, "Nima qildingiz?" (2000 belgigacha), loyiha havolasi (faqat `http/https`). Tahrirlash va o'chirish mumkin.
+- **Rasm va fayllar:** loyiha egasi (dasturchi) loyihasiga **rasm** (JPG, PNG, WEBP — server tarkibini tekshirib, EXIFsiz JPEG qilib saqlaydi), **Word (.docx)** va **PDF** biriktiradi va o'chiradi (20 MB gacha, 30 tagacha; fayl boshidagi belgi tekshiriladi). Hamma foydalanuvchi rasmlarni galereyada ko'radi, fayllarni yuklab oladi; baho va sharh shu loyihada. Fayllar faqat tizimga kirganlarga `/api/portfolio/attachments/<id>/` orqali beriladi. **Tarix:** loyiha oynasidagi "Tarix" bo'limida rasm, video, fayl va muqova qachon va kim tomonidan qo'shilgani/o'chirilgani ko'rinadi (hamma ko'radi).
+- **Video:** har bir loyihaga video yuklash va brauzerning o'zida ko'rish (oldinga o'tkazish ishlaydi). MP4, WebM yoki MOV, 100 MB gacha, bitta loyihaga 5 tagacha. Server turini, hajmini va fayl boshidagi belgini tekshiradi. Video faqat tizimga kirganlarga `/api/portfolio/videos/<id>/` orqali beriladi.
+- **Baho va sharh:** boshqa foydalanuvchilar har bir loyihaga alohida **1–5 yulduz** qo'yadi; bitta odam bitta loyihaga bitta baho — keyin yangilaydi yoki o'chiradi. **Sharh** bahodan alohida: bitta odam bitta loyihaga **istalgancha sharh** (har biri 1000 belgigacha) yozadi va "Yuborish" bosadi, o'z sharhini o'chira oladi; hamma sharhlarni ko'radi (sahifalanadi, eng yangisi tepada). O'z loyihasini baholab ham, sharh yozib ham bo'lmaydi.
+- **Reyting:** dasturchining barcha loyihalaridagi baholar o'rtachasi (11-bo'lim).
+- **Kuzatish:** istalgan foydalanuvchi dasturchini kuzatadi; o'zini kuzata olmaydi. Kuzatuvchilar soni ro'yxatda va portfolioda ko'rinadi.
+- **Hozirgi holat va mas'ul loyihalar (2026-10-14):** oddiy foydalanuvchi ham (barcha rollar kabi) dasturchi kartasida va portfolio oynasida uning **hozirgi holatini** ko'radi: *Bo'sh*, *Band · N ta faol ish* yoki *Xizmat safarida · dd.mm.yyyy gacha* (rang + matn). Qoida bitta joyda — `portfolio/stats.py: developer_statuses`: xizmat safari > faol ish bor > bo'sh; "faol ish" Xodimlar sahifasidagi bilan bir xil (`tasks.filters.ACTIVE`, arxivlanmagan). Portfolio oynasining "Umumiy" tabida **"Hozir mas'ul loyihalari"** — dasturchi a'zo bo'lgan, yakunlanmagan loyihalar (nomi, raqami, holati, shu loyihadagi faol ishlari soni). Yangi flow/modal yo'q. API: ro'yxat va detalda `status`, detalda `current_projects`.
+- Ruxsatlar serverda: ko'rish — hamma tizimga kirganlar; o'zgartirish va video — faqat egasi; portfolio faqat faol dasturchilarda.
 
 ## 8. Telegram bildirishnomalari
 
@@ -284,7 +327,7 @@ Menyu guruhlarga bo'lingan: *Asosiy ish* | *Muloqot* | *Kuzatuv* (Kuzatuv faqat 
 - Bot (`runbot`) server bilan birga avtomatik ishga tushadi (`backend/start_server.bat`, log: `backend/bot.log`). Logga token yozilmaydi.
 - Bitta token bilan faqat **bitta** bot jarayoni ishlashi mumkin: boshqa joyda ham ishlasa, logda "409" chiqadi va `/start` xabarlari o'sha joyga ketadi.
 
-## 9. Modallar (amalda: 14 ta)
+## 9. Modallar (amalda: 16 ta)
 
 Ko'rish, yaratish, tahrirlash — hammasi modalda. Batafsil: `docs/FLOWS_MODALS.md`.
 
@@ -298,8 +341,10 @@ Ko'rish, yaratish, tahrirlash — hammasi modalda. Batafsil: `docs/FLOWS_MODALS.
 | 6 | Vazifa ko'rish (tekshiruv shu yerda) | 12 | Bildirishnomalar (qo'ng'iroq ikonkasi) |
 | | | 13 | Vazifa amali: Tekshiruvga yuborish / Qaytarish (vazifa oynasi ustida) |
 | | | 14 | Buyurtma amali: Tasdiqlash / Rad etish / sanalar / yangi TZ / kamchilik (buyurtma oynasi ustida) |
+| | | 15 | Loyiha amali: Yakunlash izohi va fayllar (loyiha oynasi ustida) |
+| | | 16 | Portfolio (dasturchi sahifasi → loyiha → yangi loyiha; bitta modal ichida) |
 
-Word ko'rish alohida modal emas — joriy modal ichini almashtiradi ("← Orqaga").
+Word ko'rish alohida modal emas — joriy modal ichini almashtiradi ("← Orqaga"). Portfolio loyihasi va formasi ham alohida modal emas — "Portfolio" modali ichini almashtiradi.
 
 **Modal qoidalari:**
 - Tepada sarlavha va ✕, o'rtada aylanuvchi tarkib, pastda doim ko'rinadigan tugmalar paneli (asosiy amal o'ngda, xavfli amal chapda).
@@ -308,7 +353,7 @@ Word ko'rish alohida modal emas — joriy modal ichini almashtiradi ("← Orqaga
 - `Esc` yopadi, fokus modal ichida qoladi, saqlanmagan o'zgarish bo'lsa so'raydi. Telefonda butun ekran.
 - Tugmalar rolga va holatga qarab chiqadi, keraksiz tugma ko'rsatilmaydi.
 
-## 10. Flow'lar (amalda: 13 ta)
+## 10. Flow'lar (amalda: 16 ta)
 
 Cheklov: bitta bo'limda **3–4 ta flow**, istisnoda **5 ta**. Oshsa — flow'lar birlashtiriladi yoki bitta flow ichida holatga qarab UI almashadi.
 
@@ -322,6 +367,8 @@ Cheklov: bitta bo'limda **3–4 ta flow**, istisnoda **5 ta**. Oshsa — flow'la
 | suggestions (1) | Takliflar berish va ovoz |
 | history (1) | Qilingan ishlar |
 | notifications (1) | Telegram'ni ulash |
+| portfolio (3) | Portfoliolarni ko'rish va kuzatish · Portfolioni to'ldirish (loyiha, video, havola) · Loyihani baholash va sharh |
+| people (1) | Mas'ul loyihalar va yangiliklar |
 
 Batafsil bosqichlar: `docs/FLOWS_MODALS.md`.
 
@@ -342,7 +389,34 @@ Batafsil bosqichlar: `docs/FLOWS_MODALS.md`.
 - **Vazifalar filtrida "Loyiha" va "Oy yarmi" yo'q** — o'rniga "Sanadan / Sanagacha" oralig'i.
 - **Loyihani yakunlash:** avval loyihadagi barcha faol dasturchilar bildirishnoma orqali tasdiqlashi kerak (birortasi sababli rad etsa, yakunlanmaydi). Shundan keyin: buyurtmasiz loyiha to'g'ridan-to'g'ri yakunlanadi; buyurtmadan yaratilgan loyiha avval "Tasdiqlash kutilmoqda"ga o'tadi — faqat buyurtmani yuborgan boshqarma uni Yakunlangan deb tasdiqlaydi yoki sabab bilan "Rad etildi" holatiga o'tkazadi. (Qaror: 2026-10-05.)
 
-**Ochiq savollar:** hozircha yo'q.
+- **Portfolio reytingi:** dasturchi reytingi — uning barcha portfolio loyihalariga qo'yilgan baholarning oddiy o'rtachasi; teng bo'lsa sharhlar soni, keyin kuzatuvchilar soni ko'p bo'lgan tepada. Baholanmaganlar oxirida. (Qaror: 2026-10-08.)
+
+**Ochiq savollar (oddiy foydalanuvchi bosh sahifasi, 2026-10-21 — taxmin bilan qilingan, foydalanuvchi tasdig'i kerak):** dizayn rasmidagi sarlavha ostidagi izoh matni, "Kuzatayotganlarim" chiplari va yuqori paneldagi qidiruv/qo'ng'iroq qo'shilmadi (2026-10-20 "izoh matnlari bo'lmasin" qoidasi; qo'ng'iroq — oddiy foydalanuvchida bildirishnoma yo'q). Kartada "Sharh yozish" Portfolio oynasining "Loyihalar" bo'limini ochadi (sharh loyiha ichida yoziladi). Ko'rsatkich grafigi — so'nggi 8 haftada qo'shilgan dasturchilar / yakunlangan loyihalar (yakunlangan sana saqlanmagani uchun oxirgi o'zgarish sanasi).
+
+**Ochiq savollar (portfolio, 2026-10-08 — taxmin bilan qilingan, foydalanuvchi tasdig'i kerak):**
+- Portfolioda dasturchining **bajarilgan vazifa nomlari va loyiha nomlari barcha rollarga** (boshqarma va boshqa dasturchilarga ham) ko'rinadi — "boshqa userlar ham ko'ra olsin" talabi bo'yicha. Vazifa/loyihaning ichi (fayllar, izohlar) ochilmaydi. Shunday qolsinmi?
+- Baholash va kuzatish **barcha rollarga** (Boshliq, PM, dasturchi, boshqarma) ochiq; faqat o'zini baholay/kuzata olmaydi.
+- Video chegarasi: MP4/WebM/MOV, bitta video **100 MB**, bitta loyihaga **5 tagacha**.
+- Oddiy o'rtacha reyting: 1 ta 5★ baho 100 ta 4.9 dan yuqori turishi mumkin. Kerak bo'lsa, "ishonchli reyting" (Bayes o'rtacha) ga o'tish mumkin.
+
+**Ochiq savollar (rasm/fayl va mas'ul loyiha, 2026-10-20 — taxmin bilan qilingan, foydalanuvchi tasdig'i kerak):**
+- **"Tasdiqlash"** PM/Boshliq tasdig'i sifatida **qilinmadi**: dasturchi yuklaganini "Yuklash"/"Saqlash" bilan o'zi joylaydi va darrov hamma ko'radi. Agar PM/Boshliq tasdig'idan keyingina ko'rinishi kerak bo'lsa — ayting.
+- **Mas'ul loyihaga** rasm/video/fayl biriktirilmaydi va boshqa foydalanuvchilar uni ko'rmaydi, baho/sharh ham yo'q (2026-10-14 qarori: faqat ichki xodimlar). Dasturchi hammaga ko'rsatmoqchi bo'lgan ish — **Portfolio loyihasi** (rasm, video, Word/PDF fayl, tarix, baho va sharh shu yerda). Mas'ul loyihaning o'zi ham ommaga ochiq va baholanadigan bo'lsinmi? Unda 14.10 qarori o'zgaradi — ayting.
+
+**Ochiq savollar (mas'ul loyihalar va loyihasiz vazifa, 2026-10-14 — taxmin bilan qilingan, foydalanuvchi tasdig'i kerak):**
+- Mas'ul loyihaga yangilik yozilganda **bildirishnoma yuborilmaydi** (talabda aytilmagan). Kerakmi — masalan, xodim yozsa PM/Boshliqqa?
+- Yozilgan yangilikni **tahrirlash yoki o'chirish** imkoni yo'q (faqat loyiha bilan birga o'chadi). Kerakmi?
+- Bitta mas'ul loyiha **bitta xodimga** tegishli (bir xil nomni ikki xodimga alohida kiritish mumkin). Bir loyihaga bir nechta mas'ul kerakmi?
+- Loyihasiz vazifani faqat **dasturchi** yarata oladi; PM/Boshliq uchun loyiha majburiy qoldi. PM/Boshliq ham loyihasiz vazifa bera olsinmi?
+
+**Ochiq savollar (masshtablash, 2026-10-14 — foydalanuvchi qarori kerak):**
+- Production server tanlanmagan. Joriy mahsulot (portfolio, login to'lqini, fayl yuklash, uzoq ishlash) uchun 10 000+ sig'im faqat o'sha serverda qayta o'lchanadi.
+- Bir nechta app server (gorizontal masshtab) kerakmi? Kerak bo'lsa: yuklangan fayllar umumiy omborga (S3-mos) ko'chiriladi va PostgreSQL oldiga PgBouncer qo'yiladi.
+- Bildirishnoma va chat hozir so'rov bilan (polling) yangilanadi. 10 000 ochiq tabda push (SSE/WebSocket) kerakmi?
+- Monitoring (xatolar, p95, navbat) uchun xizmat tanlanmagan.
+
+**Ochiq savol (Xodimlar dizayni, 2026-10-14):**
+- Dizayndagi "Yangi xodim" tugmasi qo'yilmadi: hozir xodim o'zi ro'yxatdan o'tadi va Django adminda faollashtiriladi. Ilovaning o'zida xodim qo'shish (yoki adminga havola) kerakmi?
 
 ## 12. Xavfsizlik
 
@@ -454,7 +528,7 @@ Har doim avvalgi holatga qaytish imkoniyati saqlanadi: `v1.0-baseline`, `ui-befo
 
 ```
 backend/    Django: config/ (settings, urls), apps/ (core, accounts, orders, projects,
-            tasks, notifications, panel, chat, suggestions, ai), start_server.bat
+            tasks, notifications, panel, chat, suggestions, ai, portfolio), start_server.bat
 frontend/   React + TS: src/app (marshrut, menyu, modallar), src/features (sahifalar),
             src/shared (UI komponentlar, text.ts, styles.css, types)
 docs/       ARCHITECTURE.md, FLOWS_MODALS.md
@@ -463,6 +537,7 @@ docs/       ARCHITECTURE.md, FLOWS_MODALS.md
 - Har bir app ichidagi qatlamlar: `models`, `workflow`, `services`, `permissions`, `serializers`, `api`, `admin`, `tests` (batafsil: `docs/ARCHITECTURE.md` 3-bo'lim).
 - Holat o'tishlari faqat `apps/*/workflow.py` jadvallarida. Kim nimani ko'rishi — `apps/*/permissions.py`.
 - UI matnlari bitta joyda: `frontend/src/shared/text.ts`. Ranglar va o'lchamlar — `styles.css` tokenlari, sanalar — `formatDate`.
+- **Ranglar va harakat (2026-10-20):** komponent ichida qattiq yozilgan rang (`#hex`, `rgb()`) yo'q — hamma rang `styles.css` tokenlaridan (`--primary`, `--success`, `--info`, `--warning`, `--danger`, `--violet`, `--slate` va ularning `-soft` juftlari; kunduzgi va tungi rejimda). Istisno: tema oldindan ko'rinishi, hujjat oq foni, video qora foni, kirish sahifasi qorong'u paneli. Animatsiya uch davomiylik (`--dur-fast` 120ms, `--dur` 180ms, `--dur-slow` 320ms) va bitta easing (`--ease`) bilan: sahifa kirishi, oyna va bildirishnoma, tugma bosilishi, karta ko'tarilishi, kartalar ketma-ket paydo bo'lishi, progress, rejim almashishi. `prefers-reduced-motion` yoqilgan bo'lsa hammasi o'chadi.
 - Vaqtinchalik skriptlar: `backend/scratch/`, `frontend/scratch/`, `docs/scratch/` (ildizda faqat `backend`, `frontend`, `docs` va hujjatlar).
 
 ## 15. UX maqsadi
@@ -485,7 +560,40 @@ Batafsil qoidalar: `CLAUDE.md` 4-bo'lim. Dizayn oldingi loyiha skrinshotlaridan 
 - Yangi flow yoki modal `docs/FLOWS_MODALS.md` ga yoziladi, cheklov haqida foydalanuvchiga aytiladi.
 - Commit va push faqat foydalanuvchi so'raganda.
 
-- **2026-10-06:** Rad etilgan buyurtmaga TZ v2 fayli va tuzatish izohi yuborish tekshirildi. Yakunlash so'rovi davomida, boshqarma tasdig'i kutilganda va loyiha yakunlangach yangi vazifa qo'shish/berish tugmalari yashiriladi; server ham yangi vazifani rad etadi.
+- **2026-10-06:** Rad etilgan buyurtmaga TZ v2 fayli va tuzatish izohi yuborish tekshirildi. Yakunlash so'rovi davomida, boshqarma tasdig'i kutilganda va loyiha yakunlangach yangi vazifa qo'shish/berish tugmalari yashiriladi; server ham yangi vazifani rad etadi. **2026-10-09:** server endi mavjud vazifaga ijrochi qo'shish/almashtirish va topshiriq qo'shishni ham rad etadi (`projects/workflow.py: completion_locked`); bloklangan dasturchi yakunlashni to'xtatib qo'ymaydi (`pending_acks`); jamoa o'zgarmasa yig'ilgan tasdiqlar saqlanadi.
 
 - **2026-10-06 (UX/UI):** Sahifa amallari qidiruv/filtr bilan bir qatorda, asosiy tugma o'ngda; modalda yakunlash/saqlash pastki panelda. Telefon ekranida sarlavha amallari alohida qatorda, tugmalar va buyurtma holati kesilmaydi. Klaviatura fokusi yashirin/o'chiq elementlarni o'tkazib yuboradi; tablar strelka/Home/End bilan ishlaydi. Rang kontrasti yaxshilandi; doskada sudrash dastagi va vazifani ochish tugmasi alohida.
 - **2026-10-06 (Buyurtmalar tartibi):** Boshqarma ro'yxatida yakunlash tasdig'i kutilayotgan loyihalar birinchi, yangi va davom etayotgan buyurtmalar keyingi, to'liq yakunlanganlar oxirida turadi. Har bir guruhda yangilari tepada; server tartibi sahifalashda ham saqlanadi.
+
+### Tezlik va resurslar (2026-10-06)
+
+- **2026-10-06 (tezlik va resurs sarfi):** Bosh panel hisoblari bitta agregat SQL orqali olinadi; loyiha vazifalari va dasturchilar faqat tegishli tab ochilganda yuklanadi. Bildirishnomani o'qish va izoh yozish barcha ro'yxatlarni qayta yuklamaydi. Kesh 60 soniya, dasturchilar ma'lumotnomasi 5 daqiqa; mutatsiyadan keyin tegishli kesh yangilanadi. Chat so'rovlari xabarlar uchun 5 soniya, suhbatlar uchun 15 soniya; yashirin tabda polling o'chirilgan. Fon blur effektlari olib tashlangan, modal orqasidagi loyiha ko'rinib turadi.
+
+| Mahalliy API tekshiruvi | Oldin SQL | Keyin SQL |
+|---|---:|---:|
+| PM bosh paneli | 14 | 2 |
+| Boshqarma bosh paneli | 12 | 1 |
+
+O'lchov mavjud kichik bazada (7 vazifa, 6 loyiha), autentifikatsiya qilingan API orqali olindi. Bosh panel javob hajmi saqlandi. 243 backend va 102 frontend testi o'tdi. Chatning davriy so'rovlari faol suhbatda daqiqasiga 32 dan 16 ga kamaytirildi. Bu SQL va so'rov sarfi o'lchovi; umumiy CPU/RAM yoki brauzer tezligi foizi o'lchanmagan.
+
+- **2026-10-06 (qo'shimcha optimallashtirish):** Chat polling faqat oxirgi xabardan keyingi yangi xabarlarni oladi; yangi xabar bo'lmasa javob `[]` va bazaga UPDATE yo'q. Brauzer oxirgi 200 xabarni saqlaydi. Vazifa ruxsatlari yuklangan ijrochilar ro'yxatidan tekshiriladi; ijrochilar o'zgarsa kesh tozalanadi. Mahalliy dasturchi vazifa tafsilotida SQL 9 dan 6 ga tushdi. Vazifa amallari chat, takliflar va metama'lumotlarni qayta yuklamaydi. Mahalliy server `--noreload` bilan ishga tushirildi (4 jarayondan 2 ga); Startup skripti ham avvaldan shu rejimda. Umumiy CPU/RAM yoki foydalanuvchi sezadigan tezlik foizi o'lchanmagan.
+
+Tekshiruv: 247 backend, 103 frontend testi (bitta worker), TypeScript va production build o'tdi. O'lchov va tekshiruv qaydi: `docs/scratch/performance-verification-2026-10-06.md`.
+
+- **2026-10-06 (10 000+ foydalanuvchi):** Foydalanuvchi bir vaqtda faol 10 000+ foydalanuvchini aniqlashtirdi; server hali tanlanmagan. Production PostgreSQL/Redis, Gunicorn/Nginx, sahifalash va Telegram outbox tayyorlandi. 4 jarayonli Locust bilan 10 000 alohida sessiya, 250 soniya peak, 501,96 so'rov/soniya, 135 349 so'rov, 0 xato, p95 110 ms; aniq profil va chegaralar docs/performance/2026-10-06/REPORT.md da. 269 PostgreSQL backend, 104 frontend testi hamda 60 haqiqiy brauzer holati o'tdi.
+- **2026-10-08 (10k arxitekturasi):** Portfolio reytingining standart sahifasi va unread soni Redis'da 60 soniyaga keshlanadi; tegishli yozish/o'qish commitidan keyin invalidatsiya qilinadi. `ProjectMember` signali va backfill migratsiyasi portfolio GET ichidagi yozuvni olib tashladi; portfolio feed indekslari qo'shildi. Chat bo'sh paytda 5 → 60 soniyagacha adaptive polling qiladi, suhbatlar 30 soniyada yangilanadi. Compose default o'lchangan profilga (12 worker × 2 thread), healthcheck readiness endpointiga o'tkazildi. Eski 10k hisobot portfolio, login burst, upload, browser polling va soakni qamramaydi; joriy mahsulot sig'imi tanlangan serverda qayta o'lchanadi.
+- **2026-10-06 (tozalash va GitHub):** Foydalanuvchi testdan keyin kiritilgan ma'lumotlarni tozalashni va oxirida GitHub'ga yuklashni aniq buyurdi. Ushbu ish uchun commit/push ruxsati mavjud. Testlar alohida teamflow-scale-test Docker loyihasi va teamflow_scale PostgreSQL bazasida; haqiqiy SQLite biznes ma'lumotlari saqlanadi. Test konteyner/baza/volume va maxfiy fixturelar yakunda olib tashlanadi. Deployment qo'llanmasi backend/deploy/README.md da; haqiqiy server/TLS va SQLite data cutover hali bajarilmagan.
+
+
+- **2026-10-12 (Oddiy foydalanuvchi UX/UI):** Foydalanuvchi talabi: oddiy foydalanuvchi (18-40 yosh) uchun sodda, flow'lari 3-4 tadan oshmaydigan tizim. Instagram nusxasi (InstagramLayout) olib tashlandi, o'rniga UserLayout: tepada nom, rejim va 'Chiqish', pastda matnli ikki bo'lim - Dasturchilar va Profil. Bosh sahifa: bir martalik 'Qanday ishlaydi?' (3 qadam), qidiruv, 'Hammasi / Kuzatayotganlarim' filtri va dasturchi kartalari ('Ko'rish va baholash' asosiy, 'Kuzatish' ikkinchi tugma). Flow'lar yangi ochilmadi: mavjud portfolio flow'lari (ko'rish va kuzatish, baholash) ishlatiladi; yangi modal yo'q. Backend: `GET /api/portfolio/?following=1`.
+
+- **2026-10-12 (Oddiy foydalanuvchi, SaaS dizayn):** Foydalanuvchi bergan dizayn (SaaS karta - Ro'yxat) bo'yicha oddiy foydalanuvchi bosh sahifasi qayta qilindi: sarlavha 'Dasturchilar portfoliosi' (shu sahifada dizayn bo'yicha sarlavha bor), qidiruv, 'Saralash' (reyting, kuzatuvchi, loyiha, sharh), 3 ta ko'rsatkich kartasi (Jami dasturchilar, O'rtacha reyting, Baholangan loyihalar), chiplar (Hammasi, Kuzatayotganlarim va mutaxassisliklar), 2 ustunli kartalar ('Profilni ko'rish'). Rang va shrift mavjud dizayn tokenlaridan (yashil), dizayndagi binafsha emas. Kartada texnologiya chiplari yo'q (bazada ular saqlanmaydi). Kuzatish dasturchi profili oynasida. Profilda 'Mening baholarim' va faollik soni. Backend: `GET /api/portfolio/?following=1&specialty=<id>&sort=followers|projects|reviews`, `GET /api/portfolio/summary/`, `GET /api/portfolio/my-reviews/`, profilda `activity`. Yangi flow va modal yo'q.
+
+- **2026-10-12 (Oddiy foydalanuvchi, 'Portfolio dasturchilar' dizayni):** Foydalanuvchi bergan yangi dizayn bo'yicha: tepa panel (nom, rejim, profil, chiqish), kompyuterda chap menyu, telefonda pastki menyu (Dasturchilar, Mening baholarim, Profil); sarlavha va izoh, qidiruv (Ctrl K), saralash, 4 ta ko'rsatkich (Jami dasturchilar + 30 kunlik o'sish, O'rtacha reyting, Baholangan loyihalar, Faol loyihalar), sonli chiplar (Hammasi, Kuzatayotganlarim, mutaxassisliklar), to'r va ro'yxat ko'rinishi, muqovali kartalar (yurak = kuzatish). Barcha ma'lumot backenddan: `GET /api/portfolio/summary/` (+`following`, `active_projects`, `developers_growth`), ro'yxat qatorida `projects`, `projects_extra`, `experience_months`. Dizayndagi ma'lumoti yo'q narsalar qilinmadi: texnologiya belgilari o'rniga dasturchining loyiha nomlari, 'hududlar' va 'darajalar' filtri, 'online' belgisi, 'Dasturchi qo'shish', bildirishnoma qo'ng'irog'i, Loyihalar/Vazifalar/Xabarlar menyusi (oddiy foydalanuvchiga tegishli emas). Muqova rasmlari — bezak (gradient). 'Mening baholarim' endi alohida sahifa (`/baholarim`). Yangi flow va modal yo'q.
+
+- **2026-10-12 (TeamFlow professional UX/UI master talabi):** Barcha mavjud sahifalar berilgan ikki reference kollajdagi yagona purple/indigo TeamFlow design systemiga moslashtiriladi, lekin mavjud route, rol va permissionlar saqlanadi. Oddiy foydalanuvchida faqat Dasturchilar, Mening baholarim va Profil qoladi; unga chat yoki boshqaruv amallari qo'shilmaydi. Portfolio modali yangi route ochmasdan `Umumiy / Loyihalar / Baholar` ko'rinishida qayta tashkil qilinadi va modal ichida modal ochilmaydi. Portfolio loyihalariga 10 tagacha texnologiya va validatsiyalangan muqova rasmi non-destructive migration bilan qo'shiladi; eski yozuvlar ishlashda davom etadi. Fake qiymatlar ishlatilmaydi; loading/empty/error holatlari va responsive/a11y saqlanadi. Production migratsiya alohida tasdiqsiz bajarilmaydi.
+
+- **2026-10-14 (10 000+ foydalanuvchi, fayl berish):** Foydalanuvchi talabi: loyiha 10 000+ foydalanuvchini ko'tara olsin. Ruxsatli fayllar (avatar, muqova, video, hujjatlar) endi production'da Nginx tomonidan beriladi: Django faqat ruxsatni tekshiradi (`X-Accel-Redirect`, `apps/core/serving.py`), Gunicorn oqimlari band bo'lmaydi; avatar va muqova brauzerda keshlanadi. Mahalliy ishga tushirish o'zgarmadi. Qolgan masshtablash qadamlari foydalanuvchi qaroriga qoldirildi — "Ochiq savollar (masshtablash)" bo'limida.
+- **2026-10-14 (mas'ul loyihalar):** Foydalanuvchi talabi: "mas'uliyatlar" emas, xodim javobgar bo'lgan loyihalar; ularni Boshliq yoki PM kiritadi va shu loyihalar bo'yicha yangiliklar yoziladi. Foydalanuvchi tanlovi: loyiha qo'lda yoziladi (nom + izoh), yangilikni mas'ul xodim va Boshliq/PM yozadi, faqat ichki xodimlar ko'radi, eski "Mas'uliyatlar" maydoni olib tashlanadi. Batafsil — Xodimlar bo'limidagi "Mas'ul loyihalar va yangiliklar".
+- **2026-10-14 (loyihasiz vazifa):** Foydalanuvchi talabi: dasturchi vazifa qo'shganda loyihani tanlamasa ham bo'lsin. Batafsil — 6-bo'lim "Loyihasiz vazifa".
+- **2026-10-14 (Xodimlar sahifasi dizayni):** Foydalanuvchi bergan dizayn bo'yicha Xodimlar sahifasi: "Xodimlar" sarlavhasi, filtr kartasi (qidiruv, vazifa muddati oralig'i, Boshliqda rol, "Faqat bo'sh xodimlar"), har bir xodim alohida kartada — ismi, lavozimi va holati; "Vazifalar (N)" bilan 3 tagacha vazifa (nomi, loyihasi, holati yoki "Kechikkan", muddati) va "Barchasini ko'rish"; o'ngda "Profilni ko'rish" va "Vazifa berish". Barcha ma'lumot backenddan. Telefonda karta ustunlari ustma-ust. "Yangi xodim" tugmasi qo'yilmadi — xodim ro'yxatdan o'tadi va Django adminda tasdiqlanadi (ochiq savol: ilovada xodim qo'shish kerakmi?).

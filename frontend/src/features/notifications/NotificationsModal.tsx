@@ -49,7 +49,7 @@ const NOTICE_ICON: Record<string, LucideIcon> = {
  * "Yo'q" bosilsa, shu qatorning ostida sabab maydoni ochiladi. */
 function AckNotice({ notice, Icon, onOpen }: { notice: Notice; Icon: LucideIcon; onOpen: () => void }) {
   const toast = useToast();
-  const refresh = useRefresh();
+  const refresh = useRefresh(["notifications", "project", "projects", "orders", "order", "dashboard"]);
   const [rejecting, setRejecting] = useState(false);
   const [reason, setReason] = useState("");
   const [fieldError, setFieldError] = useState<string | null>(null);
@@ -76,7 +76,7 @@ function AckNotice({ notice, Icon, onOpen }: { notice: Notice; Icon: LucideIcon;
           <Icon />
         </span>
         <span className="grow stack-sm" style={{ gap: 2 }}>
-          <span className="notice-kind">{notice.kind_label}</span>
+          <span className="notice-kind">{T.notifications.ackQuestion}</span>
           <span className="notice-msg">{notice.message}</span>
         </span>
         <span className="notice-meta">
@@ -144,7 +144,7 @@ function groupByDay(items: Notice[], now = new Date()): { label: string; items: 
  * Bosilganda o'qildi deb belgilanadi va tegishli modal shu modal o'rniga ochiladi (modal ustida modal yo'q). */
 export default function NotificationsModal() {
   const { open, close } = useModal();
-  const refresh = useRefresh();
+  const refresh = useRefresh(["notifications"]);
   const [filter, setFilter] = useState<"" | "1">("");
   const [page, setPage] = useState(1);
   const query = useQuery({

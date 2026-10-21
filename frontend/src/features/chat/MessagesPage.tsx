@@ -11,6 +11,8 @@ import { T } from "@/shared/text";
 import type { ChatConversation, ChatMessage, UserBrief } from "@/shared/types";
 import { Avatar, Button, Empty, ErrorBox, SkeletonRows } from "@/shared/ui";
 
+import { CHAT_POLL_FAST_MS, nextChatPollDelay } from "./polling";
+
 /** Xabarlar: chapda suhbatlar (yoki qidiruv natijasi), o'ngda tanlangan suhbat.
  * Telefonda bir vaqtda bittasi ko'rinadi: ro'yxat yoki suhbat ("← Orqaga" bilan). */
 export default function MessagesPage() {
@@ -22,6 +24,7 @@ export default function MessagesPage() {
   const [search, setSearch] = useState("");
   const [text, setText] = useState("");
   const chatEndRef = useRef<HTMLDivElement>(null);
+  const pollDelayRef = useRef(CHAT_POLL_FAST_MS);
   const query = useDebounced(search.trim());
 
   const peopleQuery = useQuery({
@@ -33,15 +36,30 @@ export default function MessagesPage() {
   const convQuery = useQuery({
     queryKey: ["chat", "conversations"],
     queryFn: () => api.get<ChatConversation[]>("/chat/conversations/"),
-    refetchInterval: 5000,
+    enabled: !query,
+    refetchInterval: 30_000,
+    refetchIntervalInBackground: false,
   });
 
   const msgsQuery = useQuery({
     queryKey: ["chat", "messages", partnerId],
-    queryFn: () => api.get<ChatMessage[]>(`/chat/messages/${qs({ partner: partnerId })}`),
+    queryFn: async () => {
+      // Pollingda tarixni qayta yuklamaymiz; har suhbatning keshi alohida.
+      const cached = qc.getQueryData<ChatMessage[]>(["chat", "messages", partnerId]) ?? [];
+      const after = cached.length ? Math.max(...cached.map((message) => message.id)) : undefined;
+      const incoming = await api.get<ChatMessage[]>(`/chat/messages/${qs({ partner: partnerId, after })}`);
+      pollDelayRef.current = nextChatPollDelay(pollDelayRef.current, incoming.length > 0);
+      if (!incoming.length) return cached;
+      return [...cached, ...incoming].slice(-200);
+    },
     enabled: Boolean(partnerId),
-    refetchInterval: 3000,
+    refetchInterval: () => pollDelayRef.current,
+    refetchIntervalInBackground: false,
   });
+
+  useEffect(() => {
+    pollDelayRef.current = CHAT_POLL_FAST_MS;
+  }, [partnerId]);
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -135,6 +153,7 @@ export default function MessagesPage() {
               {msgsQuery.data?.map((m) => (
                 <div key={m.id} className={`bubble ${m.author_id === me.id ? "mine" : ""}`} title={fmtDateTime(m.created_at)}>
                   {m.text}
+                  <time className="bubble-time" dateTime={m.created_at}>{fmtDateTime(m.created_at)}</time>
                 </div>
               ))}
               <div ref={chatEndRef} />

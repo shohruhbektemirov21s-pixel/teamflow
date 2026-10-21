@@ -13,49 +13,74 @@ const ROW = {
   active_tasks: 0, overdue_tasks: 0, review_tasks: 0, done_tasks: 1, doing: [],
 };
 
+const R = T.people.responsible;
+const RESP = `/people/${JASUR.id}/responsible-projects/`;
+const BASE = { [`/people/${JASUR.id}/`]: ROW, [`/tasks/?assignee=${JASUR.id}`]: [], [RESP]: { can_manage: true, can_post: true, projects: [] } };
+
 afterEach(() => { testUser.current = PM; });
 
 describe("PersonModal", () => {
-  it.each(["boss", "pm"] as const)("%s mas'uliyatni kiritib saqlaydi va tahrirlaydi", async (role) => {
+  it.each(["boss", "pm"] as const)("%s mas'ul loyiha qo'shadi va unga yangilik yozadi", async (role) => {
     testUser.current = { ...PM, role };
-    mockGet({ [`/people/${JASUR.id}/`]: ROW, [`/tasks/?assignee=${JASUR.id}&all=1`]: [] });
-    vi.mocked(api.patch).mockResolvedValue({ id: JASUR.id, responsibilities: "API va serverlar" });
+    const project = { id: 5, name: "Kadrlar portali", description: "Ichki tizim", created_at: "2026-10-14T09:00:00Z", updated_at: "2026-10-14T09:00:00Z", news_count: 0, last_news_at: null };
+    let projects: unknown[] = [];
+    mockGet({ ...BASE, "/responsible-projects/5/news/": { count: 0, next: null, previous: null, results: [] } });
+    const staticGet = vi.mocked(api.get).getMockImplementation()!;
+    vi.mocked(api.get).mockImplementation(async (path: string) =>
+      path === RESP ? ({ can_manage: true, can_post: true, projects } as never) : staticGet(path));
+    vi.mocked(api.post).mockImplementation(async (path: string) => {
+      if (path === RESP) { projects = [project]; return project as never; }
+      return { id: 1, text: "API tayyor", created_at: "2026-10-14T10:00:00Z", author: { id: 1, full_name: "PM" } } as never;
+    });
     renderApp(<PersonModal id={JASUR.id} />);
-    fireEvent.click(await screen.findByRole("button", { name: T.people.responsibilitiesAdd }));
-    const region = screen.getByRole("region", { name: T.people.responsibilities });
-    fireEvent.change(within(region).getByLabelText(T.people.responsibilities), { target: { value: "API va serverlar" } });
+    const region = await screen.findByRole("region", { name: R.title });
+    expect(await within(region).findByText(R.empty)).toBeTruthy();
+    fireEvent.click(within(region).getByRole("button", { name: R.add }));
+    fireEvent.change(within(region).getByLabelText(R.name), { target: { value: "Kadrlar portali" } });
+    fireEvent.change(within(region).getByLabelText(R.description), { target: { value: "Ichki tizim" } });
     fireEvent.click(within(region).getByRole("button", { name: T.common.save }));
-    await waitFor(() => expect(api.patch).toHaveBeenCalledWith(`/people/${JASUR.id}/responsibilities/`, { responsibilities: "API va serverlar" }));
-    expect(await within(region).findByText("API va serverlar")).toBeTruthy();
-    fireEvent.click(within(region).getByRole("button", { name: T.people.responsibilitiesEdit }));
-    expect((within(region).getByLabelText(T.people.responsibilities) as HTMLTextAreaElement).value).toBe("API va serverlar");
+    await waitFor(() => expect(api.post).toHaveBeenCalledWith(RESP, { name: "Kadrlar portali", description: "Ichki tizim" }));
+    expect(await within(region).findByText("Kadrlar portali")).toBeTruthy();
+    fireEvent.click(within(region).getByRole("button", { name: R.newsN(0) }));
+    fireEvent.change(await within(region).findByLabelText(R.newsLabel), { target: { value: "API tayyor" } });
+    fireEvent.click(within(region).getByRole("button", { name: R.newsAdd }));
+    await waitFor(() => expect(api.post).toHaveBeenCalledWith("/responsible-projects/5/news/", { text: "API tayyor" }));
   });
 
-  it("bekor qilish matnni saqlamaydi", async () => {
-    mockGet({ [`/people/${JASUR.id}/`]: { ...ROW, responsibilities: "Eski mas'uliyat" }, [`/tasks/?assignee=${JASUR.id}&all=1`]: [] });
+  it("server ruxsat bermasa qo'shish/tahrirlash tugmalari yo'q", async () => {
+    mockGet({ ...BASE, [RESP]: { can_manage: false, can_post: true, projects: [{ id: 5, name: "Kadrlar portali", description: "", created_at: "2026-10-14T09:00:00Z", updated_at: "2026-10-14T09:00:00Z", news_count: 2, last_news_at: "2026-10-14T09:00:00Z" }] } });
     renderApp(<PersonModal id={JASUR.id} />);
-    fireEvent.click(await screen.findByRole("button", { name: T.people.responsibilitiesEdit }));
-    fireEvent.change(screen.getByRole("textbox", { name: T.people.responsibilities }), { target: { value: "Yangi matn" } });
-    fireEvent.click(screen.getByRole("button", { name: T.common.cancel }));
-    expect(screen.getByText("Eski mas'uliyat")).toBeTruthy();
-    expect(api.patch).not.toHaveBeenCalled();
+    const region = await screen.findByRole("region", { name: R.title });
+    expect(await within(region).findByText("Kadrlar portali")).toBeTruthy();
+    expect(within(region).queryByRole("button", { name: R.add })).toBeNull();
+    expect(within(region).queryByRole("button", { name: T.common.edit })).toBeNull();
+    expect(within(region).getByRole("button", { name: R.newsN(2) })).toBeTruthy();
   });
 
-  it("saqlash xatosida matn qoladi va qayta saqlash mumkin", async () => {
-    mockGet({ [`/people/${JASUR.id}/`]: ROW, [`/tasks/?assignee=${JASUR.id}&all=1`]: [] });
-    vi.mocked(api.patch).mockRejectedValue(new ApiError(400, "Xato", { responsibilities: ["Matn juda uzun"] }));
+  it("loyiha saqlash xatosi maydon yonida, matn qoladi", async () => {
+    mockGet({ ...BASE, [RESP]: { can_manage: true, can_post: true, projects: [] } });
+    vi.mocked(api.post).mockRejectedValue(new ApiError(400, "Xato", { name: ["Nom juda uzun"] }));
     renderApp(<PersonModal id={JASUR.id} />);
-    fireEvent.click(await screen.findByRole("button", { name: T.people.responsibilitiesAdd }));
-    fireEvent.change(screen.getByRole("textbox", { name: T.people.responsibilities }), { target: { value: "API" } });
+    fireEvent.click(await screen.findByRole("button", { name: R.add }));
+    fireEvent.change(screen.getByLabelText(R.name), { target: { value: "API" } });
     fireEvent.click(screen.getByRole("button", { name: T.common.save }));
-    expect(await screen.findByText("Matn juda uzun")).toBeTruthy();
-    expect((screen.getByRole("textbox", { name: T.people.responsibilities }) as HTMLTextAreaElement).value).toBe("API");
-    expect((screen.getByRole("button", { name: T.common.save }) as HTMLButtonElement).disabled).toBe(false);
+    expect(await screen.findByText("Nom juda uzun")).toBeTruthy();
+    expect((screen.getByLabelText(R.name) as HTMLInputElement).value).toBe("API");
   });
+
+  it("boshqarma xodimida mas'ul loyihalar bo'limi yo'q", async () => {
+    testUser.current = { ...PM, role: "boss" };
+    mockGet({ [`/people/${JASUR.id}/`]: { ...ROW, role: "department", role_label: "Boshqarma" } });
+    renderApp(<PersonModal id={JASUR.id} />);
+    expect(await screen.findByText(T.people.devOnly)).toBeTruthy();
+    expect(screen.queryByRole("region", { name: R.title })).toBeNull();
+  });
+
   it("profil loyiha va barcha vazifalarni ko'rsatadi", async () => {
     mockGet({
       [`/people/${JASUR.id}/`]: { ...ROW, projects: [{ id: 8, name: "Xodim portali", code: "PRJ-8", stage: "done", end_date: "2026-10-01" }] },
-      [`/tasks/?assignee=${JASUR.id}&all=1`]: [taskDetail({ title: "Profil vazifasi" })],
+      [`/tasks/?assignee=${JASUR.id}`]: [taskDetail({ title: "Profil vazifasi" })],
+      [RESP]: BASE[RESP],
     });
     renderApp(<PersonModal id={JASUR.id} />);
     expect(await screen.findByText("Xodim portali")).toBeTruthy();
@@ -69,7 +94,7 @@ describe("PersonModal", () => {
   });
 
   it("vazifalar yuklanmasa hisobotda yolg'on nol ko'rsatmaydi", async () => {
-    mockGet({ [`/people/${JASUR.id}/`]: ROW });
+    mockGet({ [`/people/${JASUR.id}/`]: ROW, [RESP]: BASE[RESP] });
     renderApp(<PersonModal id={JASUR.id} />);
     fireEvent.click(await screen.findByRole("tab", { name: T.people.report }));
     expect(await screen.findByRole("button", { name: T.common.retry })).toBeTruthy();
@@ -79,7 +104,8 @@ describe("PersonModal", () => {
     // mockGet noma'lum yo'lda xato beradi — URL noto'g'ri bo'lsa vazifa chiqmaydi
     mockGet({
       [`/people/${JASUR.id}/`]: ROW,
-      [`/tasks/?assignee=${JASUR.id}&all=1`]: [taskDetail({ title: "Jasurning vazifasi", status: "done" })],
+      [`/tasks/?assignee=${JASUR.id}`]: [taskDetail({ title: "Jasurning vazifasi", status: "done" })],
+      [RESP]: BASE[RESP],
     });
     renderApp(<PersonModal id={JASUR.id} />);
 

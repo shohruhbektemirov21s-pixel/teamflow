@@ -1,4 +1,5 @@
-from django.db.models import Prefetch
+from django.db.models import Count, OuterRef, Prefetch, Q, Subquery
+from django.db.models.functions import Coalesce
 from django.shortcuts import get_object_or_404
 from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action, api_view, permission_classes
@@ -7,13 +8,15 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from apps.core.api_utils import IsManager, require_manager
+from apps.core.pagination import bounded_unpaged
+from apps.core.sorting import sort_expressions
 from apps.orders.permissions import visible_orders
 from apps.projects.permissions import visible_projects
 
 from . import services
-from .filters import filter_tasks
+from .filters import filter_tasks, tasks_stats
 from .models import SubTask, Submission, TaskAssignment, WorkLog
-from .permissions import visible_tasks
+from .permissions import listed_tasks, visible_tasks
 from .serializers import (
     AssigneesSerializer,
     BulkTaskSerializer,
@@ -35,15 +38,17 @@ class TaskViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.Gen
     def get_queryset(self):
         qs = visible_tasks(self.request.user).prefetch_related(
             Prefetch("assignments", queryset=TaskAssignment.objects.select_related("developer")),
-            "subtasks",
         )
         if self.action != "retrieve":
             qs = qs.filter(archived_at__isnull=True)
         if self.action == "list":
-            return filter_tasks(qs, self.request.query_params, self.request.user).order_by(
-                "due_at", "-created_at"
-            )
+            subtask_counts = SubTask.objects.filter(task_id=OuterRef("pk")).order_by().values("task_id")
+            return filter_tasks(qs, self.request.query_params, self.request.user).annotate(
+                subtask_total=Coalesce(Subquery(subtask_counts.annotate(n=Count("pk")).values("n")), 0),
+                subtask_done=Coalesce(Subquery(subtask_counts.filter(is_done=True).annotate(n=Count("pk")).values("n")), 0),
+            ).order_by(*(sort_expressions(self.request.query_params.get("sort"), "due_at") or ["due_at", "-created_at", "-pk"]))
         return qs.prefetch_related(
+            "subtasks",
             "worklogs__author",
             "subtasks__assignees",
             "files",
@@ -56,11 +61,24 @@ class TaskViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.Gen
     def get_serializer_class(self):
         return TaskListSerializer if self.action == "list" else TaskDetailSerializer
 
+    @action(detail=False, methods=["get"])
+    def stats(self, request):
+        """Kartalar va holat tugmalari soni — ro'yxatda ko'rinadigan vazifalar bo'yicha (filtrlardan mustaqil)."""
+        return Response(tasks_stats(listed_tasks(request.user)))
+
     def paginate_queryset(self, queryset):
         # Doska va taqvim butun ro'yxatni oladi: ?all=1 (visible_tasks bilan cheklangan)
         if self.request.query_params.get("all") == "1":
+            self._unpaged_rows = bounded_unpaged(queryset)
             return None
         return super().paginate_queryset(queryset)
+
+    def list(self, request, *args, **kwargs):
+        queryset = self.filter_queryset(self.get_queryset())
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            return self.get_paginated_response(self.get_serializer(page, many=True).data)
+        return Response(self.get_serializer(self._unpaged_rows, many=True).data)
 
     def _detail(self, task):
         self.action = "retrieve"
@@ -70,7 +88,8 @@ class TaskViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.Gen
         s = TaskCreateSerializer(data=request.data)
         s.is_valid(raise_exception=True)
         data = dict(s.validated_data)
-        project = get_object_or_404(visible_projects(request.user), pk=data.pop("project"))
+        project_id = data.pop("project")
+        project = get_object_or_404(visible_projects(request.user), pk=project_id) if project_id is not None else None
         data["files"] = request.FILES.getlist("files") or data.get("files")
         task = services.create_task(request.user, project, **data)
         return Response(self._detail(task), status=status.HTTP_201_CREATED)

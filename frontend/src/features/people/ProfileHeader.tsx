@@ -24,10 +24,10 @@ export function ProfileHeader({ user, subtitle, stats, actions }: { user: { id: 
         {avatar ? (
           // Rasm bosilsa — Telegram kabi katta ko'rinishda ochiladi
           <button type="button" className="avatar-btn" aria-label={T.people.photoOpen} onClick={() => open({ photo: user.id, name: user.full_name, src: avatar })}>
-            <Avatar user={user} size="lg" />
+            <Avatar user={user} size="lg" clickable={false} />
           </button>
         ) : (
-          <Avatar user={user} size="lg" />
+          <Avatar user={user} size="lg" clickable={false} />
         )}
         <div className="grow">
           <h2 style={{ margin: 0 }}>{user.full_name}</h2>

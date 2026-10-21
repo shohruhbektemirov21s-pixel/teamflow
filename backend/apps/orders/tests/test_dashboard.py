@@ -18,6 +18,13 @@ def make_order(user, title, status=Order.Status.SUBMITTED, created=None, decided
 
 
 class DepartmentDashboardTests(TestCase):
+    def test_department_counts_use_one_query(self):
+        from apps.orders.filters import department_dashboard
+        from apps.orders.permissions import visible_orders
+        with self.assertNumQueries(1):
+            result = department_dashboard(visible_orders(self.dept))
+        self.assertEqual(result["orders"]["submitted"], 1)
+
     def setUp(self):
         self.dept = make_user(Role.DEPARTMENT)
         self.other = make_user(Role.DEPARTMENT)

@@ -7,7 +7,7 @@ import { useModal } from "@/app/modals";
 import { useProjects, useRefresh } from "@/app/queries";
 import { DeveloperPicker } from "@/features/people/DeveloperPicker";
 import { api, ApiError, formData } from "@/shared/api";
-import { fromLocalInput, toLocalInput } from "@/shared/format";
+import { fromLocalInput, minDateTime, toLocalInput } from "@/shared/format";
 import { useMeta } from "@/shared/meta";
 import { T } from "@/shared/text";
 import type { Priority, ProjectDetail, TaskDetail } from "@/shared/types";
@@ -22,7 +22,8 @@ interface SubtaskDraft {
 
 /**
  * Modal: vazifa yaratish / tahrirlash.
- * Menejer — loyiha jamoasidan bir nechta ijrochi tanlaydi. Dasturchi — faqat o'ziga ("Mening ishim").
+ * Menejer — loyiha jamoasidan bir nechta ijrochi tanlaydi. Dasturchi — faqat o'ziga ("Mening ishim"),
+ * loyihani tanlamasa ham bo'ladi (loyihasiz vazifa).
  */
 export default function TaskFormModal({ projectId, editId, assigneeId }: { projectId?: number; editId?: number; assigneeId?: number }) {
   const me = useMe();
@@ -51,7 +52,7 @@ export default function TaskFormModal({ projectId, editId, assigneeId }: { proje
   useEffect(() => {
     const t = existing.data;
     if (!t) return;
-    setProject(t.project.id);
+    setProject(t.project?.id ?? "");
     setTitle(t.title);
     setDescription(t.description);
     setPriority(t.priority);
@@ -61,10 +62,10 @@ export default function TaskFormModal({ projectId, editId, assigneeId }: { proje
     setSubtasks(t.subtasks.map((s) => ({ id: s.id, title: s.title, assignee_ids: s.assignees.map((u) => u.id), is_done: s.is_done })));
   }, [existing.data]);
 
-  // Bitta loyiha bo'lsa — avtomatik tanlanadi
+  // Menejerda bitta loyiha bo'lsa — avtomatik tanlanadi. Dasturchida bo'sh tanlov = "Loyihasiz", o'zi tanlaydi.
   useEffect(() => {
-    if (!project && projects.data?.length === 1) setProject(projects.data[0]!.id);
-  }, [projects.data, project]);
+    if (manager && !editId && !project && projects.data?.length === 1) setProject(projects.data[0]!.id);
+  }, [manager, editId, projects.data, project]);
 
   const team = useQuery({
     queryKey: ["project", project],
@@ -105,7 +106,7 @@ export default function TaskFormModal({ projectId, editId, assigneeId }: { proje
   const save = useMutation({
     mutationFn: () => {
       const body = {
-        project: Number(project),
+        project: project ? Number(project) : null, // null — loyihasiz (faqat dasturchi)
         title,
         description,
         priority,
@@ -134,7 +135,9 @@ export default function TaskFormModal({ projectId, editId, assigneeId }: { proje
   const dirty = touched;
   const existingAssignees = new Set(existing.data?.assignees.map((a) => a.id) ?? []);
   const tripSelected = members.some((m) => m.is_on_business_trip && assignees.includes(m.id) && !existingAssignees.has(m.id));
-  const canSave = Boolean(project) && title.trim().length > 0 && (!manager || assignees.length > 0) && !tripSelected;
+  // Dasturchi yaratgan loyihasiz vazifani menejer tahrirlaydi: ijrochilar — istalgan faol dasturchi
+  const projectless = Boolean(editId) && !project;
+  const canSave = (Boolean(project) || !manager || projectless) && title.trim().length > 0 && (!manager || assignees.length > 0) && !tripSelected;
   const projectOptions = useMemo(() => projects.data ?? [], [projects.data]);
 
   if (editId && !existing.data)
@@ -163,10 +166,10 @@ export default function TaskFormModal({ projectId, editId, assigneeId }: { proje
     >
       <form className="stack" style={{ gap: 16 }} onChange={() => setTouched(true)} onSubmit={(e) => (e.preventDefault(), canSave && save.mutate())}>
         {error && !Object.keys(error.fields).length && <Callout tone="danger">{error.message}</Callout>}
-        <Field label={T.tasks.project} required error={fe("project")}>
+        <Field label={T.tasks.project} required={manager} hint={manager || editId ? undefined : T.tasks.noProjectHint} error={fe("project")}>
           {(id, bad) => (
             <select id={id} className="select" aria-invalid={bad} value={project} disabled={Boolean(editId)} onChange={(e) => setProject(e.target.value ? Number(e.target.value) : "")}>
-              <option value="">{T.tasks.pickProject}</option>
+              <option value="">{manager && !editId ? T.tasks.pickProject : T.tasks.noProject}</option>
               {projectOptions.map((p) => (
                 <option key={p.id} value={p.id}>
                   {p.name}
@@ -187,10 +190,10 @@ export default function TaskFormModal({ projectId, editId, assigneeId }: { proje
         </div>
         <div className="grid-2">
           <Field label={T.tasks.startsAt} error={fe("starts_at")}>
-            {(id) => <input id={id} type="datetime-local" className="input" value={startsAt} onChange={(e) => setStartsAt(e.target.value)} />}
+            {(id) => <input id={id} type="datetime-local" className="input" min={minDateTime(toLocalInput(existing.data?.starts_at))} value={startsAt} onChange={(e) => setStartsAt(e.target.value)} />}
           </Field>
           <Field label={T.tasks.dueAt} error={fe("due_at")}>
-            {(id, bad) => <input id={id} type="datetime-local" className="input" aria-invalid={bad} value={dueAt} onChange={(e) => setDueAt(e.target.value)} />}
+            {(id, bad) => <input id={id} type="datetime-local" className="input" aria-invalid={bad} min={minDateTime(toLocalInput(existing.data?.due_at), startsAt)} value={dueAt} onChange={(e) => setDueAt(e.target.value)} />}
           </Field>
         </div>
 
@@ -199,7 +202,9 @@ export default function TaskFormModal({ projectId, editId, assigneeId }: { proje
             <span className="field-label">
               {T.tasks.assignees} <span className="req">*</span>
             </span>
-            {!project ? (
+            {projectless ? (
+              <DeveloperPicker label={T.tasks.assignees} value={assignees} onChange={(ids) => (setAssignees(ids), setTouched(true))} />
+            ) : !project ? (
               <span className="field-hint">{T.tasks.pickProject}</span>
             ) : team.isLoading ? (
               <Skeleton h={40} />
@@ -263,7 +268,7 @@ export default function TaskFormModal({ projectId, editId, assigneeId }: { proje
               {manager && (
                 <DeveloperPicker
                   label={`${T.tasks.subtaskPeople}: ${s.title || T.tasks.subtaskPh}`}
-                  options={members}
+                  options={projectless ? undefined : members}
                   value={s.assignee_ids}
                   onChange={(ids) => setSubtasks((xs) => xs.map((x, j) => (j === i ? { ...x, assignee_ids: ids } : x)))}
                 />

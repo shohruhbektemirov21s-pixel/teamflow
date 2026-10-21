@@ -3,16 +3,20 @@ import { ImagePlus, Trash2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 import { useAuth, useMe } from "@/app/auth";
+import { usePagedList } from "@/app/queries";
 import { TaskTable } from "@/features/tasks/TaskTable";
-import { api, ApiError, formData, qs } from "@/shared/api";
+import { api, ApiError, formData } from "@/shared/api";
 import { fmtDate } from "@/shared/format";
 import { useMeta } from "@/shared/meta";
 import { T } from "@/shared/text";
 import type { Profile, Task } from "@/shared/types";
-import { Button, ErrorBox, Field, SkeletonRows, useToast } from "@/shared/ui";
+import { Badge, Button, ErrorBox, Field, SkeletonRows, useToast } from "@/shared/ui";
+import { Pagination } from "@/shared/ui/Pagination";
 
 import { ProfileHeader } from "./ProfileHeader";
 import { BusinessTripPanel } from "./BusinessTripPanel";
+import { ResponsibleProjects } from "./ResponsibleProjects";
+import { UserProfileView } from "./UserProfileView";
 
 const fieldError = (err: unknown, name: string) => (err instanceof ApiError ? err.field(name) : undefined);
 /** Maydonga bog'lanmagan xato bo'lsa — toast bilan ko'rsatiladi (maydon xatolari maydon yonida). */
@@ -21,6 +25,9 @@ const generalError = (err: unknown) =>
 
 export default function ProfilePage() {
   const me = useMe();
+  if (me.role === "user") {
+    return <UserProfileView />;
+  }
   const bot = useMeta().telegram_bot;
   const { refresh } = useAuth();
   const toast = useToast();
@@ -36,11 +43,7 @@ export default function ProfilePage() {
   const p = q.data;
   // Dasturchi profilida — faqat o'ziga biriktirilgan vazifalar (server `mine=1` bo'yicha filtrlaydi)
   const developer = me.role === "developer";
-  const myTasks = useQuery({
-    queryKey: ["tasks", "mine", "profile"],
-    queryFn: () => api.get<Task[]>(`/tasks/${qs({ mine: 1, all: 1 })}`),
-    enabled: developer,
-  });
+  const myTasks = usePagedList<Task>(["tasks", "mine", "profile"], "/tasks/", { mine: 1 }, developer);
 
   useEffect(() => {
     if (p) {
@@ -51,7 +54,11 @@ export default function ProfilePage() {
   }, [p]);
 
   const infoMut = useMutation({
-    mutationFn: () => api.patch<Profile>("/auth/profile/", { first_name: first, last_name: last, telegram_username: telegram }),
+    mutationFn: () => api.patch<Profile>("/auth/profile/", {
+      first_name: first,
+      last_name: last,
+      telegram_username: telegram,
+    }),
     onSuccess: () => {
       toast(T.profile.savedToast);
       qc.invalidateQueries({ queryKey: ["profile"] });
@@ -89,8 +96,8 @@ export default function ProfilePage() {
   });
 
   return (
-    <div className="stack" style={{ maxWidth: 800, width: "100%", margin: "0 auto" }}>
-
+    <div className="stack" style={{ maxWidth: 1180, width: "100%", margin: "0 auto" }}>
+      <div className="profile-grid">
       <div className="card card-pad stack">
         <ProfileHeader
           user={me}
@@ -117,10 +124,16 @@ export default function ProfilePage() {
                   {T.profile.photoRemove}
                 </Button>
               )}
-              <span className="small muted">{T.profile.photoHint}</span>
             </>
           }
         />
+
+        {p?.activity && (
+          <div className="row-wrap" aria-label={T.profile.stats}>
+            <Badge tone="info">{T.user.activityReviews(p.activity.reviews)}</Badge>
+            <Badge tone="success">{T.user.activityFollowing(p.activity.following)}</Badge>
+          </div>
+        )}
 
         <h3>{T.profile.editInfoTitle}</h3>
         {q.isLoading ? (
@@ -141,19 +154,7 @@ export default function ProfilePage() {
             </Field>
             <Field
               label={T.profile.telegram}
-              hint={
-                bot ? (
-                  <>
-                    {T.profile.telegramHintBefore}{" "}
-                    <a href={`https://t.me/${bot}`} target="_blank" rel="noopener noreferrer" style={{ fontWeight: 600 }}>
-                      @{bot}
-                    </a>{" "}
-                    {T.profile.telegramHintAfter}
-                  </>
-                ) : (
-                  T.profile.telegramHint
-                )
-              }
+              hint={bot ? <a href={`https://t.me/${bot}`} target="_blank" rel="noopener noreferrer" style={{ fontWeight: 600 }}>@{bot}</a> : undefined}
               error={fieldError(infoMut.error, "telegram_username")}>
               {(id, bad) => (
                 <input id={id} className="input" aria-invalid={bad} value={telegram} placeholder={T.profile.telegramPh} onChange={(e) => setTelegram(e.target.value)} />
@@ -172,24 +173,10 @@ export default function ProfilePage() {
         )}
       </div>
 
+      <div className="stack">
       {me.role === "boss" && <BusinessTripPanel />}
 
-      {developer && (
-        <section className="card" aria-label={T.profile.myTasks}>
-          <div className="card-head">
-            <h3 className="grow">
-              {T.profile.myTasks} {myTasks.data && <span className="count-pill soft">{myTasks.data.length}</span>}
-            </h3>
-          </div>
-          {myTasks.error ? (
-            <div className="card-pad">
-              <ErrorBox error={myTasks.error} onRetry={() => myTasks.refetch()} />
-            </div>
-          ) : (
-            <TaskTable tasks={myTasks.data} loading={myTasks.isLoading} emptyHint={T.profile.myTasksEmpty} />
-          )}
-        </section>
-      )}
+      {(developer || me.role === "pm") && <ResponsibleProjects employeeId={me.id} own />}
 
       <form
         className="card card-pad stack"
@@ -217,6 +204,26 @@ export default function ProfilePage() {
           </Button>
         </div>
       </form>
+      </div>
+      </div>
+
+      {developer && (
+        <section className="card" aria-label={T.profile.myTasks}>
+          <div className="card-head">
+            <h3 className="grow">
+              {T.profile.myTasks} {myTasks.data && <span className="count-pill soft">{myTasks.pagination?.count}</span>}
+            </h3>
+          </div>
+          {myTasks.error ? (
+            <div className="card-pad">
+              <ErrorBox error={myTasks.error} onRetry={() => myTasks.refetch()} />
+            </div>
+          ) : (
+            <TaskTable tasks={myTasks.data} loading={myTasks.isLoading} emptyHint={T.profile.myTasksEmpty} />
+          )}
+          <Pagination data={myTasks.pagination} page={myTasks.page} onPageChange={myTasks.onPageChange} />
+        </section>
+      )}
     </div>
   );
 }

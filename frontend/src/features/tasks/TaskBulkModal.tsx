@@ -5,7 +5,7 @@ import { useState } from "react";
 import { useModal } from "@/app/modals";
 import { useProjects, useRefresh } from "@/app/queries";
 import { api, ApiError } from "@/shared/api";
-import { fromLocalInput } from "@/shared/format";
+import { fromLocalInput, minDateTime } from "@/shared/format";
 import { useMeta } from "@/shared/meta";
 import { T } from "@/shared/text";
 import type { Priority, ProjectDetail } from "@/shared/types";
@@ -53,7 +53,6 @@ export default function TaskBulkModal({ projectId }: { projectId?: number }) {
     <Modal
       size="lg"
       title={T.tasks.bulkTitle}
-      subtitle={T.tasks.bulkSubtitle}
       onClose={close}
       dirty={rows.some((row) => row.title || row.assignee_ids.length || row.due_at)}
       footer={<><span className="spacer" /><Button variant="ghost" onClick={close}>{T.common.cancel}</Button><Button variant="primary" loading={save.isPending} disabled={!canSave} onClick={() => save.mutate()}>Yaratish ({rows.length})</Button></>}
@@ -72,7 +71,7 @@ export default function TaskBulkModal({ projectId }: { projectId?: number }) {
                   <select className="select" value={row.priority} aria-label={T.tasks.priority} onChange={(event) => update(index, { priority: event.target.value as Priority })}>
                     {meta.options<Priority>("priorities").map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
                   </select>
-                  <input type="datetime-local" className="input" value={row.due_at} aria-label={T.tasks.dueAt} onChange={(event) => update(index, { due_at: event.target.value })} />
+                  <input type="datetime-local" className="input" min={minDateTime()} value={row.due_at} aria-label={T.tasks.dueAt} onChange={(event) => update(index, { due_at: event.target.value })} />
                   {rows.length > 1 && <Button size="sm" variant="ghost" icon={<Trash2 />} aria-label={T.common.delete} onClick={() => setRows((items) => items.filter((_, i) => i !== index))} />}
                 </div>
                 <div className="chips" role="group" aria-label={T.tasks.assignees}>

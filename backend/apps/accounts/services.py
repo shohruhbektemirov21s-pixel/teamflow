@@ -1,4 +1,4 @@
-"""Akkaunt amallari: profil rasmi."""
+"""Akkaunt amallari: profil rasmi, xizmat safari, mas'ul loyihalar va ularning yangiliklari."""
 import io
 
 from django.core.files.base import ContentFile
@@ -9,27 +9,105 @@ from PIL import Image, ImageOps, UnidentifiedImageError
 from apps.core.api_utils import ServiceError
 from apps.core.services import log
 
-from .models import Role
+from .models import ResponsibleProject, ResponsibleProjectNews, Role, User
 
 AVATAR_MAX_MB = 5
 AVATAR_SIZE = 1024  # px, eng uzun tomoni — katta ko'rinishda (rasm oynasi) ham tiniq
 
 
-@transaction.atomic
-def set_responsibilities(actor, employee, text):
+# ─── Mas'ul loyihalar ────────────────────────────────────────────────────────
+# Ruxsat qoidasi shu yerda, bitta joyda. Xodim oynasi bilan bir xil: Boshliq — faol PM va dasturchilar,
+# PM — faol dasturchilar. Mas'ul xodimning o'zi loyihalarini ko'radi va yangilik yozadi; **dasturchi** (2026-10-20)
+# o'z loyihalarini qo'shadi, tahrirlaydi va o'chiradi ham (PM'niki — faqat Boshliq). Boshqa hech kim
+# (boshqarma, oddiy foydalanuvchi, boshqa dasturchi) ko'rmaydi.
+
+RESPONSIBLE_ROLES = (Role.PM, Role.DEVELOPER)
+PROJECT_NAME_MAX = 255
+PROJECT_DESCRIPTION_MAX = 1000
+NEWS_MAX = 2000
+
+
+def responsible_employees():
+    return User.objects.filter(is_active=True, role__in=RESPONSIBLE_ROLES)
+
+
+def managed_employees(actor):
+    """Mas'ul loyihalarini `actor` qo'sha/tahrirlay oladigan xodimlar."""
     if not actor.is_manager:
-        raise ServiceError("Mas'uliyatlarni faqat Boshliq yoki PM tahrirlaydi.")
-    employee = type(employee).objects.select_for_update().get(pk=employee.pk)
-    if not employee.is_active or not employee.role or (not actor.is_boss and not employee.is_developer):
-        raise ServiceError("Bu xodimni tahrirlashga ruxsat yo'q.")
-    text = text.strip()
-    if len(text) > 2000:
-        raise ServiceError("Mas'uliyatlar 2000 belgidan oshmasligi kerak.", "responsibilities")
-    if employee.responsibilities != text:
-        employee.responsibilities = text
-        employee.save(update_fields=["responsibilities"])
-        log(actor, "responsibilities_updated", f"{actor.full_name} {employee.full_name}ning mas'uliyatlarini yangiladi", employee)
-    return employee
+        return responsible_employees().none()
+    qs = responsible_employees()
+    return qs if actor.is_boss else qs.filter(role=Role.DEVELOPER)
+
+
+def can_manage_responsible(actor, employee):
+    if actor.is_developer and actor.pk == employee.pk:
+        return employee.is_active
+    return managed_employees(actor).filter(pk=employee.pk).exists()
+
+
+def can_view_responsible(actor, employee):
+    """Ko'rish va yangilik yozish huquqi: mas'ul xodimning o'zi yoki uni boshqaradigan Boshliq/PM."""
+    if actor.pk == employee.pk:
+        return employee.is_active and employee.role in RESPONSIBLE_ROLES
+    return can_manage_responsible(actor, employee)
+
+
+def _clean_project(name, description):
+    name, description = (name or "").strip(), (description or "").strip()
+    if not name:
+        raise ServiceError("Loyiha nomini yozing.", "name")
+    if len(name) > PROJECT_NAME_MAX:
+        raise ServiceError(f"Loyiha nomi {PROJECT_NAME_MAX} belgidan oshmasin.", "name")
+    if len(description) > PROJECT_DESCRIPTION_MAX:
+        raise ServiceError(f"Izoh {PROJECT_DESCRIPTION_MAX} belgidan oshmasin.", "description")
+    return name, description
+
+
+def _ensure_manage(actor, employee):
+    if not can_manage_responsible(actor, employee):
+        raise ServiceError("Mas'ul loyihani Boshliq, PM yoki dasturchining o'zi kiritadi.")
+
+
+@transaction.atomic
+def create_responsible_project(actor, employee, *, name, description=""):
+    _ensure_manage(actor, employee)
+    name, description = _clean_project(name, description)
+    project = ResponsibleProject.objects.create(employee=employee, name=name, description=description, created_by=actor)
+    log(actor, "responsible_project_added", f"{actor.full_name} {employee.full_name}ga mas'ul loyiha qo'shdi: {name}", employee)
+    return project
+
+
+@transaction.atomic
+def update_responsible_project(actor, project, *, name, description=""):
+    _ensure_manage(actor, project.employee)
+    name, description = _clean_project(name, description)
+    if (project.name, project.description) != (name, description):
+        project.name, project.description = name, description
+        project.save(update_fields=["name", "description", "updated_at"])
+        log(actor, "responsible_project_updated", f"{actor.full_name} mas'ul loyihani tahrirladi: {name}", project.employee)
+    return project
+
+
+@transaction.atomic
+def delete_responsible_project(actor, project):
+    _ensure_manage(actor, project.employee)
+    log(actor, "responsible_project_deleted", f"{actor.full_name} mas'ul loyihani o'chirdi: {project.name}", project.employee)
+    project.delete()
+
+
+@transaction.atomic
+def add_responsible_news(actor, project, text):
+    if not can_view_responsible(actor, project.employee):
+        raise ServiceError("Bu loyihaga yangilik yozishga ruxsatingiz yo'q.")
+    text = (text or "").strip()
+    if not text:
+        raise ServiceError("Yangilik matnini yozing.", "text")
+    if len(text) > NEWS_MAX:
+        raise ServiceError(f"Yangilik {NEWS_MAX} belgidan oshmasin.", "text")
+    news = ResponsibleProjectNews.objects.create(project=project, author=actor, text=text)
+    project.save(update_fields=["updated_at"])
+    log(actor, "responsible_news_added", f"{actor.full_name} \"{project.name}\" loyihasi bo'yicha yangilik yozdi", project.employee)
+    return news
 
 
 def set_avatar(user, upload):

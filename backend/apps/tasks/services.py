@@ -7,11 +7,12 @@ from rest_framework.exceptions import PermissionDenied
 
 from apps.accounts.models import Role
 from apps.core.api_utils import ServiceError
+from apps.core.dates import ensure_not_past
 from apps.core.services import log
 from apps.notifications.models import Notification
 from apps.notifications.services import managers, notify
 from apps.projects.models import Project
-from apps.projects.services import create_project, ensure_members
+from apps.projects.services import create_project, ensure_members, ensure_open
 
 from .models import SubTask, Submission, SubmissionFile, Task, TaskAssignment, TaskFile, WorkLog
 from .permissions import can_manage_assignees, can_manage_subtasks, can_work_on, is_assignee
@@ -22,16 +23,17 @@ S = Task.Status
 
 
 def _project_developers(project, ids, field="assignee_ids"):
-    """Ijrochilar faqat shu loyiha jamoasidagi faol dasturchilar bo'lishi kerak."""
+    """Ijrochilar faqat shu loyiha jamoasidagi faol dasturchilar bo'lishi kerak (loyihasiz vazifada — istalgan faol dasturchi)."""
     ids = set(ids or [])
     if not ids:
         return []
-    users = list(
-        get_user_model().objects.select_for_update().filter(
-            pk__in=ids, role=Role.DEVELOPER, is_active=True, project_memberships__project=project
-        )
-    )
+    qs = get_user_model().objects.select_for_update().filter(pk__in=ids, role=Role.DEVELOPER, is_active=True)
+    if project is not None:
+        qs = qs.filter(project_memberships__project=project)
+    users = list(qs)
     if len(users) != len(ids):
+        if project is None:
+            raise ServiceError("Faqat faol dasturchilarni biriktirish mumkin.", field)
         raise ServiceError("Ijrochi loyiha jamoasida bo'lishi kerak. Avval uni loyihaga qo'shing.", field)
     return users
 
@@ -44,36 +46,50 @@ def _check_trip_availability(users, existing_ids=(), field="assignee_ids"):
 
 
 def _any_developers(project, ids, field, existing_ids=()):
-    """Vazifa oynasi: istalgan faol dasturchi tanlanadi; jamoada bo'lmasa, loyiha jamoasiga qo'shiladi."""
+    """Vazifa oynasi: istalgan faol dasturchi tanlanadi; jamoada bo'lmasa, loyiha jamoasiga qo'shiladi.
+    Yakunlangan / yakunlash davridagi loyihada ish biriktirilmaydi (qulflangan qatorda tekshiriladi).
+    Loyihasiz vazifada jamoa va qulf yo'q."""
+    if project is not None:
+        project = Project.objects.select_for_update().get(pk=project.pk)
+        ensure_open(project, field)
     ids = set(ids or [])
     users = list(get_user_model().objects.select_for_update().filter(pk__in=ids, role=Role.DEVELOPER, is_active=True))
     if len(users) != len(ids):
         raise ServiceError("Faqat faol dasturchilarni biriktirish mumkin.", field)
     _check_trip_availability(users, existing_ids, field)
-    ensure_members(project, users)
+    if project is not None:
+        ensure_members(project, users)
     return users
 
 
-def _check_times(starts_at, due_at):
+def _check_times(starts_at, due_at, previous=None):
+    """`previous` — tahrirlashda vazifaning eski (starts_at, due_at) qiymatlari."""
     if starts_at and due_at and due_at < starts_at:
         raise ServiceError("Tugash vaqti boshlanish vaqtidan oldin bo'lishi mumkin emas.", "due_at")
+    old_starts, old_due = previous or (None, None)
+    ensure_not_past(starts_at, "starts_at", old_starts)
+    ensure_not_past(due_at, "due_at", old_due)
 
 
 def _reviewers(task):
     """Tekshiruv haqida kimga xabar boriladi: vazifani bergan menejer va loyiha egasi; bo'lmasa barcha menejerlar."""
-    people = [u for u in (task.created_by, task.project.created_by) if u and u.is_manager]
+    people = [u for u in (task.created_by, task.project.created_by if task.project_id else None) if u and u.is_manager]
     return people or list(managers())
 
 
 @transaction.atomic
 def create_task(user, project, *, title, description="", priority="medium", starts_at=None, due_at=None,
                 assignee_ids=None, subtasks=None, files=None):
-    """Menejer — istalgan jamoa a'zosiga. Dasturchi — faqat o'ziga, o'z loyihasida ("Mening ishim")."""
-    project = Project.objects.select_for_update().get(pk=project.pk)
-    if project.stage in (Project.Stage.DONE, Project.Stage.PENDING_APPROVAL) or project.completion_requested_at:
-        raise ServiceError("Yakunlangan yoki yakunlash tasdig'i kutilayotgan loyihaga yangi vazifa qo'shib bo'lmaydi.", "project")
+    """Menejer — istalgan jamoa a'zosiga, loyiha majburiy. Dasturchi — faqat o'ziga: o'z loyihasida yoki
+    loyihasiz (`project=None`, "Mening ishim")."""
+    if project is None:
+        if not user.is_developer:
+            raise ServiceError("Loyihani tanlang.", "project")
+    else:
+        project = Project.objects.select_for_update().get(pk=project.pk)
+        ensure_open(project)
     if user.is_developer:
-        if not project.memberships.filter(developer=user).exists():
+        if project is not None and not project.memberships.filter(developer=user).exists():
             raise ServiceError("Siz bu loyiha jamoasida emassiz.")
         assignee_ids = [user.pk]
         subtasks = [dict(s, assignee_ids=[user.pk]) for s in (subtasks or [])]
@@ -157,12 +173,15 @@ def update_task(task, user, *, assignee_ids=None, subtasks=None, **data):
         raise ServiceError("Vazifani faqat loyiha menejeri yoki boshliq tahrirlaydi.")
     if task.status == S.DONE:
         raise ServiceError("Bajarilgan vazifa o'zgartirilmaydi.")
+    if task.project_id and (assignee_ids is not None or subtasks is not None):
+        ensure_open(Project.objects.select_for_update().get(pk=task.project_id), "assignee_ids")
+    previous = (task.starts_at, task.due_at)
     for field in ("title", "description", "priority", "starts_at", "due_at"):
         if field in data:
             setattr(task, field, data[field])
     if not task.title.strip():
         raise ServiceError("Vazifa nomini yozing.", "title")
-    _check_times(task.starts_at, task.due_at)
+    _check_times(task.starts_at, task.due_at, previous)
     task.save()
     if assignee_ids is not None:
         _apply_assignees(task, user, _project_developers(task.project, assignee_ids))
@@ -181,6 +200,7 @@ def _apply_assignees(task, user, new):
     task.assignments.exclude(developer_id__in=[d.pk for d in new]).delete()
     added = [d for d in new if d.pk not in current]
     TaskAssignment.objects.bulk_create(TaskAssignment(task=task, developer=d) for d in added)
+    getattr(task, "_prefetched_objects_cache", {}).pop("assignments", None)
     notify(added, K.TASK_ASSIGNED, f"Sizga vazifa berildi: {task.title}", task, exclude=user)
     return added
 

@@ -169,6 +169,77 @@ class ProjectCompletionTests(TestCase):
     def finish(self):
         return client_for(self.pm).patch(f"/api/projects/{self.pid}/", {"stage": "done"}, format="json")
 
+    def test_completion_report_is_visible_and_downloadable_only_to_own_department(self):
+        pm = client_for(self.pm)
+        response = pm.patch(f"/api/projects/{self.pid}/", {
+            "stage": "done", "completion_note": "  Portal tayyor.  ", "files": [docx("natija.docx"), docx("hisobot.pdf")],
+        }, format="multipart")
+        self.assertEqual(response.status_code, 200, response.data)
+        self.assertEqual(response.data["completion_note"], "Portal tayyor.")
+        project = Project.objects.get(pk=self.pid)
+        report = client_for(self.dept).get(f"/api/orders/{project.order_id}/").data["completion_report"]
+        self.assertEqual(report["note"], "Portal tayyor.")
+        self.assertEqual({f["name"] for f in report["files"]}, {"natija.docx", "hisobot.pdf"})
+        for f in report["files"]:
+            download = client_for(self.dept).get(f["url"])
+            self.assertEqual(download.status_code, 200)
+            self.assertTrue(b"".join(download.streaming_content))
+            self.assertEqual(client_for(self.other_dept).get(f["url"]).status_code, 404)
+        tz = project.files.get(is_completion=False)
+        self.assertEqual(client_for(self.dept).get(f"/api/files/project/{tz.pk}/").status_code, 404)
+
+    def test_invalid_completion_upload_does_not_start_completion(self):
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        response = client_for(self.pm).patch(f"/api/projects/{self.pid}/", {
+            "stage": "done", "completion_note": "Tayyor", "files": [SimpleUploadedFile("bad.exe", b"bad")],
+        }, format="multipart")
+        self.assertEqual(response.status_code, 400)
+        project = Project.objects.get(pk=self.pid)
+        self.assertEqual(project.stage, "planned")
+        self.assertEqual(project.completion_note, "")
+        self.assertFalse(project.files.filter(is_completion=True).exists())
+
+    def test_report_without_completion_stage_is_rejected(self):
+        response = client_for(self.pm).patch(f"/api/projects/{self.pid}/", {"completion_note": "Tayyor"}, format="json")
+        self.assertEqual(response.status_code, 400)
+
+    def test_resubmission_shows_only_latest_completion_files(self):
+        pm = client_for(self.pm)
+        url = f"/api/projects/{self.pid}/"
+        response = pm.patch(url, {"stage": "done", "completion_note": "Birinchi", "files": [docx("old.docx")]}, format="multipart")
+        self.assertEqual(response.status_code, 200, response.data)
+        dept = client_for(self.dept)
+        response = dept.post(f"/api/projects/{self.pid}/reject-completion/", {"reason": "Tuzatish kerak"}, format="json")
+        self.assertEqual(response.status_code, 200, response.data)
+        response = pm.patch(url, {"stage": "done", "completion_note": "Tuzatildi", "files": [docx("new.docx")]}, format="multipart")
+        self.assertEqual(response.status_code, 200, response.data)
+        project = Project.objects.get(pk=self.pid)
+        report = dept.get(f"/api/orders/{project.order_id}/").data["completion_report"]
+        self.assertEqual(report["note"], "Tuzatildi")
+        self.assertEqual([f["name"] for f in report["files"]], ["new.docx"])
+        self.assertTrue(project.files.filter(original_name="old.docx", is_completion=False).exists())
+
+    def test_report_survives_developer_confirmation(self):
+        from apps.projects.models import ProjectMember
+        dev = make_user(Role.DEVELOPER)
+        ProjectMember.objects.create(project_id=self.pid, developer=dev)
+        response = client_for(self.pm).patch(f"/api/projects/{self.pid}/", {
+            "stage": "done", "completion_note": "Portal tayyor", "files": [docx("natija.docx")],
+        }, format="multipart")
+        self.assertEqual(response.status_code, 200, response.data)
+        self.assertIsNotNone(response.data["completion"])
+        project = Project.objects.get(pk=self.pid)
+        dept = client_for(self.dept)
+        self.assertIsNone(dept.get(f"/api/orders/{project.order_id}/").data["completion_report"])
+        response = client_for(dev).post(f"/api/projects/{self.pid}/completion-ack/", {"confirmed": True}, format="json")
+        self.assertEqual(response.status_code, 200, response.data)
+        self.assertIsNone(dept.get(f"/api/orders/{project.order_id}/").data["completion_report"])
+        response = client_for(self.pm).patch(f"/api/projects/{self.pid}/", {"stage": "done"}, format="json")
+        self.assertEqual(response.status_code, 200, response.data)
+        report = dept.get(f"/api/orders/{project.order_id}/").data["completion_report"]
+        self.assertEqual(report["note"], "Portal tayyor")
+        self.assertEqual(report["files"][0]["name"], "natija.docx")
+
     def test_manager_without_order_finishes_directly(self):
         pm = client_for(self.pm)
         pid = pm.post("/api/projects/", {"code": "COMP-2", "name": "Ichki", **dates(), "member_ids": []}, format="json").data["id"]
@@ -278,7 +349,7 @@ class ProjectCompletionAckTests(TestCase):
         kinds1 = [n["kind"] for n in client_for(self.dev1).get("/api/notifications/").data["results"]]
         self.assertIn("project_completion_ack_requested", kinds1)
 
-    def test_all_confirm_automatically_finishes(self):
+    def test_all_confirm_allows_pm_to_finish(self):
         self.finish()
         self.ack(self.dev1, True)
         mid = client_for(self.pm).get(f"/api/projects/{self.pid}/").data
@@ -288,12 +359,17 @@ class ProjectCompletionAckTests(TestCase):
         kinds_pm = [n["kind"] for n in client_for(self.pm).get("/api/notifications/").data["results"]]
         self.assertIn("project_completion_ack_done", kinds_pm)
 
-        # Oxirgi tasdiq loyihani avtomatik yakunlaydi; PM qayta bosmaydi.
+        # Oxirgi rozilik faqat PMga yakunlash imkonini beradi.
         after_all = client_for(self.pm).get(f"/api/projects/{self.pid}/").data
-        self.assertEqual(after_all["stage"], "done")
-        self.assertEqual(after_all["stage_targets"], [])
-        self.assertIsNone(after_all["completion"])
+        self.assertEqual(after_all["stage"], "planned")
+        self.assertIn("done", after_all["stage_targets"])
+        self.assertEqual(after_all["completion"]["pending"], [])
+        self.assertEqual({u["id"] for u in after_all["completion"]["confirmed"]}, {self.dev1.pk, self.dev2.pk})
         self.assertFalse(after_all["actions"]["add_task"])
+        finished = self.finish()
+        self.assertEqual(finished.status_code, 200, finished.data)
+        self.assertEqual(finished.data["stage"], "done")
+        self.assertIsNone(finished.data["completion"])
 
     def test_reject_with_reason_cancels_round_and_project_stays(self):
         self.finish()
@@ -377,8 +453,13 @@ class ProjectCompletionAckWithOrderTests(TestCase):
         self.assertEqual(r2.status_code, 200, r2.data)
 
         r3 = pm.get(f"/api/projects/{self.pid}/")
-        self.assertEqual(r3.data["stage"], "pending_approval")
+        self.assertEqual(r3.data["stage"], "planned")
+        self.assertIn("done", r3.data["stage_targets"])
         self.assertFalse(r3.data["actions"]["add_task"])
+        self.assertFalse(Notification.objects.filter(recipient=self.dept, kind="project_completion_requested").exists())
+        finished = pm.patch(f"/api/projects/{self.pid}/", {"stage": "done"}, format="json")
+        self.assertEqual(finished.status_code, 200, finished.data)
+        self.assertEqual(finished.data["stage"], "pending_approval")
         order_id = Project.objects.get(pk=self.pid).order_id
         order = client_for(self.dept).get(f"/api/orders/{order_id}/").data
         self.assertTrue(order["actions"]["decide_completion"])

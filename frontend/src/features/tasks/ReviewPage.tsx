@@ -1,20 +1,17 @@
-import { useQuery } from "@tanstack/react-query";
 import { ClipboardCheck } from "lucide-react";
 
 import { useModal } from "@/app/modals";
-import { api, qs } from "@/shared/api";
+import { usePagedList } from "@/app/queries";
 import { fmtDateTime } from "@/shared/format";
 import { T } from "@/shared/text";
 import type { Task } from "@/shared/types";
 import { Button, CodeTag, Due, Empty, ErrorBox, People, PriorityBadge, SkeletonRows } from "@/shared/ui";
+import { Pagination } from "@/shared/ui/Pagination";
 
 /** Tekshiruv navbati (PM/Boshliq): dasturchi yuborgan vazifalar. Bosilsa — vazifa modali tekshiruv tabida. */
 export default function ReviewPage() {
   const { open } = useModal();
-  const query = useQuery({
-    queryKey: ["tasks", "review"],
-    queryFn: () => api.get<Task[]>(`/tasks/${qs({ status: "in_review", all: 1 })}`),
-  });
+  const query = usePagedList<Task>(["tasks", "review"], "/tasks/", { status: "in_review" });
 
   return (
     <>
@@ -37,7 +34,7 @@ export default function ReviewPage() {
               <div className="task-title">
                 <CodeTag code={t.code} /> {t.title}
               </div>
-              <div className="small muted">{t.project.name}</div>
+              <div className="small muted">{t.project?.name ?? T.tasks.noProject}</div>
             </div>
             <PriorityBadge priority={t.priority} />
             <div style={{ minWidth: 160 }}>
@@ -52,6 +49,7 @@ export default function ReviewPage() {
           </div>
         ))}
       </div>
+      <Pagination data={query.pagination} page={query.page} onPageChange={query.onPageChange} />
     </>
   );
 }

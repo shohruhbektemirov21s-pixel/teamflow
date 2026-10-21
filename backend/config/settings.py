@@ -3,6 +3,8 @@ import sys
 import tempfile
 from pathlib import Path
 
+from .runtime import cache_config, database_config
+
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
@@ -55,6 +57,7 @@ INSTALLED_APPS = [
     "apps.chat",
     "apps.panel",
     "apps.ai",
+    "apps.portfolio",
 ]
 
 MIDDLEWARE = [
@@ -86,12 +89,12 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "config.wsgi.application"
 
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
-    }
-}
+DATABASES = {"default": database_config(os.environ.get("DATABASE_URL", ""), BASE_DIR, debug=DEBUG)}
+CACHES = {"default": cache_config(os.environ.get("REDIS_URL", ""), debug=DEBUG)}
+SESSION_ENGINE = "django.contrib.sessions.backends.cached_db" if os.environ.get("REDIS_URL") else "django.contrib.sessions.backends.db"
+if "test" in sys.argv:
+    CACHES = {"default": cache_config("", debug=True)}
+    SESSION_ENGINE = "django.contrib.sessions.backends.db"
 
 AUTH_USER_MODEL = "accounts.User"
 
@@ -116,7 +119,15 @@ STATICFILES_DIRS = [FRONTEND_DIST] if FRONTEND_DIST.exists() else []
 
 MEDIA_URL = "media/"
 MEDIA_ROOT = BASE_DIR / "media"
+if os.environ.get("DJANGO_MEDIA_ROOT"):
+    MEDIA_ROOT = Path(os.environ["DJANGO_MEDIA_ROOT"])
+# Production: ruxsatli fayllarni Nginx beradi (`apps.core.serving`, `deploy/nginx.conf` → `/protected-media/`).
+# Bo'sh bo'lsa (mahalliy) fayllar Django orqali beriladi.
+PROTECTED_MEDIA_ACCEL_PREFIX = os.environ.get("PROTECTED_MEDIA_ACCEL_PREFIX", "")
+if PROTECTED_MEDIA_ACCEL_PREFIX and not (PROTECTED_MEDIA_ACCEL_PREFIX.startswith("/") and PROTECTED_MEDIA_ACCEL_PREFIX.endswith("/")):
+    raise RuntimeError("PROTECTED_MEDIA_ACCEL_PREFIX '/' bilan boshlanib, '/' bilan tugashi kerak")
 if "test" in sys.argv:  # testlar haqiqiy media papkaga yozmasin
+    PROTECTED_MEDIA_ACCEL_PREFIX = ""
     MEDIA_ROOT = Path(tempfile.mkdtemp(prefix="teamflow-test-media-"))
     PASSWORD_HASHERS = ["django.contrib.auth.hashers.MD5PasswordHasher"]  # faqat testni tezlatish uchun
 
@@ -139,11 +150,21 @@ TINYFISH_HTTP_RETRIES = int(os.environ.get("TINYFISH_HTTP_RETRIES", "2"))
 UPLOAD_ALLOWED_EXTENSIONS = ["docx", "pdf", "png", "jpg", "jpeg"]
 UPLOAD_MAX_MB = 20
 DATA_UPLOAD_MAX_MEMORY_SIZE = UPLOAD_MAX_MB * 1024 * 1024
+# Portfolio videolari (apps.portfolio.files): MP4, WebM, MOV. Nginx `client_max_body_size` bundan katta bo'lsin.
+PORTFOLIO_VIDEO_MAX_MB = 100
+PORTFOLIO_VIDEOS_PER_ITEM = 5
+PORTFOLIO_COVER_MAX_MB = 5
+PORTFOLIO_COVER_MAX_PX = 1600
+# Loyihaga biriktiriladigan rasm (galereya) va hujjatlar (Word/PDF; hajmi UPLOAD_MAX_MB)
+PORTFOLIO_ATTACHMENTS_PER_ITEM = 30
+PORTFOLIO_IMAGE_MAX_MB = 10
+PORTFOLIO_RANKING_CACHE_SECONDS = int(os.environ.get("PORTFOLIO_RANKING_CACHE_SECONDS", "60"))
+NOTIFICATION_UNREAD_CACHE_SECONDS = int(os.environ.get("NOTIFICATION_UNREAD_CACHE_SECONDS", "60"))
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": ["apps.core.authentication.SessionAuth"],
     "DEFAULT_PERMISSION_CLASSES": ["rest_framework.permissions.IsAuthenticated"],
-    "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
+    "DEFAULT_PAGINATION_CLASS": "apps.core.pagination.BoundedPagination",
     "PAGE_SIZE": 50,
     "EXCEPTION_HANDLER": "apps.core.api_utils.api_exception_handler",
     "DEFAULT_THROTTLE_RATES": {"auth": "20/min", "ai_web_agent": "5/hour"},
@@ -152,14 +173,22 @@ REST_FRAMEWORK = {
 SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SAMESITE = "Lax"
 CSRF_COOKIE_SAMESITE = "Lax"
+SCALE_TEST_MODE = os.environ.get("SCALE_TEST_MODE", "0") == "1"
+TELEGRAM_DELIVERY_MODE = os.environ.get("TELEGRAM_DELIVERY_MODE", "thread" if DEBUG else "outbox")
+if TELEGRAM_DELIVERY_MODE not in ("thread", "outbox"):
+    raise RuntimeError("Unknown TELEGRAM_DELIVERY_MODE")
 if not DEBUG:
-    SESSION_COOKIE_SECURE = True
-    CSRF_COOKIE_SECURE = True
+    SESSION_COOKIE_SECURE = os.environ.get("DJANGO_SECURE_COOKIES", "1") == "1"
+    CSRF_COOKIE_SECURE = SESSION_COOKIE_SECURE
     # HTTPS faqat ishlab chiqarishda majburiy. Reverse-proxy TLS ni tugatsa ham Django
     # unga ishonishi uchun deploy muhitida `SECURE_PROXY_SSL_HEADER` ni sozlang.
     SECURE_SSL_REDIRECT = os.environ.get("DJANGO_SECURE_SSL_REDIRECT", "1") == "1"
+    SECURE_REDIRECT_EXEMPT = [r"^healthz/"]
     SECURE_HSTS_SECONDS = int(os.environ.get("DJANGO_HSTS_SECONDS", "31536000"))
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     SECURE_CONTENT_TYPE_NOSNIFF = True
     SECURE_REFERRER_POLICY = "same-origin"
     X_FRAME_OPTIONS = "DENY"
+    # Only enable behind the trusted reverse proxy; never expose Gunicorn directly.
+    if os.environ.get("DJANGO_TRUST_PROXY", "0") == "1":
+        SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")

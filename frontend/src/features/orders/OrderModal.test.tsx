@@ -29,6 +29,15 @@ const ORDER: OrderDetail = {
   },
 };
 
+it("boshqarmaga yakunlash izohi va fayllarini ko'rsatadi", async () => {
+  mockGet({ "/orders/5/": { ...ORDER, completion_report: {
+    note: "Portal ishga tushirildi", files: [{ id: 10, name: "natija.pdf", size: 100, url: "/api/files/project/10/" }],
+  } } });
+  renderApp(<OrderModal id={5} />);
+  expect(await screen.findByText("Portal ishga tushirildi")).toBeTruthy();
+  expect(screen.getByText("natija.pdf")).toBeTruthy();
+});
+
 function setup(overrides: Partial<OrderDetail> = {}) {
   mockGet({ "/orders/5/": { ...ORDER, ...overrides } });
   renderApp(<OrderModal id={5} />);
@@ -67,12 +76,12 @@ describe("OrderModal — loyihani yakunlashni tasdiqlash", () => {
     setup();
     fireEvent.click(await screen.findByRole("button", { name: T.orders.rejectCompletion }));
 
-    expect(await screen.findByText(T.orders.rejectCompletionSubtitle)).toBeTruthy();
+    expect(await screen.findByRole("dialog", { name: T.orders.rejectCompletion })).toBeTruthy();
     expect(screen.getAllByRole("dialog")).toHaveLength(1);
     expect(screen.getByRole("dialog", { name: T.orders.rejectCompletion })).toBeTruthy();
 
     fireEvent.keyDown(document, { key: "Escape" });
-    await waitFor(() => expect(screen.queryByText(T.orders.rejectCompletionSubtitle)).toBeNull());
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: T.orders.rejectCompletion })).toBeNull());
     expect(screen.getByRole("dialog", { name: ORDER.title })).toBeTruthy();
   });
 
@@ -117,7 +126,7 @@ describe("OrderModal — buyurtmani tasdiqlash va rad etish", () => {
     vi.mocked(api.post).mockResolvedValue({ ok: true });
     fireEvent.click(await screen.findByRole("button", { name: T.orders.approve }));
 
-    expect(await screen.findByText(T.orders.approveSubtitle)).toBeTruthy();
+    expect(await screen.findByRole("dialog", { name: T.orders.approve })).toBeTruthy();
     expect(screen.getAllByRole("dialog")).toHaveLength(1);
     fireEvent.click(screen.getByRole("button", { name: T.orders.approve }));
 
@@ -133,7 +142,7 @@ describe("OrderModal — buyurtmani tasdiqlash va rad etish", () => {
     vi.mocked(api.post).mockResolvedValue({ ok: true });
     fireEvent.click(await screen.findByRole("button", { name: T.orders.reject }));
 
-    expect(await screen.findByText(T.orders.rejectSubtitle)).toBeTruthy();
+    expect(await screen.findByRole("dialog", { name: T.orders.reject })).toBeTruthy();
     const send = screen.getByRole("button", { name: T.orders.reject });
     expect((send as HTMLButtonElement).disabled).toBe(true);
 

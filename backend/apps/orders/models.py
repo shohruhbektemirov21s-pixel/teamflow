@@ -39,6 +39,7 @@ class Order(models.Model):
 
     class Meta:
         ordering = ["-created_at"]
+        indexes = [models.Index(fields=["submitted_by", "status", "-created_at"], name="order_owner_status_date_idx")]
         verbose_name = "Buyurtma"
         verbose_name_plural = "Buyurtmalar (TZ)"
 

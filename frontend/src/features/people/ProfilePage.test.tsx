@@ -21,7 +21,7 @@ describe("ProfilePage", () => {
     testUser.current = { ...PM, role: "boss", role_label: "Boshliq" };
     mockGet({
       "/auth/profile/": { ...PROFILE, ...testUser.current, stats: null },
-      "/people/": [{ id: 3, full_name: "Jasur Alimov", role: "developer", role_label: "Dasturchi", is_on_business_trip: false }],
+      "/people/?paginated=1": [{ id: 3, full_name: "Jasur Alimov", role: "developer", role_label: "Dasturchi", is_on_business_trip: false }],
     });
     vi.mocked(api.put).mockResolvedValue({ id: 3, is_on_business_trip: true, business_trip_return_date: "2099-01-01" });
     renderApp(<ProfilePage />);
@@ -39,13 +39,13 @@ describe("ProfilePage", () => {
     testUser.current = DEV;
     mockGet({
       "/auth/profile/": PROFILE,
-      "/tasks/?mine=1&all=1": [taskDetail({ title: "Mening vazifam" })],
+      "/tasks/?mine=1": [taskDetail({ title: "Mening vazifam" })],
     });
     renderApp(<ProfilePage />);
 
     expect(await screen.findByRole("region", { name: T.profile.myTasks })).toBeTruthy();
     expect(await screen.findByText("Mening vazifam")).toBeTruthy();
-    expect(api.get).toHaveBeenCalledWith("/tasks/?mine=1&all=1");
+    expect(api.get).toHaveBeenCalledWith("/tasks/?mine=1");
   });
 
   it("menejer profilida vazifalar ro'yxati so'ralmaydi", async () => {
@@ -54,7 +54,7 @@ describe("ProfilePage", () => {
 
     expect(await screen.findByText(T.profile.editInfoTitle)).toBeTruthy();
     expect(screen.queryByRole("region", { name: T.profile.myTasks })).toBeNull();
-    expect(api.get).not.toHaveBeenCalledWith("/tasks/?mine=1&all=1");
+    expect(api.get).not.toHaveBeenCalledWith("/tasks/?mine=1");
   });
 
   it("Telegram izohida bot havolasi bor (bot nomi serverdan, /meta/)", async () => {
@@ -77,5 +77,32 @@ describe("ProfilePage", () => {
     await waitFor(() => expect(api.post).toHaveBeenCalledWith("/auth/avatar/", expect.any(FormData)));
     const sent = vi.mocked(api.post).mock.calls[0]![1] as FormData;
     expect(sent.get("avatar")).toBe(file);
+  });
+
+  it("oddiy foydalanuvchi email va bio ma'lumotlarini tahrirlaydi", async () => {
+    testUser.current = { ...PM, id: 20, role: "user", role_label: "Oddiy foydalanuvchi" };
+    mockGet({
+      "/auth/profile/": {
+        ...PROFILE,
+        ...testUser.current,
+        email: "user@example.com",
+        bio: "Mahsulotlarni baholashni yaxshi ko'raman.",
+        stats: null,
+        activity: { reviews: 2, following: 1 },
+      },
+    });
+    vi.mocked(api.patch).mockResolvedValue({});
+    renderApp(<ProfilePage />);
+
+    const email = await screen.findByLabelText("Email");
+    const bio = screen.getByLabelText("Bio");
+    fireEvent.change(email, { target: { value: "new@example.com" } });
+    fireEvent.change(bio, { target: { value: "Yangi qisqacha ma'lumot" } });
+    fireEvent.click(screen.getByRole("button", { name: T.common.save }));
+
+    await waitFor(() => expect(api.patch).toHaveBeenCalledWith("/auth/profile/", expect.objectContaining({
+      email: "new@example.com",
+      bio: "Yangi qisqacha ma'lumot",
+    })));
   });
 });

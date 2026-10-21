@@ -3,6 +3,7 @@ import { useId, useState } from "react";
 
 import { useDevelopers } from "@/app/queries";
 import { T } from "@/shared/text";
+import { useDebounced } from "@/shared/hooks";
 import { Avatar, Skeleton } from "@/shared/ui";
 
 export interface PickerPerson {
@@ -32,9 +33,10 @@ export function DeveloperPicker({
   locked?: number[];
   label: string;
 }) {
-  const all = useDevelopers(!options);
-  const list = options ?? all.data ?? [];
   const [q, setQ] = useState("");
+  const search = useDebounced(q.trim());
+  const all = useDevelopers(!options, search, value);
+  const list = options ?? all.data ?? [];
   const listId = useId();
 
   const byId = new Map([...known, ...list].map((p) => [p.id, p]));
@@ -51,7 +53,7 @@ export function DeveloperPicker({
             const person = byId.get(id) ?? { id, full_name: `#${id}` };
             return (
               <span key={id} className="chip person-chip">
-                <Avatar user={person} size="sm" />
+                <Avatar user={person} size="sm" clickable={false} />
                 {person.full_name}
                 {!locked.includes(id) && (
                   <button
@@ -105,7 +107,7 @@ export function DeveloperPicker({
                 setQ("");
               }}
             >
-              <Avatar user={p} size="sm" />
+              <Avatar user={p} size="sm" clickable={false} />
               <span className="grow">
                 <b style={{ fontWeight: 600 }}>{p.full_name}</b>
                 {p.specialty && <span className="small muted"> · {p.specialty}</span>}

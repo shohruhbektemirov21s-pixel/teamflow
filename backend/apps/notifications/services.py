@@ -1,20 +1,49 @@
 import threading
 
 from django.contrib.auth import get_user_model
+from django.core.cache import cache
 from django.db import transaction
+from django.conf import settings
+from django.utils import timezone
 
 from apps.accounts.models import Role
 
 from . import telegram
-from .models import Notification
+from .models import Notification, TelegramDelivery
+
+
+UNREAD_COUNT_CACHE_PREFIX = "notifications:unread-count:"
+
+
+def unread_count_cache_key(user_id):
+    return f"{UNREAD_COUNT_CACHE_PREFIX}{user_id}"
+
+
+def unread_count(user_id):
+    return cache.get_or_set(
+        unread_count_cache_key(user_id),
+        lambda: Notification.objects.filter(recipient_id=user_id, is_read=False).count(),
+        timeout=settings.NOTIFICATION_UNREAD_CACHE_SECONDS,
+    )
+
+
+def invalidate_unread_counts(user_ids):
+    keys = {unread_count_cache_key(user_id) for user_id in user_ids if user_id}
+    if keys:
+        cache.delete_many(keys)
 
 
 def notify(recipients, kind, message, target=None, exclude=None):
     """Bir nechta foydalanuvchiga bildirishnoma. Takrorlar va `exclude` (odatda amalni bajaruvchi) chiqarib tashlanadi.
 
-    Telegram'ga faqat tranzaksiya muvaffaqiyatli tugagach (on_commit) va bitta fon oqimida yuboriladi —
-    amal bekor bo'lsa, xabar ham ketmaydi; so'rov Telegram'ni kutib qolmaydi.
+    Production: Telegram outbox yozuvi bildirishnoma bilan bitta tranzaksiyada yaratiladi.
+    Development: on_commit orqali fon oqimi yuboradi. Amal bekor bo'lsa xabar ham ketmaydi.
     """
+    with transaction.atomic():
+        return _notify(recipients, kind, message, target, exclude)
+
+
+def _notify(recipients, kind, message, target, exclude):
     seen = set()
     items = []
     for user in recipients:
@@ -23,12 +52,21 @@ def notify(recipients, kind, message, target=None, exclude=None):
         seen.add(user.pk)
         items.append(Notification(recipient=user, kind=kind, message=message[:255], target=target))
     Notification.objects.bulk_create(items)
+    if items:
+        recipient_ids = tuple(item.recipient_id for item in items)
+        transaction.on_commit(lambda ids=recipient_ids: invalidate_unread_counts(ids))
 
     pairs = [(item.recipient.telegram_chat_id, item.message) for item in items if item.recipient.telegram_chat_id]
     if pairs and telegram.enabled():
-        transaction.on_commit(
-            lambda: threading.Thread(target=telegram.send_many, args=(pairs,), daemon=True).start()
-        )
+        if settings.TELEGRAM_DELIVERY_MODE == "outbox":
+            TelegramDelivery.objects.bulk_create([
+                TelegramDelivery(chat_id=chat_id, text=text, available_at=timezone.now())
+                for chat_id, text in pairs
+            ])
+        else:
+            transaction.on_commit(
+                lambda: threading.Thread(target=telegram.send_many, args=(pairs,), daemon=True).start()
+            )
     return items
 
 

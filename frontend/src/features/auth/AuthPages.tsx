@@ -12,26 +12,28 @@ import { Button, Callout, Field } from "@/shared/ui";
 function AuthShell({ children }: { children: ReactNode }) {
   return (
     <div className="auth">
+      <a className="skip-link" href="#auth-main">{T.nav.skipContent}</a>
       <div className="auth-side">
-        <div className="brand" style={{ padding: 0, color: "#fff" }}>
-          <span className="brand-mark" style={{ background: "rgba(255,255,255,.2)" }}>
+        <Link to="/" className="auth-brand">
+          <span className="auth-brand-mark">
             <Sparkles />
           </span>
-          {T.app}
-        </div>
-        <div>
-          <h1 style={{ fontSize: 30, lineHeight: 1.2 }}>{T.auth.loginSubtitle}</h1>
-          <ul>
-            <li><FolderKanban /> {T.auth.roleHints.pm}</li>
-            <li><KanbanSquare /> {T.auth.roleHints.developer}</li>
-            <li><Building2 /> {T.auth.roleHints.department}</li>
+          <span><strong>{T.app}</strong><small>{T.nav.workspace}</small></span>
+        </Link>
+        <div className="auth-side-content">
+          <span className="auth-kicker">{T.landing.eyebrow}</span>
+          <h1>{T.auth.loginSubtitle}</h1>
+          <ul aria-label={T.landing.featuresTitle}>
+            <li><span><FolderKanban /></span>{T.auth.roleHints.pm}</li>
+            <li><span><KanbanSquare /></span>{T.auth.roleHints.developer}</li>
+            <li><span><Building2 /></span>{T.auth.roleHints.department}</li>
           </ul>
         </div>
         <span style={{ opacity: 0.7 }}>© {new Date().getFullYear()} {T.app}</span>
       </div>
-      <div className="auth-main">
+      <main id="auth-main" className="auth-main" tabIndex={-1}>
         <div className="auth-card">{children}</div>
-      </div>
+      </main>
     </div>
   );
 }

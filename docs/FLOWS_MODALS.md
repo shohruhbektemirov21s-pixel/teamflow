@@ -1,7 +1,7 @@
 # TeamFlow — Flow va Modal reestri
 
 > Yangi flow yoki modal qo'shishdan oldin shu ro'yxatni tekshir. O'xshashi bo'lsa, uni kengaytir.
-> Cheklov: bitta bo'limda **3–4 ta flow**, istisnoda **5 ta**. Modallar amalda **14 ta** (reja 8 ta edi — yangi modal kerak bo'lsa, avval mavjudini kengaytirish ko'rib chiqiladi).
+> Cheklov: bitta bo'limda **3–4 ta flow**, istisnoda **5 ta**. Modallar amalda **17 ta** (reja 8 ta edi — yangi modal kerak bo'lsa, avval mavjudini kengaytirish ko'rib chiqiladi).
 > Holat: kod to'liq yozilgan va sinovdan o'tgan (2026-09-28). Barcha flow va modallar **Faol**.
 
 ## Flow'lar
@@ -13,7 +13,7 @@
 | 3 | Buyurtmani ko'rib chiqish | orders | PM ochadi → Tasdiqlash (sana, izoh) yoki Rad etish (sabab) | Faol |
 | 4 | TZ qayta yuborish (v2, v3…) | orders | Rad etilgach kamchilikni tuzatib yangi TZ yuboriladi | Faol |
 | 5 | Loyiha yaratish | projects | Tasdiqlangan buyurtmadan (yoki qo'lda) → jamoa → loyiha fayllari va har bir xodimga alohida vazifa (sana, fayl) → bitta tranzaksiyada saqlanadi | Faol |
-| 5b | Loyihani yakunlashni tasdiqlash | projects | PM/Boshliq "Yakunlangan" tanlaydi → loyihadagi barcha faol dasturchilarga bildirishnoma (Ha/Yo'q tugmasi bilan) → birortasi sabab bilan rad etsa yakunlanmaydi (loyiha davom etadi, PM sababni ko'radi, qayta so'raganda hammadan yangidan so'raladi) → hammasi "Ha" desa avtomatik (PM qayta bosmaydi): buyurtmasiz loyiha darrov yakunlanadi; buyurtmali loyiha "Tasdiqlash kutilmoqda"ga o'tadi → buyurtmani yuborgan boshqarma (OrderModal) Tasdiqlaydi (Yakunlangan) yoki sabab bilan Rad etadi (Rad etildi, PM qayta so'raydi) | Faol (2026-10-05) |
+| 5b | Loyihani yakunlashni tasdiqlash | projects | PM/Boshliq "Yakunlash" bosadi → alohida modalda izoh va fayllar → yuboradi → loyihadagi barcha faol dasturchilarga bildirishnoma (Ha/Yo'q tugmasi bilan) → birortasi sabab bilan rad etsa yakunlanmaydi (loyiha davom etadi, PM sababni ko'radi, qayta so'raganda hammadan yangidan so'raladi) → hammasi "Ha" desa PMga xabar keladi va "Yakunlash" tugmasi ochiladi; PM yakunlaydi: buyurtmasiz loyiha darrov yakunlanadi; buyurtmali loyiha "Tasdiqlash kutilmoqda"ga o'tadi → buyurtmani yuborgan boshqarma (OrderModal) Tasdiqlaydi (Yakunlangan) yoki sabab bilan Rad etadi (Rad etildi, PM qayta so'raydi) | Faol (2026-10-05) |
 | 6 | Vazifa yaratish va biriktirish | tasks | Loyiha ichida vazifa → bir yoki bir nechta dasturchi → sub-vazifalar (har biriga bir nechta dasturchi). Vazifa oynasidan keyin ham ijrochi qo'shiladi (PM/Boshliq; dasturchi — o'zi yaratgan vazifaga), jamoadan tashqari dasturchi loyihaga avtomatik qo'shiladi | Faol |
 | 7 | Vazifani bajarish | tasks | Nazoratda → Jarayonda → Tekshiruvga yuborish (izoh, fayl) | Faol |
 | 8 | Tekshiruv | tasks | PM natijani ko'radi → Qabul (Bajarildi) yoki Qaytarish (Jarayonda, izoh bilan) | Faol |
@@ -21,11 +21,17 @@
 | 10 | Takliflar berish va ovoz | suggestions | Taklif yaratish, ovoz berish, boshliq qarori | Faol |
 | 11 | Qilingan ishlar feed | history | Oxirgi bajarilgan vazifalar va tekshiruvlar reyestri (Boss, PM) | Faol |
 | 12 | Telegram'ni ulash | notifications | Ro'yxatdan o'tishda @username → botga /start → chat bog'lanadi → bildirishnomalar Telegram'ga ham keladi | Faol |
+| 13 | Portfoliolarni ko'rish va kuzatish | portfolio | Menyu "Portfolio" → dasturchilar reyting bo'yicha (eng balandi tepada, o'rni, yulduz, kuzatuvchi/sharh/loyiha soni) → qator bosiladi → "Portfolio" modali (tajriba, yillar bo'yicha, loyihalar, bajarilgan vazifalar) → "Kuzatish" / "Kuzatishni to'xtatish". Hamma rol ko'radi | Faol (2026-10-08) |
+| 14 | Portfolioni to'ldirish | portfolio | Dasturchi "Mening portfoliom" → TeamFlow loyihalari o'zi paydo bo'lgan → "Loyiha qo'shish" (nom, sanalar, tavsif, havola) → loyiha ichida video yuklash (MP4/WebM/MOV, 100 MB, 5 tagacha) · rasm va fayl (Word/PDF, 20 MB, 30 tagacha) biriktirish/o'chirish · "Tarix" (kim, nima, qachon qo'shdi) / tahrirlash / o'chirish | Faol (2026-10-08) |
+| 15 | Loyihani baholash va sharh | portfolio | Boshqa foydalanuvchi loyihani ochadi → 1–5 yulduz → "Bahoni saqlash" (keyin yangilash/o'chirish); sharh alohida: matn yoziladi → "Yuborish" (istalgancha sharh, hamma ko'radi, o'z sharhini o'chirish mumkin). Dasturchi reytingi — barcha loyihalaridagi baholar o'rtachasi | Faol (2026-10-08) |
+| 16 | Mas'ul loyihalar va yangiliklar | people | Boshliq/PM xodim oynasida (dasturchi — o'z profilida o'zi ham) "Mas'ul loyihalar" → "Loyiha qo'shish" (nom, izoh; qo'lda) → tahrirlash/o'chirish. Loyihada "Yangiliklar (N)" ochiladi → mas'ul xodim (o'z profilida) yoki Boshliq/PM yangilik yozadi; yangisi tepada. Faqat mas'ul xodim va uni boshqaradigan Boshliq/PM ko'radi. Yangi modal yo'q (7-modal va `/profil` ichida, `features/people/ResponsibleProjects.tsx`) | Faol (2026-10-14) |
 
-Bo'limlar bo'yicha son: auth 1 · orders 3 · projects 2 · tasks 3 · profile 1 · history 1 · suggestions 1 · notifications 1. Cheklovdan oshmagan.
+Bo'limlar bo'yicha son: auth 1 · orders 3 · projects 2 · tasks 3 · profile 1 · history 1 · suggestions 1 · notifications 1 · portfolio 3 · people 1. Cheklovdan oshmagan.
+Eslatma (2026-10-20): **"O'chirishni tasdiqlash"** — alohida modal emas, hamma o'chirish tugmasi (`ConfirmButton`, `shared/ui`) ochadigan umumiy ustma-ust (`Modal stacked`) oyna: qora fon, "Ha, o'chirish" tugmasi 5 soniya orqaga sanaydi (`CONFIRM_DELAY_SECONDS`) va shundan keyingina faollashadi; Esc/Bekor qilish yopadi. Yangi flow yo'q, modallar reestri soni o'zgarmadi (foydalanuvchi istisnosi, 4-bo'lim).
+Eslatma (2026-10-14): 6-flow ("Vazifa yaratish va biriktirish") kengaydi — dasturchi loyihani tanlamasdan ("Loyihasiz") o'ziga vazifa qo'sha oladi; yangi flow emas.
 Eslatma: `orders` bo'limidagi 3 flow ham UI da bitta "buyurtma holati" oqimi sifatida (holatga qarab tugma almashadi) amalga oshiriladi, alohida sahifalar ko'paytirilmaydi.
 
-## Modallar (amalda: 14 ta)
+## Modallar (amalda: 17 ta)
 
 Modal holati brauzer tarixida saqlanadi, manzil satri toza qoladi. Quyidagi "Parametr" ustuni — `useModal().open()` ga beriladigan qiymat (eski `?task=12` havolalar ham ishlaydi va tozalanadi).
 
@@ -37,7 +43,7 @@ Modal holati brauzer tarixida saqlanadi, manzil satri toza qoladi. Quyidagi "Par
 | 4 | Loyiha ko'rish/tahrirlash | PM, Boshliq, Dasturchi | Ma'lumot, daraja, jamoa, fayllar, sanalarni o'zgartirish | `?project=:id` | Faol |
 | 5 | Vazifa yaratish/tahrirlash | PM, Boshliq, Dasturchi | Nom, izoh, ijrochilar, muddat, sub-vazifalar, fayllar; ommaviy yaratishda har vazifaga alohida ijrochi | `?new=task` / `?edit=:id` / `?bulk=task` | Faol |
 | 6 | Vazifa ko'rish | Hamma (rolga qarab) | Mobilga mos yig'iladigan bo'limlar: ma'lumot, sub-vazifalar, tekshiruv, ish jurnali, izohlar, fayllar. Ijrochilar va sub-vazifa ijrochilari shu modal ichidagi panelda o'zgartiriladi (yangi modal yo'q, `DeveloperPicker`). "Tekshiruvga yuborish" / "Qaytarish" — ustida ochiladigan 13-modal | `?task=:id` (`submit: true` — darrov yuborish ekrani) | Faol |
-| 7 | Xodim profili | Boshliq, PM | Xodim statistikasi, Boshliq/PM kiritadigan mas'uliyatlar, barcha vazifalari, dasturchi hisoboti, biriktirilgan loyihalar va vazifa berish; ish/loyiha bosilsa mavjud tafsilot oynasi ochiladi | `?person=:id` | Faol |
+| 7 | Xodim profili | Boshliq, PM | Xodim statistikasi, Boshliq/PM kiritadigan mas'ul loyihalar va ularning yangiliklari (2026-10-14, avvalgi "Mas'uliyatlar" matni o'rniga), barcha vazifalari, dasturchi hisoboti, biriktirilgan loyihalar va vazifa berish; ish/loyiha bosilsa mavjud tafsilot oynasi ochiladi | `?person=:id` | Faol |
 | 8 | Taklif yaratish | Hamma | Anonim yoki ochiq taklif matni, sarlavha kiritish | `?new=suggestion` | Faol |
 | 9 | Taklif ko'rish | Hamma | Taklif tafsilotlari, ovoz berish (yoqlash/qarshi), Boshliq qabul/rad qilish | `?suggestion=:id` | Faol |
 | 10 | Taqvim kuni | Dasturchi, PM, Boshliq | Shu kuni tugaydigan loyihalar va shu kungi vazifalar ro'yxati; bosilsa shu modal o'rniga "Vazifa ko'rish" / "Loyiha ko'rish" ochiladi, "Orqaga" qaytaradi (`features/calendar/DayModal.tsx`) | `{ day: "yyyy-mm-dd" }` | Faol (2026-09-30) |
@@ -45,6 +51,9 @@ Modal holati brauzer tarixida saqlanadi, manzil satri toza qoladi. Quyidagi "Par
 | 12 | Bildirishnomalar | Hamma | Kun bo'yicha guruhlangan ro'yxat, "Hammasi/O'qilmagan" filtri, "Hammasini o'qildi deb belgilash"; bosilsa tegishli modal (vazifa/buyurtma/loyiha) shu modal o'rniga ochiladi. Avval alohida sahifa edi (`/bildirishnomalar`), endi faqat tepadagi qo'ng'iroq ikonkasi ochadi, chap menyuda band yo'q (`features/notifications/NotificationsModal.tsx`) | `{ notifications: true }` | Faol (2026-10-05) |
 | 13 | Vazifa amali | Dasturchi (yuborish), PM/Boshliq (qaytarish) | Vazifa oynasi **ustida** qora fonli alohida modal: "Nima qildingiz?" (1000 belgi, hisoblagich), drag&drop fayl zonasi; qaytarishda — sabab. Vazifa oynasi orqada `inert` (`TaskActionScreen`, `Modal stacked`) | vazifa oynasi ichidan / `submit: true` | Faol (2026-10-06) |
 | 14 | Buyurtma amali | PM/Boshliq, Boshqarma | Buyurtma oynasi **ustida** qora fonli alohida modal: Tasdiqlash (sanalar, muhimlik, izoh), Rad etish (sabab), Sanani o'zgartirish, Yangi TZ, Kamchilik bor (`OrderModal.tsx`, `Modal stacked`) | buyurtma oynasi ichidan | Faol (2026-10-06) |
+| 15 | Loyiha yakunlash amali | PM, Boshliq | Loyiha oynasi ustida izoh va fayllarni yuborish; orqadagi loyiha ko'rinadi, inert. Mavjud yakunlash tasdiqlash jarayoni saqlanadi | loyiha oynasi ichidan | Faol (2026-10-06) |
+| 16 | Portfolio | Hamma | Bitta modal, ichida 3 ko'rinish (modal ustida modal yo'q): dasturchi sahifasi (ko'rsatkichlar, loyihalar, yillar, vazifalar, kuzatish/loyiha qo'shish) → loyiha (video, havola, baho va sharhlar; egasiga tahrirlash/video) → yangi loyiha formasi. Loyiha/forma "← Orqaga" yoki ✕ bilan dasturchi sahifasiga qaytadi (`features/portfolio/PortfolioModal.tsx`, `PortfolioItem.tsx`) | `{ portfolio: id }`, `{ portfolio, item }`, `{ portfolio, add: true }` | Faol (2026-10-08) |
+| 17 | Yangi xodim qo'shish | PM, Boshliq | Ism-familiya, login, parol, rol, mutaxassislik, bo'lim va telegram username bilan to'g'ridan-to'g'ri yangi faol xodim yaratish (`features/people/NewEmployeeModal.tsx`, `POST /api/people/create/`) | Xodimlar sahifasidagi "+ Yangi xodim" tugmasi | Faol (2026-10-14) |
 
 > Yon panellar (drawer) butunlay taqiqlangan, faqat modal va sahifalardan foydalaniladi.
 
@@ -64,6 +73,9 @@ Modal holati brauzer tarixida saqlanadi, manzil satri toza qoladi. Quyidagi "Par
 | 2026-09-30 | profile | 0 (yangi flow emas, flow 9 kengaydi) | "Rasm ko'rish" modali qo'shildi — modallar 11 ta. Foydalanuvchiga aytildi. Telegram kabi to'liq ekranli ko'rinish mavjud modal kartasiga (sarlavha + tarkib + tugmalar) sig'maydi; umumiy `useDialogBehavior` (Esc, fokus) bilan yozildi. |
 | 2026-10-05 | notifications | 0 (yangi flow emas) | "Bildirishnomalar" sahifasi (`/bildirishnomalar`, `NotificationsPage.tsx`) modalga aylantirildi (`NotificationsModal.tsx`) — modallar 12 ta. Sabab: chap menyudagi "Bildirishnomalar" bandi tepadagi qo'ng'iroq ikonkasi bilan ikki marta bir joyga havola edi (foydalanuvchi so'rovi bilan band olib tashlandi), shundan keyin qo'ng'iroq sahifaga emas, modalga ochilishi so'raldi. Mavjud modal kartasiga (sarlavha + filtr + ro'yxat + "hammasini o'qildi" tugmasi) sig'di, yangi infratuzilma kerak bo'lmadi. |
 | 2026-10-06 | tasks, orders | 0 (yangi flow emas) | Foydalanuvchi talabi bilan "modal ustida modal yo'q" qoidasidan istisno: vazifa va buyurtma oynasidagi amal panellari asosiy oyna ustida qora fonli alohida modalga aylandi — modallar 12 → 14 ta. Foydalanuvchiga aytildi. Umumiy `Modal` endi ustma-ust oynalarni qo'llaydi (Esc/Tab faqat ustdagisiga, orqadagisi `inert`). |
+| 2026-10-14 | people | 1 (yangi bo'lim) | "Mas'ul loyihalar va yangiliklar" flow'i qo'shildi. Dublikat yo'q ("Profil tahrirlash" — boshqa maqsad). Yangi modal yo'q: mavjud 7-modal ("Xodim profili") va `/profil` sahifasi ichida inline formalar; o'chirish — ikki bosqichli tugma (brauzer dialogi emas). Modallar soni o'zgarmadi (16). |
+| 2026-10-08 | portfolio | 3 (yangi bo'lim) | Dasturchi portfoliosi: 3 ta flow (ko'rish va kuzatish · to'ldirish · baholash). Foydalanuvchi "flow'lar 3–5 tadan oshmasin" dedi — kuzatish alohida flow emas, ko'rish ichida. Modallar 15 → 16: "Xodim profili" faqat menejerlar uchun va ichki ish ma'lumotlari bor, shuning uchun hammaga ochiq portfolio uchun kengaytirilmadi; loyiha va forma alohida modal emas, shu modal ichini almashtiradi. Foydalanuvchiga aytildi. |
+| 2026-10-14 | people | 0 (yangi flow emas) | Xodimlar sahifasini SaaS redesign qilish talabi bo'yicha "+ Yangi xodim" modali qo'shildi — modallar 16 → 17 ta. Foydalanuvchiga aytildi. PM va Boshliq uchun to'g'ridan-to'g'ri yangi faol xodim yaratish imkoniyati (`POST /api/people/create/`). |
 
 ## UX/UI tartibi (2026-10-06)
 

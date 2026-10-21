@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "playwright-visible": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-playwright"],
+      "env": {
+        "HEADLESS": "false"
+      }
+    }
+  }
+}

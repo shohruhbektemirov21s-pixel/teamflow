@@ -11,6 +11,7 @@ class Role(models.TextChoices):
     PM = "pm", "Loyiha menejeri"
     DEVELOPER = "developer", "Dasturchi"
     DEPARTMENT = "department", "Boshqarma"
+    USER = "user", "Oddiy foydalanuvchi"
 
 
 class Specialty(models.Model):
@@ -46,6 +47,7 @@ class User(AbstractUser):
     )
     department_name = models.CharField("Boshqarma nomi", max_length=200, blank=True)
     responsibilities = models.TextField("Mas'uliyatlar", max_length=2000, blank=True)
+    bio = models.TextField("Bio", max_length=1000, blank=True)
     telegram_chat_id = models.CharField(max_length=100, blank=True)
     telegram_username = models.CharField("Telegram", max_length=100, blank=True, help_text="Bildirishnomalar uchun, ms: @username")
     avatar = models.ImageField("Rasm", upload_to=UploadTo("avatars"), blank=True)
@@ -54,6 +56,7 @@ class User(AbstractUser):
     class Meta:
         verbose_name = "Foydalanuvchi"
         verbose_name_plural = "Foydalanuvchilar"
+        indexes = [models.Index(fields=["is_active", "role", "first_name", "last_name"], name="user_active_role_name_idx")]
 
     def clean(self):
         super().clean()
@@ -91,5 +94,48 @@ class User(AbstractUser):
     def is_on_business_trip(self):
         return bool(self.business_trip_return_date and self.business_trip_return_date > timezone.localdate())
 
+    @property
+    def is_ordinary_user(self):
+        return self.role == Role.USER
+
     def __str__(self):
         return self.full_name
+
+
+class ResponsibleProject(models.Model):
+    """Xodim javobgar bo'lgan loyiha. Boshliq/PM qo'lda kiritadi (TeamFlow `Project`iga bog'lanmaydi)."""
+
+    employee = models.ForeignKey(User, on_delete=models.CASCADE, related_name="responsible_projects",
+                                 verbose_name="Mas'ul xodim")
+    name = models.CharField("Loyiha nomi", max_length=255)
+    description = models.TextField("Izoh", max_length=1000, blank=True)
+    created_by = models.ForeignKey(User, on_delete=models.PROTECT, related_name="+")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-created_at", "-id"]
+        verbose_name = "Mas'ul loyiha"
+        verbose_name_plural = "Mas'ul loyihalar"
+
+    def __str__(self):
+        return f"{self.name} — {self.employee}"
+
+
+class ResponsibleProjectNews(models.Model):
+    """Mas'ul loyiha bo'yicha yangilik. Mas'ul xodimning o'zi yoki Boshliq/PM yozadi."""
+
+    project = models.ForeignKey(ResponsibleProject, on_delete=models.CASCADE, related_name="news")
+    author = models.ForeignKey(User, on_delete=models.PROTECT, related_name="+")
+    text = models.TextField("Yangilik", max_length=2000)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at", "-id"]
+        indexes = [models.Index(fields=["project", "-created_at"], name="resp_news_project_created_idx")]
+        verbose_name = "Mas'ul loyiha yangiligi"
+        verbose_name_plural = "Mas'ul loyiha yangiliklari"
+
+    def __str__(self):
+        return self.text[:40]
+

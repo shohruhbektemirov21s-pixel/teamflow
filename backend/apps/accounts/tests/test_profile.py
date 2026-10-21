@@ -34,6 +34,38 @@ class TelegramUniqueTests(TestCase):
         self.assertEqual(r.data["telegram_username"], "")
 
 
+class OrdinaryUserProfileTests(TestCase):
+    def test_ordinary_user_can_read_and_update_email_and_bio(self):
+        user = make_user(Role.USER)
+        client = client_for(user)
+
+        response = client.patch(
+            "/api/auth/profile/",
+            {"email": " user@example.uz ", "bio": "  TeamFlow orqali mutaxassislarni baholayman.  "},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 200, response.data)
+        self.assertEqual(response.data["email"], "user@example.uz")
+        self.assertEqual(response.data["bio"], "TeamFlow orqali mutaxassislarni baholayman.")
+        user.refresh_from_db()
+        self.assertEqual(user.email, "user@example.uz")
+        self.assertEqual(user.bio, "TeamFlow orqali mutaxassislarni baholayman.")
+        self.assertEqual(client.get("/api/auth/me/").data["email"], "user@example.uz")
+
+    def test_profile_rejects_invalid_email_and_overlong_bio(self):
+        user = make_user(Role.USER)
+        client = client_for(user)
+
+        invalid_email = client.patch("/api/auth/profile/", {"email": "not-an-email"}, format="json")
+        self.assertEqual(invalid_email.status_code, 400)
+        self.assertIn("email", invalid_email.data["fields"])
+
+        overlong_bio = client.patch("/api/auth/profile/", {"bio": "x" * 1001}, format="json")
+        self.assertEqual(overlong_bio.status_code, 400)
+        self.assertIn("bio", overlong_bio.data["fields"])
+
+
 class ProfileOverdueTests(TestCase):
     def test_overdue_includes_tasks_in_review(self):
         pm, dev = make_user(Role.PM), make_user(Role.DEVELOPER)
