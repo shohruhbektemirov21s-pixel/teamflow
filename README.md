@@ -391,6 +391,8 @@ Batafsil bosqichlar: `docs/FLOWS_MODALS.md`.
 
 - **Portfolio reytingi:** dasturchi reytingi — uning barcha portfolio loyihalariga qo'yilgan baholarning oddiy o'rtachasi; teng bo'lsa sharhlar soni, keyin kuzatuvchilar soni ko'p bo'lgan tepada. Baholanmaganlar oxirida. (Qaror: 2026-10-08.)
 
+**Ochiq savollar (oddiy foydalanuvchi bosh sahifasi, 2026-10-21 — taxmin bilan qilingan, foydalanuvchi tasdig'i kerak):** dizayn rasmidagi sarlavha ostidagi izoh matni, "Kuzatayotganlarim" chiplari va yuqori paneldagi qidiruv/qo'ng'iroq qo'shilmadi (2026-10-20 "izoh matnlari bo'lmasin" qoidasi; qo'ng'iroq — oddiy foydalanuvchida bildirishnoma yo'q). Kartada "Sharh yozish" Portfolio oynasining "Loyihalar" bo'limini ochadi (sharh loyiha ichida yoziladi). Ko'rsatkich grafigi — so'nggi 8 haftada qo'shilgan dasturchilar / yakunlangan loyihalar (yakunlangan sana saqlanmagani uchun oxirgi o'zgarish sanasi).
+
 **Ochiq savollar (portfolio, 2026-10-08 — taxmin bilan qilingan, foydalanuvchi tasdig'i kerak):**
 - Portfolioda dasturchining **bajarilgan vazifa nomlari va loyiha nomlari barcha rollarga** (boshqarma va boshqa dasturchilarga ham) ko'rinadi — "boshqa userlar ham ko'ra olsin" talabi bo'yicha. Vazifa/loyihaning ichi (fayllar, izohlar) ochilmaydi. Shunday qolsinmi?
 - Baholash va kuzatish **barcha rollarga** (Boshliq, PM, dasturchi, boshqarma) ochiq; faqat o'zini baholay/kuzata olmaydi.

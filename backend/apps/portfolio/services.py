@@ -153,13 +153,16 @@ def add_comment(item, user, *, text):
     text = text.strip()
     if not text:
         raise ServiceError("Sharh matnini yozing.", field="text")
-    return PortfolioComment.objects.create(item=item, author=user, text=text)
+    comment = PortfolioComment.objects.create(item=item, author=user, text=text)
+    invalidate_developer_ranking()  # kartadagi "So'nggi sharh" yangilansin
+    return comment
 
 
 def delete_comment(comment, user):
     if comment.author_id != user.pk:
         raise PermissionDenied("Faqat o'z sharhingizni o'chira olasiz.")
     comment.delete()
+    invalidate_developer_ranking()
 
 
 def follow(user, developer):

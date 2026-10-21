@@ -111,7 +111,7 @@ class ViewTests(PortfolioTestCase):
         with CaptureQueriesContext(connection) as ctx:
             self.assertEqual(client.get("/api/portfolio/").status_code, 200)
         # sessiya, foydalanuvchi, reyting ro'yxati, kartalar uchun loyihalar va hozirgi holat — dasturchilar soniga bog'liq emas
-        self.assertLessEqual(len(ctx.captured_queries), 5)
+        self.assertLessEqual(len(ctx.captured_queries), 6)
 
     def test_search_by_name(self):
         res = client_for(self.pm).get(f"/api/portfolio/?q={self.other.first_name}")

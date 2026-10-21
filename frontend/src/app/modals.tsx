@@ -32,8 +32,8 @@ export type ModalTarget =
   | { day: string }
   | { photo: number; name: string; src: string }
   | { notifications: true }
-  /** Portfolio: dasturchi sahifasi; `item` — shu modal ichida loyiha, `add` — yangi loyiha formasi. */
-  | { portfolio: number; item?: number; add?: boolean }
+  /** Portfolio: dasturchi sahifasi; `item` — shu modal ichida loyiha, `add` — yangi loyiha formasi, `tab` — ochiladigan bo'lim. */
+  | { portfolio: number; item?: number; add?: boolean; tab?: "projects" }
   | { new: "task"; project?: number; edit?: number; assignee?: number }
   | { bulk: "task"; project?: number }
   | { new: "order" }
@@ -133,7 +133,7 @@ export function ModalHost() {
   else if (params.get("person")) node = <PersonModal id={num("person")!} />;
   else if (params.get("day")) node = <DayModal date={params.get("day")!} />;
   else if (params.get("notifications")) node = <NotificationsModal />;
-  else if (params.get("portfolio")) node = <PortfolioModal id={num("portfolio")!} item={num("item")} add={params.get("add") === "1"} />;
+  else if (params.get("portfolio")) node = <PortfolioModal id={num("portfolio")!} item={num("item")} add={params.get("add") === "1"} tab={params.get("tab") === "projects" ? "projects" : undefined} />;
   else if (params.get("photo")) node = <PhotoModal src={params.get("src") ?? ""} name={params.get("name") ?? ""} />;
 
   return <Suspense fallback={null}>{node}</Suspense>;

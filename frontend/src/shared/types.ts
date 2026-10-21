@@ -34,9 +34,16 @@ export interface PortfolioSummary {
   average_rating: number | null;
   rated_projects: number;
   active_projects: number;
+  completed_projects: number;
+  /** Hozir faol ishi bor (xizmat safarida bo'lmagan) dasturchilar soni. */
+  busy_developers: number;
+  /** So'nggi 8 hafta, har hafta uchun son (eng eskisidan boshlab). */
+  series: { developers: number[]; rated_projects: number[]; completed_projects: number[] };
   /** Men kuzatayotgan dasturchilar soni. */
   following: number;
   specialties: { id: number; name: string; count: number }[];
+  /** Filtr uchun: eng ko'p uchraydigan texnologiyalar. */
+  technologies: string[];
 }
 
 export interface MyReview {
@@ -377,6 +384,9 @@ export interface PortfolioDeveloper extends UserBrief {
   /** Oxirgi portfolio loyihasidan olingan haqiqiy muqova va jamlangan texnologiyalar. */
   cover?: string | null;
   technologies?: string[];
+  /** Kartada: hozir band bo'lgan loyiha (faqat holat "band" bo'lsa) va dasturchi loyihalaridagi eng yangi sharh. */
+  working_on?: { name: string; description: string } | null;
+  latest_comment?: { author: string; text: string; created_at: string; stars: number | null } | null;
   email?: string;
   telegram_username?: string;
 }

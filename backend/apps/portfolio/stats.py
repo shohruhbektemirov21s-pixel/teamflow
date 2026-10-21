@@ -7,15 +7,17 @@ from datetime import timedelta
 
 from django.core.cache import cache
 from django.db import transaction
-from django.db.models import Avg, BooleanField, Count, Exists, F, IntegerField, OuterRef, Subquery, Value
+from django.db.models import Avg, BooleanField, Count, Exists, F, IntegerField, OuterRef, Q, Subquery, Value
 from django.db.models.functions import Coalesce, ExtractYear
 from django.utils import timezone
 
+from apps.accounts.models import User
+from apps.core.trends import stats_block
 from apps.projects.models import Project, ProjectMember
 from apps.tasks.filters import ACTIVE
 from apps.tasks.models import Task, TaskAssignment
 
-from .models import Follow, PortfolioItem, PortfolioReview
+from .models import Follow, PortfolioComment, PortfolioItem, PortfolioReview
 from .permissions import portfolio_owners
 from .files import cover_url
 from .technologies import MAX_TECHNOLOGIES
@@ -31,8 +33,51 @@ def invalidate_developer_ranking():
     transaction.on_commit(lambda: cache.delete_many([DEVELOPER_RANKING_CACHE_KEY, SUMMARY_CACHE_KEY]))
 
 
+STATES = ("free", "busy", "trip")
+TECHNOLOGY_FILTER_LIMIT = 30
+
+
+def _active_assignment(developer_ref):
+    return Exists(TaskAssignment.objects.filter(developer=OuterRef(developer_ref), task__status__in=ACTIVE,
+                                                task__archived_at__isnull=True))
+
+
+def filter_by_status(qs, state):
+    """Holat filtri — `developer_statuses` bilan bir xil qoida: xizmat safari > faol ish bor > bo'sh."""
+    on_trip = Q(business_trip_return_date__gt=timezone.localdate())
+    if state == "trip":
+        return qs.filter(on_trip)
+    if state == "busy":
+        return qs.exclude(on_trip).filter(_active_assignment("pk"))
+    return qs.exclude(on_trip).exclude(_active_assignment("pk"))
+
+
+def filter_by_technology(qs, name):
+    """Dasturchining biror portfolio loyihasida shu texnologiya bor (katta-kichik harf farqsiz, aniq nom)."""
+    return qs.filter(Exists(PortfolioItem.objects.filter(owner=OuterRef("pk"), technologies__icontains=f'"{name}"')))
+
+
+def filter_by_search(qs, q):
+    """Ism, familiya, mutaxassislik, loyiha nomi yoki texnologiya bo'yicha."""
+    items = PortfolioItem.objects.filter(owner=OuterRef("pk")).filter(
+        Q(title__icontains=q) | Q(project__name__icontains=q) | Q(technologies__icontains=q))
+    return qs.filter(Q(first_name__icontains=q) | Q(last_name__icontains=q) | Q(specialty__name__icontains=q) | Exists(items))
+
+
+def popular_technologies(owners):
+    """Filtr uchun: eng ko'p uchraydigan texnologiyalar (katta-kichik harf farqsiz, birinchi yozilishi saqlanadi)."""
+    counts, names = {}, {}
+    for technologies in PortfolioItem.objects.filter(owner__in=owners).values_list("technologies", flat=True):
+        for name in set(t.casefold() for t in technologies):
+            counts[name] = counts.get(name, 0) + 1
+        for name in technologies:
+            names.setdefault(name.casefold(), name)
+    ranked = sorted(counts, key=lambda key: (-counts[key], key))[:TECHNOLOGY_FILTER_LIMIT]
+    return [names[key] for key in ranked]
+
+
 def summary():
-    """Dasturchilar sahifasi tepasidagi umumiy ko'rsatkichlar va mutaxassislik filtri chiplari."""
+    """Dasturchilar sahifasi tepasidagi umumiy ko'rsatkichlar (so'nggi haftalar grafigi bilan) va filtr ro'yxatlari."""
     owners = portfolio_owners()
     reviews = PortfolioReview.objects.filter(item__owner__in=owners)
     totals = reviews.aggregate(avg=Avg("stars"), rated=Count("item", distinct=True))
@@ -41,15 +86,27 @@ def summary():
     developers = owners.count()
     joined = owners.filter(date_joined__gte=timezone.now() - timedelta(days=30)).count()
     before = developers - joined
-    active_projects = (Project.objects.exclude(stage=Project.Stage.DONE)
-                       .filter(memberships__developer__in=owners).distinct().count())
+    members = Project.objects.filter(memberships__developer__in=owners)
+    active_projects = members.exclude(stage=Project.Stage.DONE).distinct().count()
+    busy = filter_by_status(owners, "busy").count()
+    developers_trend = stats_block(owners, {"developers": (Q(), "date_joined")})
+    rated_trend = stats_block(reviews, {"rated": (Q(), "created_at")})
+    done_trend = stats_block(members, {"done": (Q(stage=Project.Stage.DONE), "updated_at")})
     return {
         "developers": developers,
         "developers_growth": round(joined / before * 100) if joined and before else None,
         "average_rating": round(totals["avg"], 1) if totals["avg"] is not None else None,
         "rated_projects": totals["rated"],
         "active_projects": active_projects,
+        "completed_projects": done_trend["totals"]["done"],
+        "busy_developers": busy,
+        "series": {
+            "developers": developers_trend["series"]["developers"],
+            "rated_projects": rated_trend["series"]["rated"],
+            "completed_projects": done_trend["series"]["done"],
+        },
         "specialties": [{"id": row["specialty_id"], "name": row["specialty__name"], "count": row["n"]} for row in specialties],
+        "technologies": popular_technologies(owners),
     }
 
 
@@ -62,19 +119,34 @@ def developer_statuses(users):
 
     Faol ish — Xodimlar sahifasidagi bilan bir xil ta'rif (`tasks.filters.ACTIVE`, arxivlanmagan). Bitta so'rov.
     """
+    return statuses_and_work(users)[0]
+
+
+def statuses_and_work(users):
+    """(holatlar, "hozir band" loyiha) — ikkalasi BITTA so'rovdan: faol ishlar bir marta o'qiladi.
+
+    "Hozir band" — dasturchining eng oxirgi biriktirilgan faol ishi bor loyiha (loyihasiz ish o'tkazib yuboriladi);
+    faqat holati `busy` bo'lganlar uchun (xizmat safarida bo'lgan band ko'rinmaydi).
+    """
     users = list(users)
-    counts = dict(TaskAssignment.objects.filter(developer__in=users, task__status__in=ACTIVE, task__archived_at__isnull=True)
-                  .order_by().values("developer_id").annotate(n=Count("pk")).values_list("developer_id", "n"))
-    result = {}
+    rows = (TaskAssignment.objects.filter(developer__in=users, task__status__in=ACTIVE, task__archived_at__isnull=True)
+            .select_related("task__project").order_by("-task_id"))
+    counts, project_of = {}, {}
+    for row in rows:
+        counts[row.developer_id] = counts.get(row.developer_id, 0) + 1
+        project = row.task.project
+        if project is not None:
+            project_of.setdefault(row.developer_id, {"name": project.name, "description": project.description[:140]})
+    statuses, working_on = {}, {}
     for user in users:
         active = counts.get(user.pk, 0)
         on_trip = user.is_on_business_trip
-        result[user.pk] = {
-            "state": "trip" if on_trip else "busy" if active else "free",
-            "active_tasks": active,
-            "trip_return_date": user.business_trip_return_date if on_trip else None,
-        }
-    return result
+        state = "trip" if on_trip else "busy" if active else "free"
+        statuses[user.pk] = {"state": state, "active_tasks": active,
+                             "trip_return_date": user.business_trip_return_date if on_trip else None}
+        if state == "busy" and user.pk in project_of:
+            working_on[user.pk] = project_of[user.pk]
+    return statuses, working_on
 
 
 def current_projects(owner, limit=20):
@@ -89,10 +161,25 @@ def current_projects(owner, limit=20):
              "active_tasks": active.get(m.project_id, 0)} for m in memberships]
 
 
+def _latest_comments(users):
+    """Kartadagi "So'nggi sharh": dasturchi loyihalariga yozilgan eng yangi sharh va muallifning o'sha loyihaga bahosi (1 ta so'rov)."""
+    newest = PortfolioComment.objects.filter(item__owner=OuterRef("pk")).order_by("-created_at", "-id")
+    stars = PortfolioReview.objects.filter(item=OuterRef("item"), author=OuterRef("author")).values("stars")[:1]
+    rows = (User.objects.filter(pk__in=[u.pk for u in users])
+            .annotate(c_text=Subquery(newest.values("text")[:1]), c_at=Subquery(newest.values("created_at")[:1]),
+                      c_first=Subquery(newest.values("author__first_name")[:1]), c_last=Subquery(newest.values("author__last_name")[:1]),
+                      c_user=Subquery(newest.values("author__username")[:1]),
+                      c_stars=Subquery(newest.annotate(s=Subquery(stars)).values("s")[:1]))
+            .exclude(c_text=None).values("pk", "c_text", "c_at", "c_first", "c_last", "c_user", "c_stars"))
+    return {r["pk"]: {"author": f'{r["c_first"]} {r["c_last"]}'.strip() or r["c_user"], "text": r["c_text"][:200],
+                      "created_at": r["c_at"], "stars": r["c_stars"]} for r in rows}
+
+
 def developer_highlights(users):
-    """Ro'yxat kartalari uchun: oxirgi 3 ta loyiha nomi, qolganlari soni, tajriba va hozirgi holat."""
+    """Ro'yxat kartalari uchun: oxirgi 3 ta loyiha nomi, qolganlari soni, tajriba, hozirgi holat, hozir band loyiha va so'nggi sharh."""
     users = list(users)
-    statuses = developer_statuses(users)
+    statuses, working_on = statuses_and_work(users)
+    latest_comments = _latest_comments(users)
     items = {}
     for item in (PortfolioItem.objects.filter(owner__in=users).select_related("project")
                  .order_by("-created_at", "-id")):
@@ -114,6 +201,8 @@ def developer_highlights(users):
             "projects_extra": max(len(mine) - 3, 0),
             "experience_months": experience(user, mine)["months"],
             "status": statuses[user.pk],
+            "working_on": working_on.get(user.pk),
+            "latest_comment": latest_comments.get(user.pk),
             "technologies": technologies,
             "cover": cover_url(covered) if covered else None,
         }

@@ -33,17 +33,17 @@ import { Stars } from "./Stars";
 type OverviewTab = "overview" | "projects" | "reviews";
 
 /** Bitta portfolio modali: profil tablari, loyiha tafsiloti va loyiha formasi ichki holat sifatida almashadi. */
-export default function PortfolioModal({ id, item, add }: { id: number; item?: number; add?: boolean }) {
+export default function PortfolioModal({ id, item, add, tab }: { id: number; item?: number; add?: boolean; tab?: OverviewTab }) {
   if (add) return <PortfolioItemForm ownerId={id} />;
   if (item) return <PortfolioItemView id={item} />;
-  return <PortfolioOverview id={id} />;
+  return <PortfolioOverview id={id} initialTab={tab} />;
 }
 
-function PortfolioOverview({ id }: { id: number }) {
+function PortfolioOverview({ id, initialTab }: { id: number; initialTab?: OverviewTab }) {
   const { open, close } = useModal();
   const toast = useToast();
   const refresh = useRefresh(["portfolio", "profile"]);
-  const [tab, setTab] = useState<OverviewTab>("overview");
+  const [tab, setTab] = useState<OverviewTab>(initialTab ?? "overview");
   const query = useQuery({ queryKey: ["portfolio", "detail", id], queryFn: () => api.get<PortfolioDetail>(`/portfolio/${id}/`) });
   const data = query.data;
   const follow = useMutation({

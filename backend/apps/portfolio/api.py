@@ -22,7 +22,11 @@ from .serializers import (
     CommentInput, ItemInput, ReviewInput, attachment_row, comment_row, developer_review_row, history_row, developer_row, my_review_row,
     item_detail, item_row, review_row, video_row,
 )
-from .stats import DEVELOPER_RANKING_CACHE_KEY, SUMMARY_CACHE_KEY, developer_highlights, current_projects, developers_with_stats, following_count, experience, items_with_stats, recent_tasks, summary, tasks_done_by_project, years
+from .stats import (
+    DEVELOPER_RANKING_CACHE_KEY, STATES, SUMMARY_CACHE_KEY, current_projects, developer_highlights, developers_with_stats, experience,
+    filter_by_search, filter_by_status, filter_by_technology, following_count, items_with_stats, recent_tasks, summary,
+    tasks_done_by_project, years,
+)
 
 
 SORTS = {"followers": ("-followers_count",), "projects": ("-projects_count",), "reviews": ("-reviews_count",)}
@@ -53,7 +57,12 @@ def developer_list(request):
     sort = request.query_params.get("sort") if request.query_params.get("sort") in SORTS else None
     specialty = request.query_params.get("specialty", "")
     specialty = int(specialty) if specialty.isdigit() else None
-    if not q and not only_following and sort is None and specialty is None and "page" not in request.query_params and "page_size" not in request.query_params:
+    technology = request.query_params.get("technology", "").strip()[:60]
+    state = request.query_params.get("status") if request.query_params.get("status") in STATES else None
+    min_rating = request.query_params.get("min_rating", "")
+    min_rating = int(min_rating) if min_rating in ("1", "2", "3", "4", "5") else None
+    filtered = bool(q or only_following or specialty is not None or technology or state or min_rating)
+    if not filtered and sort is None and "page" not in request.query_params and "page_size" not in request.query_params:
         payload = cache.get(DEVELOPER_RANKING_CACHE_KEY)
         if payload is None:
             paginator = BoundedPagination()
@@ -72,17 +81,23 @@ def developer_list(request):
 
     qs = developers_with_stats(request.user)
     if q:
-        qs = qs.filter(Q(first_name__icontains=q) | Q(last_name__icontains=q) | Q(specialty__name__icontains=q))
+        qs = filter_by_search(qs, q)
     if only_following:
         qs = qs.filter(followers__follower=request.user)
     if specialty is not None:
         qs = qs.filter(specialty_id=specialty)
+    if technology:
+        qs = filter_by_technology(qs, technology)
+    if state:
+        qs = filter_by_status(qs, state)
+    if min_rating:
+        qs = qs.filter(rating__gte=min_rating)
     if sort:
         qs = qs.order_by(*SORTS[sort], "first_name", "last_name", "pk")
     paginator = BoundedPagination()
     page = paginator.paginate_queryset(qs, request)
     first = (paginator.page.start_index() if paginator.page else 1)
-    ranked = not (q or only_following or sort or specialty is not None)
+    ranked = not (filtered or sort)
     rows = _rows(page, lambda i: first + i if ranked else None)
     return paginator.get_paginated_response(rows)
 

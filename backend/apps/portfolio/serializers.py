@@ -44,6 +44,7 @@ def developer_row(user, rank=None, highlights=None):
         "experience_months": highlights.get("experience_months"),
         "status": highlights.get("status") or {"state": "free", "active_tasks": 0, "trip_return_date": None},
         "technologies": highlights.get("technologies", []), "cover": highlights.get("cover"),
+        "working_on": highlights.get("working_on"), "latest_comment": highlights.get("latest_comment"),
         "id": user.pk, "full_name": user.full_name, "role": user.role, "department_name": user.department_name,
         "avatar": avatar_url(user), "specialty": user.specialty.name if user.specialty else "",
         "bio": user.bio, "email": user.email, "telegram_username": user.telegram_username,

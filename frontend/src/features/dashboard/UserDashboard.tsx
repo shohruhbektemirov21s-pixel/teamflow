@@ -1,52 +1,135 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { ChevronRight, FolderKanban, Heart, Search, Star, TrendingUp, UserCheck, Users, X } from "lucide-react";
+import { Briefcase, CheckCircle2, Eye, FolderKanban, Heart, MessageSquare, Plane, RotateCcw, Search, Star, Users, X } from "lucide-react";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 
 import { useModal } from "@/app/modals";
 import { usePagedList, useRefresh } from "@/app/queries";
 import { api } from "@/shared/api";
+import { initials, timeAgo } from "@/shared/format";
 import { useDebounced } from "@/shared/hooks";
 import { T } from "@/shared/text";
 import type { PortfolioDeveloper, PortfolioSummary } from "@/shared/types";
-import { Avatar, Button, Empty, ErrorBox, SkeletonRows, useToast } from "@/shared/ui";
+import { AnimatedNumber, Avatar, Button, Empty, ErrorBox, Skeleton, useToast } from "@/shared/ui";
 import { Pagination } from "@/shared/ui/Pagination";
 
-import { StatusBadge, StatusDot } from "../portfolio/DeveloperStatus";
+import { StatusBadge, StatusDot, statusText } from "../portfolio/DeveloperStatus";
 
 type SortKey = keyof typeof T.user.sort;
+type StatusKey = keyof typeof T.user.statusOptions;
+type Tint = "primary" | "warning" | "info" | "success";
+const MAX_TAGS = 3;
 
-function StatCard({ value, label, icon, tone, badge, star, loading }: {
-  value: string | number; label: string; icon: ReactNode; tone: "violet" | "amber" | "blue" | "indigo";
-  badge?: string | null; star?: boolean; loading?: boolean;
-}) {
-  return (
-    <div className="card ustat">
-      <span className={`ustat-icon tone-${tone}`} aria-hidden>{icon}</span>
-      <div className="ustat-text">
-        <b className="ustat-value">
-          {loading ? <span className="skeleton ustat-skel" /> : value}
-          {star && !loading && <Star size={16} className="ustar" aria-hidden />}
-        </b>
-        <span className="muted">{label}</span>
-      </div>
-      {badge && <span className="ustat-badge"><TrendingUp size={11} aria-hidden /> {badge}</span>}
-    </div>
-  );
+/** Haftalik qo'shilganlar → har haftadagi jami (oxirgi ustun = hozirgi jami). Grafik o'sishni ko'rsatadi. */
+function cumulative(weekly: number[], total: number): number[] {
+  let rest = total - weekly.reduce((sum, n) => sum + n, 0);
+  return weekly.map((n) => (rest += n));
 }
 
-function RatingLine({ d }: { d: PortfolioDeveloper }) {
-  return d.rating === null ? (
-    <span className="ucard-rating"><span className="udot" aria-hidden /><span className="muted">{T.portfolio.noRating}</span></span>
-  ) : (
-    <span className="ucard-rating">
-      <Star size={16} className="ustar" aria-hidden />
-      <b>{d.rating.toFixed(1)}</b>
-      <span className="muted">({T.portfolio.reviewsN(d.reviews_count)})</span>
+/** So'nggi haftalar grafigi: ustunchalar. Hammasi nol bo'lsa — bir xil past ustunlar. */
+function MiniBars({ values, label }: { values: number[]; label: string }) {
+  const max = Math.max(...values, 1);
+  return (
+    <span className="pf-bars" role="img" aria-label={label}>
+      {values.map((v, i) => <i key={i} style={{ height: `${Math.max(12, Math.round((v / max) * 100))}%` }} />)}
     </span>
   );
 }
 
-function DeveloperCard({ d }: { d: PortfolioDeveloper }) {
+function Kpi({ index, value, label, icon, tint, series, star, loading }: {
+  index: number; value: string | number; label: string; icon: ReactNode; tint: Tint;
+  series?: number[]; star?: boolean; loading?: boolean;
+}) {
+  return (
+    <div className="pf-kpi" style={{ ["--i" as string]: index, ["--tint" as string]: `var(--${tint})`, ["--tint-soft" as string]: `var(--${tint}-soft)` }}>
+      <span className="pf-kpi-icon" aria-hidden>{icon}</span>
+      <div className="pf-kpi-body">
+        <b className="pf-kpi-value">
+          {loading ? <Skeleton w={44} h={26} /> : typeof value === "number" ? <AnimatedNumber value={value} /> : value}
+          {star && !loading && <Star className="pf-star" aria-hidden />}
+        </b>
+        <span className="pf-kpi-label">{label}</span>
+      </div>
+      {series && !loading && <MiniBars values={series} label={`${label}: ${T.user.trendCaption}`} />}
+    </div>
+  );
+}
+
+function Rating({ d }: { d: PortfolioDeveloper }) {
+  if (d.rating === null) return <span className="pf-rating is-empty">{T.portfolio.noRating}</span>;
+  return (
+    <span className="pf-rating">
+      <Star className="pf-star" aria-hidden />
+      <b>{d.rating.toFixed(1)}</b>
+      <small>({T.portfolio.reviewsN(d.reviews_count)})</small>
+    </span>
+  );
+}
+
+/** "Hozir band" qatori: har doim bitta joyda, shuning uchun kartalar bir xil balandlikda. */
+function WorkNow({ d }: { d: PortfolioDeveloper }) {
+  const { state, active_tasks } = d.status;
+  if (state === "busy" && d.working_on) {
+    return (
+      <div className="pf-now is-busy">
+        <span className="pf-now-icon" aria-hidden><Briefcase /></span>
+        <div className="pf-now-text">
+          <small>{T.user.nowWorking}</small>
+          <b>{d.working_on.name}</b>
+          {d.working_on.description && <span>{d.working_on.description}</span>}
+        </div>
+        <span className="pf-now-pill">{T.user.activeTasks(active_tasks)}</span>
+      </div>
+    );
+  }
+  if (state === "free") {
+    return (
+      <div className="pf-now is-free">
+        <span className="pf-now-icon" aria-hidden><CheckCircle2 /></span>
+        <div className="pf-now-text">
+          <b>{T.user.notBusy}</b>
+          <span>{T.user.notBusyHint}</span>
+        </div>
+      </div>
+    );
+  }
+  return (
+    <div className={`pf-now ${state === "trip" ? "is-trip" : "is-busy"}`}>
+      <span className="pf-now-icon" aria-hidden>{state === "trip" ? <Plane /> : <Briefcase />}</span>
+      <div className="pf-now-text"><b>{statusText(d.status)}</b></div>
+    </div>
+  );
+}
+
+function LatestComment({ d }: { d: PortfolioDeveloper }) {
+  const comment = d.latest_comment;
+  if (!comment) {
+    return (
+      <div className="pf-quote is-empty">
+        <MessageSquare aria-hidden />
+        <b>{T.user.noComment}</b>
+        <small>{T.user.noCommentHint}</small>
+      </div>
+    );
+  }
+  return (
+    <div className="pf-quote">
+      <span className="pf-quote-title">{T.user.latestComment}</span>
+      <div className="pf-quote-head">
+        <span className="pf-quote-ava" aria-hidden>{initials(comment.author)}</span>
+        <span className="pf-quote-name">{comment.author}</span>
+        {comment.stars !== null && (
+          <span className="pf-quote-stars" role="img" aria-label={T.portfolio.starsOf(comment.stars)}>
+            {[1, 2, 3, 4, 5].map((i) => <Star key={i} className={i <= comment.stars! ? "" : "off"} aria-hidden />)}
+          </span>
+        )}
+        <span className="pf-quote-time">{timeAgo(comment.created_at)}</span>
+      </div>
+      <p className="pf-quote-text">{comment.text}</p>
+    </div>
+  );
+}
+
+function DeveloperCard({ d, index }: { d: PortfolioDeveloper; index: number }) {
   const { open } = useModal();
   const toast = useToast();
   const refresh = useRefresh(["portfolio", "profile"]);
@@ -59,26 +142,19 @@ function DeveloperCard({ d }: { d: PortfolioDeveloper }) {
     onError: (error) => toast(error.message, "error"),
   });
   const openProfile = () => open({ portfolio: d.id });
-  const experience = d.experience_months != null ? T.user.experienceShort(d.experience_months) : "–";
+  const technologies = d.technologies ?? [];
 
   return (
-    <article className="card ucard" onClick={openProfile}>
+    <article className="pf-card" style={{ ["--i" as string]: Math.min(index, 8) }} onClick={openProfile}>
       <div
-        className={d.cover ? "ucover" : `ucover ucover-${((d.id - 1) % 5) + 1}`}
+        className={d.cover ? "pf-cover" : `pf-cover c${((d.id - 1) % 5) + 1}`}
         role={!d.cover ? "img" : undefined}
         aria-label={!d.cover ? T.user.developerCoverEmpty(d.full_name) : undefined}
       >
-        {d.cover && (
-          <img
-            src={d.cover}
-            alt={T.user.developerCoverAlt(d.full_name)}
-            loading="lazy"
-            style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: "inherit" }}
-          />
-        )}
+        {d.cover && <img src={d.cover} alt={T.user.developerCoverAlt(d.full_name)} loading="lazy" />}
         <button
           type="button"
-          className="uheart"
+          className="pf-heart"
           aria-pressed={d.is_following}
           aria-label={d.is_following ? T.user.unfollowAria(d.full_name) : T.user.followAria(d.full_name)}
           disabled={follow.isPending}
@@ -90,51 +166,70 @@ function DeveloperCard({ d }: { d: PortfolioDeveloper }) {
           <Heart size={18} aria-hidden />
         </button>
       </div>
-      <div className="ucard-main">
-        <span className="ucard-avatar">
-          <Avatar user={d} size="xl" card={false} />
-          <StatusDot status={d.status} />
-        </span>
-        <div className="ucard-head">
-          <div className="ucard-id">
-            <b className="ucard-name ellipsis">{d.full_name}</b>
-            <span className="muted ellipsis">{d.specialty || T.portfolio.developer}</span>
+      <div className="pf-body">
+        <div className="pf-id">
+          <span className="pf-avatar">
+            <Avatar user={d} size="xl" card={false} />
+            <StatusDot status={d.status} />
+          </span>
+          <div className="pf-who">
+            <b className="pf-name">{d.full_name}</b>
+            <span className="pf-spec">{d.specialty || T.portfolio.developer}</span>
           </div>
-          <button type="button" className="uview" onClick={(event) => { event.stopPropagation(); openProfile(); }}>
-            {T.user.viewProfile}<ChevronRight size={16} aria-hidden />
+          <Rating d={d} />
+        </div>
+        <div className="pf-tags" aria-label={T.portfolio.technologies}>
+          <StatusBadge status={d.status} />
+          {technologies.slice(0, MAX_TAGS).map((technology) => <span key={technology} className="pf-tag">{technology}</span>)}
+          {technologies.length > MAX_TAGS && <span className="pf-tag more">+{technologies.length - MAX_TAGS}</span>}
+        </div>
+        <dl className="pf-metrics">
+          <div className="pf-metric"><dd><b>{d.projects_count}</b></dd><dt><span>{T.user.cardProjects}</span></dt></div>
+          <div className="pf-metric"><dd><b>{d.rating === null ? "–" : d.rating.toFixed(1)}</b></dd><dt><span>{T.user.cardRating}</span></dt></div>
+          <div className="pf-metric"><dd><b>{d.reviews_count}</b></dd><dt><span>{T.user.cardReviews}</span></dt></div>
+        </dl>
+        <WorkNow d={d} />
+        <LatestComment d={d} />
+        <div className="pf-actions">
+          <button type="button" className="pf-btn primary" onClick={(event) => { event.stopPropagation(); openProfile(); }}>
+            <Eye aria-hidden />{T.user.viewProfile}
+          </button>
+          <button type="button" className="pf-btn" onClick={(event) => { event.stopPropagation(); open({ portfolio: d.id, tab: "projects" }); }}>
+            <MessageSquare aria-hidden />{T.user.writeReview}
           </button>
         </div>
-        <RatingLine d={d} />
-        <div className="ucard-status"><StatusBadge status={d.status} /></div>
-        {!!d.technologies?.length && (
-          <div className="ucard-tags" aria-label={T.portfolio.technologies}>
-            {d.technologies.slice(0, 3).map((technology) => <span key={technology} className="utag">{technology}</span>)}
-            {d.technologies.length > 3 && <span className="utag utag-more">+{d.technologies.length - 3}</span>}
-          </div>
-        )}
-        <dl className="ucard-stats">
-          <div><dt><FolderKanban size={14} aria-hidden /> {T.user.cardProjects}</dt><dd>{d.projects_count}</dd></div>
-          <div><dt><Star size={14} aria-hidden /> {T.user.cardRating}</dt><dd>{d.rating === null ? "–" : d.rating.toFixed(1)}</dd></div>
-          <div><dt><UserCheck size={14} aria-hidden /> {T.user.cardExperience}</dt><dd>{experience}</dd></div>
-        </dl>
       </div>
     </article>
   );
 }
 
-/** Oddiy foydalanuvchi bosh sahifasi: qidiruv, reyting saralashi va haqiqiy portfolio ma'lumotlari. */
+/** Oddiy foydalanuvchi bosh sahifasi: ko'rsatkichlar, qidiruv, filtrlar va dasturchi kartalari (hammasi portfolio API'dan). */
 export default function UserDashboard() {
   const [q, setQ] = useState("");
+  const [technology, setTechnology] = useState("");
+  const [status, setStatus] = useState<"" | StatusKey>("");
+  const [minRating, setMinRating] = useState("");
   const [sort, setSort] = useState<SortKey>("rating");
   const searchRef = useRef<HTMLInputElement>(null);
   const search = useDebounced(q.trim());
   const summary = useQuery({ queryKey: ["portfolio", "summary"], queryFn: () => api.get<PortfolioSummary>("/portfolio/summary/") });
-  const list = usePagedList<PortfolioDeveloper>(["portfolio", "list", search, sort], "/portfolio/", {
+  const list = usePagedList<PortfolioDeveloper>(["portfolio", "list", search, technology, status, minRating, sort], "/portfolio/", {
     q: search,
+    technology: technology || undefined,
+    status: status || undefined,
+    min_rating: minRating || undefined,
     sort: sort === "rating" ? undefined : sort,
   });
   const rows = list.data ?? [];
   const stats = summary.data;
+  const filtered = !!(q || technology || status || minRating);
+  const clear = () => {
+    setQ("");
+    setTechnology("");
+    setStatus("");
+    setMinRating("");
+    searchRef.current?.focus();
+  };
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -148,12 +243,25 @@ export default function UserDashboard() {
   }, []);
 
   return (
-    <div className="stack">
-      <div className="uhead"><div className="uhead-text"><h1 className="uhead-title">{T.user.title}</h1></div></div>
+    <div className="pf-page">
+      <div className="pf-head">
+        <h1 className="pf-title">{T.user.title}</h1>
+        {list.pagination && <span className="pf-count" aria-live="polite">{T.user.resultCount(list.pagination.count)}</span>}
+      </div>
 
-      <div className="utoolbar">
-        <label className="people-search uhead-search">
-          <Search size={18} className="muted" aria-hidden />
+      <div className="pf-kpis">
+        <Kpi index={0} tint="primary" icon={<Users />} loading={summary.isLoading} value={stats ? stats.developers : "–"} label={T.user.statDevelopers}
+          series={stats ? cumulative(stats.series.developers, stats.developers) : undefined} />
+        <Kpi index={1} tint="warning" icon={<Star />} loading={summary.isLoading} value={stats?.average_rating != null ? stats.average_rating.toFixed(1) : "–"}
+          label={T.user.statRating} star={stats?.average_rating != null} />
+        <Kpi index={2} tint="info" icon={<FolderKanban />} loading={summary.isLoading} value={stats ? stats.completed_projects : "–"}
+          label={T.user.statCompleted} series={stats ? cumulative(stats.series.completed_projects, stats.completed_projects) : undefined} />
+        <Kpi index={3} tint="success" icon={<CheckCircle2 />} loading={summary.isLoading} value={stats ? stats.busy_developers : "–"} label={T.user.statBusy} />
+      </div>
+
+      <div className="pf-filters" role="search">
+        <label className="pf-search">
+          <Search size={18} aria-hidden />
           <input
             ref={searchRef}
             type="search"
@@ -169,56 +277,52 @@ export default function UserDashboard() {
             }}
           />
           {q ? (
-            <button
-              type="button"
-              className="uhead-clear-btn"
-              aria-label={T.common.clear}
-              title={T.common.clear}
-              onClick={(event) => {
-                event.preventDefault();
-                setQ("");
-                searchRef.current?.focus();
-              }}
-            >
+            <button type="button" className="pf-x" aria-label={T.common.clear} title={T.common.clear} onClick={(event) => { event.preventDefault(); setQ(""); searchRef.current?.focus(); }}>
               <X size={15} aria-hidden />
             </button>
           ) : (
-            <kbd className="ukbd" aria-hidden>{T.user.searchKbd}</kbd>
+            <kbd className="pf-kbd" aria-hidden>{T.user.searchKbd}</kbd>
           )}
         </label>
-        <select className="input usort" aria-label={T.user.sortLabel} value={sort} onChange={(event) => setSort(event.target.value as SortKey)}>
+        {!!stats?.technologies.length && (
+          <select className={`pf-select ${technology ? "is-set" : ""}`} aria-label={T.user.filterTechnology} value={technology} onChange={(event) => setTechnology(event.target.value)}>
+            <option value="">{T.user.filterTechnology}</option>
+            {stats.technologies.map((name) => <option key={name} value={name}>{name}</option>)}
+          </select>
+        )}
+        <select className={`pf-select ${status ? "is-set" : ""}`} aria-label={T.user.filterStatus} value={status} onChange={(event) => setStatus(event.target.value as "" | StatusKey)}>
+          <option value="">{T.user.filterStatus}</option>
+          {(Object.keys(T.user.statusOptions) as StatusKey[]).map((key) => <option key={key} value={key}>{T.user.statusOptions[key]}</option>)}
+        </select>
+        <select className={`pf-select ${minRating ? "is-set" : ""}`} aria-label={T.user.filterRating} value={minRating} onChange={(event) => setMinRating(event.target.value)}>
+          <option value="">{T.user.filterRating}</option>
+          {[5, 4, 3].map((n) => <option key={n} value={n}>{T.user.ratingFrom(n)}</option>)}
+        </select>
+        <select className="pf-select" aria-label={T.user.sortLabel} value={sort} onChange={(event) => setSort(event.target.value as SortKey)}>
           {(Object.keys(T.user.sort) as SortKey[]).map((key) => <option key={key} value={key}>{T.user.sort[key]}</option>)}
         </select>
-      </div>
-
-      <div className="ustats">
-        <StatCard tone="violet" icon={<Users size={20} />} loading={summary.isLoading} value={stats ? stats.developers : "–"} label={T.user.statDevelopers}
-          badge={stats?.developers_growth ? `+${stats.developers_growth}%` : null} />
-        <StatCard tone="amber" icon={<Star size={20} />} loading={summary.isLoading} value={stats?.average_rating != null ? stats.average_rating.toFixed(1) : "–"}
-          label={T.user.statRating} star={stats?.average_rating != null} />
-        <StatCard tone="blue" icon={<FolderKanban size={20} />} loading={summary.isLoading} value={stats ? stats.rated_projects : "–"} label={T.user.statRated} />
-        <StatCard tone="indigo" icon={<TrendingUp size={20} />} loading={summary.isLoading} value={stats ? stats.active_projects : "–"} label={T.user.statActive} />
+        {filtered && (
+          <button type="button" className="pf-reset" onClick={clear}><RotateCcw size={15} aria-hidden />{T.common.clear}</button>
+        )}
       </div>
 
       {list.error && <ErrorBox error={list.error} onRetry={() => list.refetch()} />}
-      {list.isLoading && <div className="card"><SkeletonRows rows={4} /></div>}
+      {list.isLoading && (
+        <div className="pf-grid" aria-busy="true">
+          {[0, 1, 2].map((i) => <Skeleton key={i} h={520} style={{ borderRadius: "var(--radius)" }} />)}
+        </div>
+      )}
       {list.data && !rows.length && (
         <div className="card">
           <Empty
             icon={<Users />}
             title={T.portfolio.empty}
             hint={T.portfolio.emptyHint}
-            action={
-              q ? (
-                <Button size="sm" variant="ghost" onClick={() => { setQ(""); searchRef.current?.focus(); }}>
-                  {T.common.clear}
-                </Button>
-              ) : undefined
-            }
+            action={filtered ? <Button size="sm" variant="ghost" onClick={clear}>{T.common.clear}</Button> : undefined}
           />
         </div>
       )}
-      <div className="ugrid">{rows.map((developer) => <DeveloperCard key={developer.id} d={developer} />)}</div>
+      {!!rows.length && <div className="pf-grid">{rows.map((developer, index) => <DeveloperCard key={developer.id} d={developer} index={index} />)}</div>}
       <Pagination data={list.pagination} page={list.page} onPageChange={list.onPageChange} />
     </div>
   );
