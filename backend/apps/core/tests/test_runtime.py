@@ -4,7 +4,7 @@ from unittest.mock import patch
 from django.core.exceptions import ImproperlyConfigured
 from django.test import SimpleTestCase, TestCase
 
-from config.runtime import cache_config, database_config
+from config.runtime import cache_config, database_config, env_flag
 
 
 class RuntimeConfigTests(SimpleTestCase):
@@ -25,6 +25,17 @@ class RuntimeConfigTests(SimpleTestCase):
             database_config("sqlite:///production.db", Path("."), debug=False)
         with self.assertRaises(ImproperlyConfigured):
             cache_config("http://cache", debug=False)
+
+
+class DebugFlagTests(SimpleTestCase):
+    def test_debug_is_off_when_variable_is_missing(self):
+        with patch.dict("os.environ", {}, clear=True):
+            self.assertFalse(env_flag("DJANGO_DEBUG"))
+
+    def test_debug_is_on_only_for_explicit_one(self):
+        for raw, expected in (("1", True), ("0", False), ("", False), ("true", False), ("yes", False)):
+            with patch.dict("os.environ", {"DJANGO_DEBUG": raw}, clear=True):
+                self.assertIs(env_flag("DJANGO_DEBUG"), expected, raw)
 
 
 class HealthTests(TestCase):

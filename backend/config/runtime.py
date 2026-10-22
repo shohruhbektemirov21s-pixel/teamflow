@@ -5,6 +5,12 @@ from urllib.parse import parse_qs, unquote, urlparse
 from django.core.exceptions import ImproperlyConfigured
 
 
+def env_flag(name, default=False):
+    """Faqat aniq `1` yoqadi; o'zgaruvchi yo'q bo'lsa `default` (xavfsiz tomon: o'chiq)."""
+    value = os.environ.get(name)
+    return default if value is None else value == "1"
+
+
 def database_config(url, base_dir, *, debug):
     if not url:
         if not debug:

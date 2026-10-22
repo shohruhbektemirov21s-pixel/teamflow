@@ -3,7 +3,7 @@ import sys
 import tempfile
 from pathlib import Path
 
-from .runtime import cache_config, database_config
+from .runtime import cache_config, database_config, env_flag
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -22,7 +22,9 @@ def _load_env_file(path):
 
 _load_env_file(BASE_DIR / ".env")
 
-DEBUG = os.environ.get("DJANGO_DEBUG", "1") == "1"
+# Standart — o'chiq: o'zgaruvchi unutilsa ham server DEBUG'da ishlamaydi. Mahalliy ishlab chiqishda
+# `backend/.env` ga `DJANGO_DEBUG=1` yoziladi (SQLite va xotira keshi faqat shu rejimda ruxsat etiladi).
+DEBUG = env_flag("DJANGO_DEBUG")
 
 # Prod'da SECRET_KEY muhit o'zgaruvchisidan olinadi; dev uchun zaxira qiymat.
 SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "dev-only-insecure-key-change-me")

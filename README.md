@@ -420,7 +420,7 @@ Batafsil bosqichlar: `docs/FLOWS_MODALS.md`.
 - Har bir API so'rovda rol va egalik **serverda** tekshiriladi: boshqarma faqat o'z buyurtmasini, dasturchi faqat o'z vazifasi va loyihasini ko'radi.
 - Buyurtma yuborilgach boshqarma uni tahrirlay ham, o'chira ham olmaydi.
 - Fayl yuklashda tur va hajm tekshiriladi. Yuklangan fayllar ochiq berilmaydi — faqat `/api/files/...` orqali ruxsat tekshiruvi bilan. Profil rasmlari — `/api/avatars/<id>/`, faqat tizimga kirganlarga.
-- Maxfiy ma'lumotlar (`DJANGO_SECRET_KEY`, Telegram token) muhit o'zgaruvchilarida yoki `backend/.env` da; `DEBUG=0` bo'lganda maxfiy kalitsiz server ishga tushmaydi.
+- Maxfiy ma'lumotlar (`DJANGO_SECRET_KEY`, Telegram token) muhit o'zgaruvchilarida yoki `backend/.env` da. `DEBUG` **standart holatda o'chiq** (2026-10-22): `DJANGO_DEBUG=1` aniq yozilmasa server production rejimida ishlaydi va maxfiy kalitsiz, `DATABASE_URL` (PostgreSQL) va `REDIS_URL`siz ishga tushmaydi. Mahalliy ishlab chiqishda `backend/.env` ga `DJANGO_DEBUG=1` yoziladi (`backend/.env.example` da namuna).
 
 ## TinyFish AI web-agent
 
@@ -463,7 +463,7 @@ TinyFish TeamFlow ichidan tashqi saytni avtomatlashtirish yoki manbali web tadqi
 
 ### Demo foydalanuvchilar
 
-`seed_demo` buyrug'i yaratadi (faqat `DEBUG` rejimida). Parol hammasida: `Demo-parol-2026`.
+`seed_demo` buyrug'i yaratadi (faqat `DJANGO_DEBUG=1` rejimida). Parol hammasida: `Demo-parol-2026`.
 
 | Login | Ism | Rol | Mutaxassislik / Boshqarma |
 |---|---|---|---|
@@ -477,6 +477,8 @@ TinyFish TeamFlow ichidan tashqi saytni avtomatlashtirish yoki manbali web tadqi
 Django admin (`/admin/`): lokal bazada `admin` superuser (parol: `Admin-parol-2026`). Yangi bazada `createsuperuser` bilan yaratiladi — `seed_demo` uni yaratmaydi.
 
 ### 1. Backend
+
+Mahalliy ishga tushirishdan oldin `backend/.env` da `DJANGO_DEBUG=1` bo'lishi shart (namuna: `backend/.env.example`); aks holda server production talablarini (PostgreSQL, Redis) so'raydi.
 
 ```bash
 cd backend
